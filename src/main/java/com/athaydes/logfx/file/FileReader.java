@@ -16,6 +16,7 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -83,7 +84,8 @@ public class FileReader {
             while ( ( line = reader.readLine() ) != null ) {
                 lines.add( line );
             }
-            lineFeed.accept( lines.toArray( new String[]{} ) );
+            Collections.reverse( lines );
+            lineFeed.accept( lines.toArray( new String[ 0 ] ) );
         } catch ( IOException e ) {
             e.printStackTrace();
         }
