@@ -47,17 +47,27 @@ public class FileReader {
         watcherThread.setDaemon( true );
     }
 
-    public void start() {
-        onChange2();
-        watcherThread.start();
+    /**
+     * @param onDone called when done, if all good, true is passed to the function, otherwise, false.
+     */
+    public void start( Consumer<Boolean> onDone ) {
+        readerThread.execute( () -> {
+            boolean fileReadOk = onChange2();
+            if ( fileReadOk ) {
+                watcherThread.start();
+            }
+            onDone.accept( fileReadOk );
+        } );
     }
 
     private Thread watchFile( Path path ) {
-        System.out.println( "Watching path " + path.getFileName() );
         return new Thread( () -> {
             WatchKey watchKey = null;
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
                 watchKey = path.getParent().register( watchService, StandardWatchEventKinds.ENTRY_MODIFY );
+
+                System.out.println( "Watching path " + path.getFileName() );
+
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
                     for ( WatchEvent<?> event : wk.pollEvents() ) {
@@ -78,7 +88,9 @@ public class FileReader {
             } catch ( IOException e ) {
                 e.printStackTrace();
             } finally {
-                watchKey.cancel();
+                if ( watchKey != null ) {
+                    watchKey.cancel();
+                }
             }
         } );
     }
@@ -97,31 +109,35 @@ public class FileReader {
         }
     }
 
-    private void onChange2() {
+    private boolean onChange2() {
         //TODO implement reading file from any position
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
-            CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
+            CharsetDecoder decoder = StandardCharsets.US_ASCII.newDecoder();
             StringBuilder builder = new StringBuilder( 10 * BUFFER_SIZE );
             long totalBytes = 0;
-            int bytesRead = 0;
-            while ( bytesRead != -1 && totalBytes < MAX_BYTES ) {
-                buffer.position( 0 );
+            int bytesRead = 1;
+            while ( bytesRead > 0 && totalBytes < MAX_BYTES ) {
                 FileChannel channel = reader.getChannel();
                 channel.position( Math.max( 0, channel.size() - 1 - BUFFER_SIZE ) );
                 do {
                     bytesRead = channel.read( buffer );
+                    System.out.println( "Read " + bytesRead + " bytes" );
                     totalBytes += bytesRead;
                 } while ( bytesRead != -1 && buffer.hasRemaining() );
-
+                System.out.println( "Buffer full? " + ( !buffer.hasRemaining() ) );
                 buffer.flip();
                 builder.append( decoder.decode( buffer ) );
+                buffer.clear();
             }
+            System.out.println( "Done reading, read total " + totalBytes + " bytes" );
             lineFeed.accept( builder.toString().split( "\n" ) );
+            return true;
         } catch ( MalformedInputException e ) {
             Dialog.showConfirmDialog( "Bad encoding." );
         } catch ( Exception e ) {
             e.printStackTrace();
         }
+        return false;
     }
 
     public void stop() {

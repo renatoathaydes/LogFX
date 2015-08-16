@@ -75,11 +75,13 @@ public class LogFX extends Application {
     }
 
     private void updateFile( File file ) {
-        if ( fileReader != null ) {
-            fileReader.stop();
-        }
+        final FileReader oldFileReader = fileReader;
         fileReader = new FileReader( file, view::showLines );
-        fileReader.start();
+        fileReader.start( accepted -> {
+            if ( accepted && oldFileReader != null ) {
+                oldFileReader.stop();
+            }
+        } );
     }
 
     private Menu editMenu() {
