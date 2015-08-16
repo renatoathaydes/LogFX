@@ -42,11 +42,11 @@ public class LogView extends VBox {
     }
 
     public void showLines( String[] lines ) {
-        int max = maxLines.get();
-        int extraLines = max - lines.length;
+        final int max = maxLines.get();
+        final int extraLines = max - lines.length;
         final String[] linesCopy = Arrays.copyOf( lines, max );
         if ( extraLines > 0 ) {
-            Arrays.fill( linesCopy, max - extraLines, max - 1, "" );
+            Arrays.fill( linesCopy, max - extraLines, max, "" );
         }
         Platform.runLater( () -> {
             for ( int i = 0; i < max; i++ ) {

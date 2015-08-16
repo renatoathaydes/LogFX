@@ -1,5 +1,6 @@
 package com.athaydes.logfx.file;
 
+import com.athaydes.logfx.ui.Dialog;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 
 import java.io.File;
@@ -8,6 +9,7 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.CharsetDecoder;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -29,6 +31,7 @@ import java.util.function.Consumer;
 public class FileReader {
 
     private static final int BUFFER_SIZE = 1024;
+    private static final int MAX_BYTES = BUFFER_SIZE * 1_000;
 
     private final ByteBuffer buffer = ByteBuffer.allocate( BUFFER_SIZE );
     private final File file;
@@ -45,22 +48,23 @@ public class FileReader {
     }
 
     public void start() {
-        onChange();
+        onChange2();
         watcherThread.start();
     }
 
     private Thread watchFile( Path path ) {
         System.out.println( "Watching path " + path.getFileName() );
         return new Thread( () -> {
+            WatchKey watchKey = null;
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
-                WatchKey watchKey = path.getParent().register( watchService, StandardWatchEventKinds.ENTRY_MODIFY );
+                watchKey = path.getParent().register( watchService, StandardWatchEventKinds.ENTRY_MODIFY );
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
                     for ( WatchEvent<?> event : wk.pollEvents() ) {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
-                            readerThread.execute( this::onChange );
+                            readerThread.execute( this::onChange2 );
                         }
                     }
                     // reset the key
@@ -73,6 +77,8 @@ public class FileReader {
                 System.out.println( "Interrupted watching file " + file );
             } catch ( IOException e ) {
                 e.printStackTrace();
+            } finally {
+                watchKey.cancel();
             }
         } );
     }
@@ -95,17 +101,24 @@ public class FileReader {
         //TODO implement reading file from any position
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
             CharsetDecoder decoder = StandardCharsets.UTF_8.newDecoder();
-            buffer.position( 0 );
-            FileChannel channel = reader.getChannel();
-            //channel.position( Math.max( 0, channel.size() - 1 - BUFFER_SIZE ) );
-            int bytesRead;
-            do {
-                bytesRead = channel.read( buffer );
-            } while ( bytesRead != -1 && buffer.hasRemaining() );
+            StringBuilder builder = new StringBuilder( 10 * BUFFER_SIZE );
+            long totalBytes = 0;
+            int bytesRead = 0;
+            while ( bytesRead != -1 && totalBytes < MAX_BYTES ) {
+                buffer.position( 0 );
+                FileChannel channel = reader.getChannel();
+                channel.position( Math.max( 0, channel.size() - 1 - BUFFER_SIZE ) );
+                do {
+                    bytesRead = channel.read( buffer );
+                    totalBytes += bytesRead;
+                } while ( bytesRead != -1 && buffer.hasRemaining() );
 
-            buffer.flip();
-            String text = decoder.decode( buffer ).toString();
-            lineFeed.accept( text.split( "\n" ) );
+                buffer.flip();
+                builder.append( decoder.decode( buffer ) );
+            }
+            lineFeed.accept( builder.toString().split( "\n" ) );
+        } catch ( MalformedInputException e ) {
+            Dialog.showConfirmDialog( "Bad encoding." );
         } catch ( Exception e ) {
             e.printStackTrace();
         }
