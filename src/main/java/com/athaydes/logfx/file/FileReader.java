@@ -120,6 +120,7 @@ public class FileReader {
                 FileChannel channel = reader.getChannel();
                 channel.position( Math.max( 0, channel.size() - 1 - BUFFER_SIZE ) );
                 do {
+                    // TODO consider using map(): http://mindprod.com/jgloss/bytebuffer.html
                     bytesRead = channel.read( buffer );
                     System.out.println( "Read " + bytesRead + " bytes" );
                     totalBytes += bytesRead;
