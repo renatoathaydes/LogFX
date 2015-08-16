@@ -1,0 +1,22 @@
+group 'com.athaydes.logfx'
+version '1.0-SNAPSHOT'
+
+apply plugin: 'java'
+apply plugin: 'application'
+
+compileJava {
+    sourceCompatibility = 1.8
+    targetCompatibility = 1.8
+}
+
+mainClassName = "com.athaydes.logfx.LogFX"
+
+repositories {
+    mavenLocal()
+    jcenter()
+}
+
+dependencies {
+    compile group: 'commons-io', name: 'commons-io', version: '2.4'
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+}
