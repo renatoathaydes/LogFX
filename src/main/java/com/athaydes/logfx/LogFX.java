@@ -49,6 +49,10 @@ public class LogFX extends Application {
         primaryStage.setScene( scene );
         primaryStage.centerOnScreen();
         primaryStage.show();
+
+        primaryStage.setOnHidden( event -> {
+            if ( fileReader != null ) fileReader.stop();
+        } );
     }
 
     private Menu fileMenu() {
