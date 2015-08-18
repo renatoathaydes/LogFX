@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  */
 public class LogView extends VBox {
 
-    private final AtomicInteger maxLines = new AtomicInteger( 100 );
+    private static final AtomicInteger maxLines = new AtomicInteger( 100 );
     private final HighlightOptions highlightOptions;
 
     public LogView( BindableValue<Font> fontValue,
@@ -43,15 +43,15 @@ public class LogView extends VBox {
 
     public void showLines( String[] lines ) {
         final int max = maxLines.get();
-        final int extraLines = max - lines.length;
         final String[] linesCopy = Arrays.copyOf( lines, max );
+        final int extraLines = max - lines.length;
         if ( extraLines > 0 ) {
             Arrays.fill( linesCopy, max - extraLines, max, "" );
         }
         Platform.runLater( () -> {
-            for ( int i = 0; i < max; i++ ) {
-                String text = linesCopy[ i ];
-                updateLine( lineAt( i ), text );
+            for ( int i = max; i > 0; i-- ) {
+                String text = linesCopy[ i - 1 ];
+                updateLine( lineAt( max - i ), text );
             }
         } );
     }
@@ -68,6 +68,10 @@ public class LogView extends VBox {
 
     private LogLine lineAt( int index ) {
         return ( LogLine ) getChildren().get( index );
+    }
+
+    public static int getMaxLines() {
+        return maxLines.get();
     }
 
 }
