@@ -4,6 +4,8 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
@@ -23,7 +25,7 @@ public class LogView extends VBox {
                     ReadOnlyDoubleProperty widthProperty,
                     HighlightOptions highlightOptions ) {
         this.highlightOptions = highlightOptions;
-        updateCapacity( fontValue, widthProperty );
+        updateCapacity( fontValue, Bindings.max( widthProperty(), widthProperty ) );
         highlightOptions.getObservableExpressions().addListener( ( Observable observable ) -> {
             synchronized ( maxLines ) {
                 for ( int i = 0; i < maxLines.get(); i++ ) {
@@ -33,7 +35,7 @@ public class LogView extends VBox {
         } );
     }
 
-    private void updateCapacity( BindableValue<Font> fontValue, ReadOnlyDoubleProperty widthProperty ) {
+    private void updateCapacity( BindableValue<Font> fontValue, NumberBinding widthProperty ) {
         final HighlightExpression expression = highlightOptions.expressionFor( "" );
         for ( int i = 0; i < maxLines.get(); i++ ) {
             getChildren().add( new LogLine( fontValue, widthProperty,
