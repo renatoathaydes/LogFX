@@ -12,18 +12,8 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.nio.file.*;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -34,8 +24,11 @@ import java.util.function.Consumer;
  */
 public class FileReader {
 
-    private static final int BUFFER_SIZE = 1024;
-    private static final int MAX_BYTES = BUFFER_SIZE * 1_000;
+    private static final int DEFAULT_BUFFER_SIZE = 1024;
+    private static final int DEFAULT_MAX_BYTES = DEFAULT_BUFFER_SIZE * 1_000;
+
+    private final long bufferSize;
+    private final long maxBytes;
 
     private final File file;
     private final Consumer<String[]> lineFeed;
@@ -43,11 +36,20 @@ public class FileReader {
     private final Thread watcherThread;
     private final ExecutorService readerThread = Executors.newSingleThreadExecutor();
 
-    public FileReader( File file, Consumer<String[]> lineFeed ) {
+    public FileReader( File file, Consumer<String[]> lineFeed, long maxBytes, long bufferSize ) {
+        if ( bufferSize > maxBytes ) {
+            throw new IllegalArgumentException( "bufferSize > maxBytes" );
+        }
         this.file = file;
         this.lineFeed = lineFeed;
+        this.maxBytes = maxBytes;
+        this.bufferSize = bufferSize;
         this.watcherThread = watchFile( file.toPath() );
         watcherThread.setDaemon( true );
+    }
+
+    public FileReader( File file, Consumer<String[]> lineFeed ) {
+        this( file, lineFeed, DEFAULT_MAX_BYTES, DEFAULT_BUFFER_SIZE );
     }
 
     /**
@@ -73,7 +75,7 @@ public class FileReader {
 
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
-                    for ( WatchEvent<?> event : wk.pollEvents() ) {
+                    for (WatchEvent<?> event : wk.pollEvents()) {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
@@ -106,7 +108,7 @@ public class FileReader {
                 lines.add( line );
             }
             Collections.reverse( lines );
-            lineFeed.accept( lines.toArray( new String[ 0 ] ) );
+            lineFeed.accept( lines.toArray( new String[ lines.size() ] ) );
         } catch ( IOException e ) {
             e.printStackTrace();
         }
@@ -138,22 +140,23 @@ public class FileReader {
         LinkedList<List<String>> partitions = new LinkedList<>();
 
         long startPosition = length - 1;
-        long size = BUFFER_SIZE;
-        final int maxIterations = MAX_BYTES / BUFFER_SIZE;
-        int currentIterations = 0;
+        long size = bufferSize;
+        final long maxIterations = maxBytes / bufferSize;
+        long currentIterations = 0;
         long totalLinesRead = 0;
 
-        partitionBuilding:
         do {
             startPosition -= size;
 
             // compensate for the case where startPosition is negative
-            size = Math.min( BUFFER_SIZE, BUFFER_SIZE + startPosition );
+            size = Math.min( bufferSize, bufferSize + startPosition );
+            long nonNegativeStartPosition = Math.max( 0, startPosition );
 
-            System.out.println( "Mapping file partition from " + startPosition + " to " + ( startPosition + size - 1 ) );
+            System.out.println( "Mapping file partition from " + nonNegativeStartPosition +
+                    " to " + ( nonNegativeStartPosition + size ) );
 
             MappedByteBuffer mapBuffer = channel.map( FileChannel.MapMode.READ_ONLY,
-                    Math.max( 0, startPosition ), size );
+                    nonNegativeStartPosition, size );
 
             List<String> partition = linesFrom( mapBuffer );
             partitions.addFirst( partition );
@@ -163,7 +166,7 @@ public class FileReader {
             // get out if already have enough lines (+ 1 so we can complete the last line if necessary)
             if ( totalLinesRead > LogView.getMaxLines() + 1 ) {
                 System.out.println( "Got enough lines already: " + totalLinesRead );
-                break partitionBuilding;
+                break;
             }
         } while ( startPosition > 0 && currentIterations < maxIterations );
 
@@ -182,7 +185,7 @@ public class FileReader {
                 .mapToInt( List::size ).sum() );
 
         boolean joinPrevious = false;
-        for ( List<String> partition : partitions ) {
+        for (List<String> partition : partitions) {
             Iterator<String> partitionIterator = partition.iterator();
             if ( joinPrevious && partitionIterator.hasNext() ) {
                 appendToLastElementOf( result, partitionIterator.next() );
@@ -196,7 +199,7 @@ public class FileReader {
         // we need the last lines first
         Collections.reverse( result );
 
-        return result.toArray( new String[ 0 ] );
+        return result.toArray( new String[ result.size() ] );
     }
 
     private static void appendToLastElementOf( List<String> list, String toAppend ) {
