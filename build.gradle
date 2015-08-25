@@ -1,7 +1,7 @@
 group 'com.athaydes.logfx'
 version '1.0-SNAPSHOT'
 
-apply plugin: 'java'
+apply plugin: 'groovy'
 apply plugin: 'application'
 
 compileJava {
@@ -18,5 +18,9 @@ repositories {
 
 dependencies {
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
+    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.4'
+    testCompile group: 'org.spockframework', name: 'spock-core', version: '1.0-groovy-2.4', {
+        transitive = false
+    }
     testCompile group: 'junit', name: 'junit', version: '4.12'
 }
