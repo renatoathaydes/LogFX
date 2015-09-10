@@ -2,7 +2,6 @@ package com.athaydes.logfx.file;
 
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.LogView;
-import org.apache.commons.io.input.ReversedLinesFileReader;
 
 import java.io.File;
 import java.io.IOException;
@@ -40,6 +39,9 @@ public class FileReader {
         if ( bufferSize > maxBytes ) {
             throw new IllegalArgumentException( "bufferSize > maxBytes" );
         }
+        if ( bufferSize <= 0 ) {
+            throw new IllegalArgumentException( "bufferSize <= 0" );
+        }
         this.file = file;
         this.lineFeed = lineFeed;
         this.maxBytes = maxBytes;
@@ -57,7 +59,7 @@ public class FileReader {
      */
     public void start( Consumer<Boolean> onDone ) {
         readerThread.execute( () -> {
-            boolean fileReadOk = onChange2();
+            boolean fileReadOk = onChange();
             if ( fileReadOk ) {
                 watcherThread.start();
             }
@@ -75,11 +77,11 @@ public class FileReader {
 
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
-                    for (WatchEvent<?> event : wk.pollEvents()) {
+                    for ( WatchEvent<?> event : wk.pollEvents() ) {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
-                            readerThread.execute( this::onChange2 );
+                            readerThread.execute( this::onChange );
                         }
                     }
                     // reset the key
@@ -100,31 +102,17 @@ public class FileReader {
         } );
     }
 
-    private void onChange() {
-        try ( ReversedLinesFileReader reader = new ReversedLinesFileReader( file ) ) {
-            String line;
-            List<String> lines = new ArrayList<>();
-            while ( ( line = reader.readLine() ) != null ) {
-                lines.add( line );
-            }
-            Collections.reverse( lines );
-            lineFeed.accept( lines.toArray( new String[ lines.size() ] ) );
-        } catch ( IOException e ) {
-            e.printStackTrace();
-        }
-    }
-
-    private boolean onChange2() {
+    private boolean onChange() {
         //TODO implement reading file from any position
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
             FileChannel channel = reader.getChannel();
-            final long length = channel.size();
-            if ( length == 0 ) {
+            final long channelLength = channel.size();
+            if ( channelLength == 0 ) {
                 lineFeed.accept( new String[ 0 ] );
                 return true;
             }
 
-            lineFeed.accept( joinContiguous( partitions( channel, length ) ) );
+            lineFeed.accept( joinContiguous( partitions( channel, channelLength ) ) );
 
             return true;
         } catch ( MalformedInputException e ) {
@@ -135,13 +123,13 @@ public class FileReader {
         return false;
     }
 
-    private List<List<String>> partitions( FileChannel channel, long length )
+    private List<String> partitions( FileChannel channel, long channelLength )
             throws IOException {
-        LinkedList<List<String>> partitions = new LinkedList<>();
+        LinkedList<String> partitions = new LinkedList<>();
 
-        long startPosition = length - 1;
+        long startPosition = channelLength;
         long size = bufferSize;
-        final long maxIterations = maxBytes / bufferSize;
+        final double maxIterations = Math.ceil( ( double ) maxBytes / bufferSize );
         long currentIterations = 0;
         long totalLinesRead = 0;
 
@@ -158,9 +146,9 @@ public class FileReader {
             MappedByteBuffer mapBuffer = channel.map( FileChannel.MapMode.READ_ONLY,
                     nonNegativeStartPosition, size );
 
-            List<String> partition = linesFrom( mapBuffer );
+            String partition = readPartition( mapBuffer );
             partitions.addFirst( partition );
-            totalLinesRead += partition.size();
+            totalLinesRead += linesIn( partition );
             currentIterations += 1;
 
             // get out if already have enough lines (+ 1 so we can complete the last line if necessary)
@@ -169,46 +157,42 @@ public class FileReader {
                 break;
             }
         } while ( startPosition > 0 && currentIterations < maxIterations );
-
+        System.out.println( "PARTITIONS: " + partitions );
         System.out.println( "Done mapping file in " + currentIterations + " of " + maxIterations + " iterations" );
         return partitions;
     }
 
-    private static List<String> linesFrom( MappedByteBuffer buffer )
+    private static String readPartition( MappedByteBuffer buffer )
             throws CharacterCodingException {
-        String text = StandardCharsets.US_ASCII.newDecoder().decode( buffer ).toString();
-        return Arrays.asList( text.split( "\n" ) );
+        return StandardCharsets.US_ASCII.newDecoder().decode( buffer ).toString();
     }
 
-    private static String[] joinContiguous( List<List<String>> partitions ) {
-        List<String> result = new ArrayList<>( partitions.stream()
-                .mapToInt( List::size ).sum() );
+    private static int linesIn( String partition ) {
+        int count = 0;
+        for ( char character : partition.toCharArray() ) {
+            if ( character == '\n' ) count++;
+        }
+        return count;
+    }
+
+    private static String[] joinContiguous( List<String> partitions ) {
+        List<String> result = new ArrayList<>();
 
         boolean joinPrevious = false;
-        for (List<String> partition : partitions) {
-            Iterator<String> partitionIterator = partition.iterator();
-            if ( joinPrevious && partitionIterator.hasNext() ) {
-                appendToLastElementOf( result, partitionIterator.next() );
+        for ( int i = partitions.size() - 1; i >= 0; i-- ) {
+            String partition = partitions.get( i );
+            List<String> lines = new LinkedList<>(
+                    Arrays.asList( partition.split( "\n" ) ) );
+            Collections.reverse( lines );
+            if ( joinPrevious && !partition.endsWith( "\n" ) ) {
+                int lastIndex = result.size() - 1;
+                result.set( lastIndex, lines.remove( 0 ) + result.get( lastIndex ) );
             }
-            while ( partitionIterator.hasNext() ) {
-                result.add( partitionIterator.next() );
-            }
-            joinPrevious = !result.get( result.size() - 1 ).endsWith( "\n" );
+            result.addAll( lines );
+            joinPrevious = !partition.startsWith( "\n" );
         }
-
-        // we need the last lines first
-        Collections.reverse( result );
 
         return result.toArray( new String[ result.size() ] );
-    }
-
-    private static void appendToLastElementOf( List<String> list, String toAppend ) {
-        if ( list.isEmpty() ) {
-            list.add( toAppend );
-        } else {
-            int lastIndex = list.size() - 1;
-            list.set( lastIndex, list.get( lastIndex ) + toAppend );
-        }
     }
 
     public void stop() {

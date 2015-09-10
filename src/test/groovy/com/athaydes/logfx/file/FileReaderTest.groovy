@@ -40,7 +40,7 @@ public class FileReaderTest extends Specification {
         assert latch.await( 5, TimeUnit.SECONDS )
 
         then: 'All lines have been added to the list in reverse order'
-        result == ['fourth line', 'third line', 'second line', 'first line']
+        result == [ 'fourth line', 'third line', 'second line', 'first line' ]
     }
 
     def "Can read several lines with a buffer much smaller than the whole file"() {
@@ -48,11 +48,11 @@ public class FileReaderTest extends Specification {
         file = new File( "build/long-file" )
         file.delete()
         file.withWriter { writer ->
-            ( 1..100 ).each { writer << (it.toString()[ -1 ] * 99 + '\n') }
+            ( 1..100 ).each { writer << ( it.toString()[ -1 ] * 99 + '\n' ) }
         }
 
         and: "A FileReader using a buffer of size #bufferSize and maximum bytes #maxBytes"
-        final fileLines = [ ]
+        final List<List> fileLines = [ ]
         fileReader = new FileReader( file,
                 { lines -> println lines; fileLines.addAll lines },
                 maxBytes, bufferSize )
@@ -68,18 +68,21 @@ public class FileReaderTest extends Specification {
         assert latch.await( 5, TimeUnit.SECONDS )
 
         then: "Only the lines that fit into maxBytes were read"
-     //   fileLines.size() == expectedLinesRead
+        fileLines.size() == expectedLinesRead
 
-        and: "The lines are all 100 characters long"
-        fileLines.collect { it.size() }.every { size -> size == 100 }
-//        fileLines.every { line -> line.size() == 100 }
+        and: "All lines except the last are all 100 characters long (99 + newline)"
+        if ( fileLines.size() > 1 ) {
+            fileLines[ 0..-2 ].collect { it.size() }.every { size -> size == 99 }
+        }
+
+        and: "The last line is as long as needed for the last partition to fill the bytes required"
+        fileLines[ -1 ].size() == bytesInLastLine
 
         where:
-        maxBytes | bufferSize || expectedLinesRead
-        510      | 40         || 5
-      //  810      | 40         || 8
-       // 2        | 1          || 0
-
+        maxBytes | bufferSize | expectedLinesRead | bytesInLastLine
+        510      | 40         | 6                 | 19
+        750      | 100        | 8                 | 99
+        3        | 1          | 1                 | 2
     }
 
 }
