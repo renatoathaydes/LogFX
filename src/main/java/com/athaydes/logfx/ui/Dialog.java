@@ -9,15 +9,23 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
 /**
  *
  */
 public class Dialog {
 
+    private static Window primaryStage = null;
+
+    public static void setPrimaryStage( Window primaryStage ) {
+        Dialog.primaryStage = primaryStage;
+    }
+
     private final Stage dialogStage = new Stage();
 
     public Dialog( Node top, Node... others ) {
+        dialogStage.initOwner( primaryStage );
         dialogStage.initModality( Modality.NONE );
         VBox box = new VBox( 10 );
         box.setAlignment( Pos.CENTER );

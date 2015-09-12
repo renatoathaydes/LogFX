@@ -16,6 +16,7 @@ import javafx.stage.Stage;
 
 import java.io.File;
 
+import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
 import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
 
 /**
@@ -34,6 +35,7 @@ public class LogFX extends Application {
     @Override
     public void start( Stage primaryStage ) throws Exception {
         this.stage = primaryStage;
+        setPrimaryStage( primaryStage );
 
         MenuBar menuBar = new MenuBar();
         menuBar.getMenus().addAll( fileMenu(), editMenu(), new Menu( "About" ) );
