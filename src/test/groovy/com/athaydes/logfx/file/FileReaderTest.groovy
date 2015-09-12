@@ -20,7 +20,7 @@ public class FileReaderTest extends Specification {
     def "Knows how to split lines properly, unlike String.split"() {
         when:
         'Breaking up some text into lines using the FileReader'
-        def result = FileReader.linesOf( text )
+        def result = FileReader.reversedLinesOf( text )
 
         then:
         'We get the lines as expected, not like Java String.split which does not return the last empty lines'

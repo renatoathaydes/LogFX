@@ -2,6 +2,7 @@ package com.athaydes.logfx.file;
 
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.LogView;
+import javafx.application.Platform;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +13,9 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.util.Collections;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,12 +33,12 @@ public class FileReader {
     private final long maxBytes;
 
     private final File file;
-    private final Consumer<String[]> lineFeed;
+    private final Consumer<List<String>> lineFeed;
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final Thread watcherThread;
     private final ExecutorService readerThread = Executors.newSingleThreadExecutor();
 
-    public FileReader( File file, Consumer<String[]> lineFeed, long maxBytes, long bufferSize ) {
+    public FileReader( File file, Consumer<List<String>> lineFeed, long maxBytes, long bufferSize ) {
         if ( bufferSize > maxBytes ) {
             throw new IllegalArgumentException( "bufferSize > maxBytes" );
         }
@@ -50,7 +53,7 @@ public class FileReader {
         watcherThread.setDaemon( true );
     }
 
-    public FileReader( File file, Consumer<String[]> lineFeed ) {
+    public FileReader( File file, Consumer<List<String>> lineFeed ) {
         this( file, lineFeed, DEFAULT_MAX_BYTES, DEFAULT_BUFFER_SIZE );
     }
 
@@ -108,22 +111,22 @@ public class FileReader {
             FileChannel channel = reader.getChannel();
             final long channelLength = channel.size();
             if ( channelLength == 0 ) {
-                lineFeed.accept( new String[ 0 ] );
+                lineFeed.accept( Collections.emptyList() );
                 return true;
             }
 
-            lineFeed.accept( partitions( channel, channelLength ) );
+            lineFeed.accept( lines( channel, channelLength ) );
 
             return true;
         } catch ( MalformedInputException e ) {
-            Dialog.showConfirmDialog( "Bad encoding." );
+            Platform.runLater( () -> Dialog.showConfirmDialog( "Bad encoding." ) );
         } catch ( Exception e ) {
             e.printStackTrace();
         }
         return false;
     }
 
-    private String[] partitions( FileChannel channel, long channelLength )
+    private List<String> lines( FileChannel channel, long channelLength )
             throws IOException {
         LinkedList<String> fileLines = new LinkedList<>();
 
@@ -148,7 +151,7 @@ public class FileReader {
 
             String partition = readPartition( mapBuffer );
             boolean newLineAtEnd = partition.endsWith( "\n" );
-            LinkedList<String> reversedLines = linesOf( partition );
+            LinkedList<String> reversedLines = reversedLinesOf( partition );
 
             if ( newLineAtEnd && currentIterations > 0 ) {
                 reversedLines.removeFirst(); // empty-line can be removed as partition already broke up the lines
@@ -157,7 +160,7 @@ public class FileReader {
             System.out.println( "Partition: " + partition.replace( "\n", "#" ) );
             System.out.println( "Lines: " + reversedLines );
             if ( !newLineAtEnd && !fileLines.isEmpty() ) {
-                System.out.println( "Joining with first in partitions: " + fileLines );
+                System.out.println( "Joining with first in lines: " + fileLines );
                 fileLines.set( 0, reversedLines.removeFirst() + fileLines.get( 0 ) );
             }
 
@@ -179,10 +182,10 @@ public class FileReader {
         } while ( startPosition > 0 && currentIterations < maxIterations );
         System.out.println( "PARTITIONS: " + fileLines );
         System.out.println( "Done mapping file in " + currentIterations + " of " + maxIterations + " iterations" );
-        return fileLines.toArray( new String[ fileLines.size() ] );
+        return fileLines;
     }
 
-    protected static LinkedList<String> linesOf( String partition ) {
+    protected static LinkedList<String> reversedLinesOf( String partition ) {
         LinkedList<String> result = new LinkedList<>();
         int index = 0;
         int endIndex;
