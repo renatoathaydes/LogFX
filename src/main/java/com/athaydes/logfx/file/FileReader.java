@@ -12,7 +12,7 @@ import java.nio.charset.CharacterCodingException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.util.*;
+import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -112,7 +112,7 @@ public class FileReader {
                 return true;
             }
 
-            lineFeed.accept( joinContiguous( partitions( channel, channelLength ) ) );
+            lineFeed.accept( partitions( channel, channelLength ) );
 
             return true;
         } catch ( MalformedInputException e ) {
@@ -123,9 +123,9 @@ public class FileReader {
         return false;
     }
 
-    private List<String> partitions( FileChannel channel, long channelLength )
+    private String[] partitions( FileChannel channel, long channelLength )
             throws IOException {
-        LinkedList<String> partitions = new LinkedList<>();
+        LinkedList<String> fileLines = new LinkedList<>();
 
         long startPosition = channelLength;
         long size = bufferSize;
@@ -147,8 +147,25 @@ public class FileReader {
                     nonNegativeStartPosition, size );
 
             String partition = readPartition( mapBuffer );
-            partitions.addFirst( partition );
-            totalLinesRead += linesIn( partition );
+            boolean newLineAtEnd = partition.endsWith( "\n" );
+            LinkedList<String> reversedLines = linesOf( partition );
+
+            if ( newLineAtEnd && currentIterations > 0 ) {
+                reversedLines.removeFirst(); // empty-line can be removed as partition already broke up the lines
+            }
+
+            System.out.println( "Partition: " + partition.replace( "\n", "#" ) );
+            System.out.println( "Lines: " + reversedLines );
+            if ( !newLineAtEnd && !fileLines.isEmpty() ) {
+                System.out.println( "Joining with first in partitions: " + fileLines );
+                fileLines.set( 0, reversedLines.removeFirst() + fileLines.get( 0 ) );
+            }
+
+            for ( String line : reversedLines ) {
+                fileLines.addFirst( line );
+            }
+
+            totalLinesRead += reversedLines.size();
             currentIterations += 1;
 
             // get out if already have enough lines (+ 1 so we can complete the last line if necessary)
@@ -156,43 +173,32 @@ public class FileReader {
                 System.out.println( "Got enough lines already: " + totalLinesRead );
                 break;
             }
+
+            //joinPrevious = !partition.startsWith( "\n" );
+
         } while ( startPosition > 0 && currentIterations < maxIterations );
-        System.out.println( "PARTITIONS: " + partitions );
+        System.out.println( "PARTITIONS: " + fileLines );
         System.out.println( "Done mapping file in " + currentIterations + " of " + maxIterations + " iterations" );
-        return partitions;
+        return fileLines.toArray( new String[ fileLines.size() ] );
+    }
+
+    protected static LinkedList<String> linesOf( String partition ) {
+        LinkedList<String> result = new LinkedList<>();
+        int index = 0;
+        int endIndex;
+        while ( ( endIndex = partition.indexOf( '\n', index ) ) >= 0 ) {
+            result.addFirst( partition.substring( index, endIndex ) );
+            index = endIndex + 1;
+        }
+
+        result.addFirst( partition.substring( index ) );
+
+        return result;
     }
 
     private static String readPartition( MappedByteBuffer buffer )
             throws CharacterCodingException {
         return StandardCharsets.US_ASCII.newDecoder().decode( buffer ).toString();
-    }
-
-    private static int linesIn( String partition ) {
-        int count = 0;
-        for ( char character : partition.toCharArray() ) {
-            if ( character == '\n' ) count++;
-        }
-        return count;
-    }
-
-    private static String[] joinContiguous( List<String> partitions ) {
-        List<String> result = new ArrayList<>();
-
-        boolean joinPrevious = false;
-        for ( int i = partitions.size() - 1; i >= 0; i-- ) {
-            String partition = partitions.get( i );
-            List<String> lines = new LinkedList<>(
-                    Arrays.asList( partition.split( "\n" ) ) );
-            Collections.reverse( lines );
-            if ( joinPrevious && !partition.endsWith( "\n" ) ) {
-                int lastIndex = result.size() - 1;
-                result.set( lastIndex, lines.remove( 0 ) + result.get( lastIndex ) );
-            }
-            result.addAll( lines );
-            joinPrevious = !partition.startsWith( "\n" );
-        }
-
-        return result.toArray( new String[ result.size() ] );
     }
 
     public void stop() {
