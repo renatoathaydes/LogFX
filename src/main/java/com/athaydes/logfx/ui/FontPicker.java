@@ -17,7 +17,7 @@ public class FontPicker {
 
     public static Dialog showFontPicker( Font currentFont, Consumer<Font> selectionCallback ) {
         ComboBox<String> fontNames = new ComboBox<>(
-                observableList( Font.getFontNames() ) );
+                observableList( Font.getFontNames().stream().distinct().collect( toList() ) ) );
         fontNames.getSelectionModel().select( currentFont.getName() );
 
         ComboBox<Double> fontSizes = new ComboBox<>(
