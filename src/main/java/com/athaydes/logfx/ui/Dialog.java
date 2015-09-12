@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -10,6 +11,8 @@ import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.Window;
+import javafx.stage.WindowEvent;
+
 
 /**
  *
@@ -27,16 +30,28 @@ public class Dialog {
     public Dialog( Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
         dialogStage.initModality( Modality.NONE );
+        dialogStage.setResizable( false );
         VBox box = new VBox( 10 );
         box.setAlignment( Pos.CENTER );
         box.setPadding( new Insets( 20 ) );
         box.getChildren().add( top );
         box.getChildren().addAll( others );
         dialogStage.setScene( new Scene( box ) );
+        dialogStage.focusedProperty().addListener( observable -> {
+            if ( dialogStage.isFocused() ) {
+                dialogStage.setOpacity( 1.0 );
+            } else {
+                dialogStage.setOpacity( 0.5 );
+            }
+        } );
     }
 
     public void setTitle( String title ) {
         dialogStage.setTitle( title );
+    }
+
+    public void setOnHidden( EventHandler<WindowEvent> handler ) {
+        dialogStage.setOnHidden( handler );
     }
 
     public void setAlwaysOnTop( boolean alwaysOnTop ) {

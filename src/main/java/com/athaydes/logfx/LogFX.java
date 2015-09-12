@@ -2,12 +2,16 @@ package com.athaydes.logfx;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.file.FileReader;
+import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
 import javafx.application.Application;
-import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.control.*;
+import javafx.scene.control.CheckMenuItem;
+import javafx.scene.control.Menu;
+import javafx.scene.control.MenuBar;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -15,10 +19,12 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
 import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
+import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
 
 /**
  *
@@ -31,7 +37,6 @@ public class LogFX extends Application {
     private volatile FileReader fileReader;
     private final HighlightOptions highlightOptions = new HighlightOptions();
     private final LogView view = new LogView( fontValue, root.widthProperty(), highlightOptions );
-    private final Group headerGroup = new Group();
 
     @Override
     public void start( Stage primaryStage ) throws Exception {
@@ -44,7 +49,7 @@ public class LogFX extends Application {
         ScrollPane viewPane = new ScrollPane( view );
         viewPane.prefViewportHeightProperty().bind( root.heightProperty() );
 
-        root.getChildren().addAll( menuBar, headerGroup, viewPane );
+        root.getChildren().addAll( menuBar, viewPane );
 
         Scene scene = new Scene( root, 800, 600, Color.RED );
         primaryStage.setScene( scene );
@@ -90,32 +95,44 @@ public class LogFX extends Application {
     }
 
     private Menu editMenu() {
-        Menu menu = new Menu( "_Edit" );
+        Menu menu = new Menu( "_View" );
         menu.setMnemonicParsing( true );
 
         CheckMenuItem highlight = new CheckMenuItem( "_Highlight Options" );
         highlight.setMnemonicParsing( true );
+        bindMenuItemToDialog( highlight, () ->
+                showHighlightOptionsDialog( highlightOptions ) );
 
-        highlight.setOnAction( ( event ) -> {
-            if ( highlight.isSelected() )
-                headerGroup.getChildren().add( highlightOptions );
-            else
-                headerGroup.getChildren().remove( highlightOptions );
-        } );
-        MenuItem font = new MenuItem( "Fon_t" );
+        CheckMenuItem font = new CheckMenuItem( "Fon_t" );
         font.setMnemonicParsing( true );
-
-        AtomicReference<com.athaydes.logfx.ui.Dialog> fontPicker = new AtomicReference<>();
-
-        font.setOnAction( ( event ) -> {
-            if ( fontPicker.get() == null || !fontPicker.get().isVisible() ) {
-                fontPicker.set( showFontPicker( fontValue.getValue(), selectedFont ->
-                        fontValue.setValue( selectedFont ) ) );
-            }
-        } );
+        bindMenuItemToDialog( font, () ->
+                showFontPicker( fontValue.getValue(), fontValue::setValue ) );
 
         menu.getItems().addAll( highlight, font );
         return menu;
+    }
+
+    private static void bindMenuItemToDialog( CheckMenuItem menuItem, Callable<Dialog> dialogCreator ) {
+        AtomicReference<Dialog> dialogRef = new AtomicReference<>();
+
+        menuItem.setOnAction( ( event ) -> {
+            if ( menuItem.isSelected() ) {
+                if ( dialogRef.get() == null || !dialogRef.get().isVisible() ) {
+                    try {
+                        Dialog dialog = dialogCreator.call();
+                        dialogRef.set( dialog );
+                        dialog.setOnHidden( e -> {
+                            menuItem.setSelected( false );
+                            dialogRef.set( null );
+                        } );
+                    } catch ( Exception e ) {
+                        e.printStackTrace();
+                    }
+                }
+            } else if ( dialogRef.get() != null ) {
+                dialogRef.get().hide();
+            }
+        } );
     }
 
     public static void main( String[] args ) {

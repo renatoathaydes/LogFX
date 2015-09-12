@@ -117,4 +117,12 @@ public class HighlightOptions extends VBox {
 
     }
 
+    public static Dialog showHighlightOptionsDialog( HighlightOptions highlightOptions ) {
+        Dialog dialog = new Dialog( highlightOptions );
+        dialog.setTitle( "Highlight Options" );
+        dialog.setAlwaysOnTop( true );
+        dialog.show();
+        return dialog;
+    }
+
 }
