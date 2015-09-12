@@ -51,9 +51,8 @@ public class LogView extends VBox {
             Arrays.fill( linesCopy, max - extraLines, max, "" );
         }
         Platform.runLater( () -> {
-            for ( int i = max; i > 0; i-- ) {
-                String text = linesCopy[ i - 1 ];
-                updateLine( lineAt( max - i ), text );
+            for ( int i = 0; i < linesCopy.length; i++ ) {
+                updateLine( lineAt( i ), linesCopy[ i ] );
             }
         } );
     }
