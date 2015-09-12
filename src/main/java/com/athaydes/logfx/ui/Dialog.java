@@ -27,6 +27,14 @@ public class Dialog {
         dialogStage.setScene( new Scene( box ) );
     }
 
+    public void setTitle( String title ) {
+        dialogStage.setTitle( title );
+    }
+
+    public void setAlwaysOnTop( boolean alwaysOnTop ) {
+        dialogStage.setAlwaysOnTop( alwaysOnTop );
+    }
+
     public void show() {
         dialogStage.centerOnScreen();
         dialogStage.show();

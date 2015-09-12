@@ -7,11 +7,7 @@ import com.athaydes.logfx.ui.LogView;
 import javafx.application.Application;
 import javafx.scene.Group;
 import javafx.scene.Scene;
-import javafx.scene.control.CheckMenuItem;
-import javafx.scene.control.Menu;
-import javafx.scene.control.MenuBar;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
+import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -19,6 +15,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+
+import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
 
 /**
  *
@@ -103,10 +101,11 @@ public class LogFX extends Application {
         } );
         MenuItem font = new MenuItem( "Fon_t" );
         font.setMnemonicParsing( true );
-        font.setOnAction( ( event ) -> {
-            // TODO change font
-            System.out.println( "Font" );
-        } );
+
+        font.setOnAction( ( event ) ->
+                showFontPicker( fontValue.getValue(), selectedFont ->
+                        fontValue.setValue( selectedFont ) ) );
+
         menu.getItems().addAll( highlight, font );
         return menu;
     }
