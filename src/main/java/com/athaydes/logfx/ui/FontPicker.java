@@ -15,7 +15,7 @@ import static javafx.collections.FXCollections.observableList;
 
 public class FontPicker {
 
-    public static void showFontPicker( Font currentFont, Consumer<Font> selectionCallback ) {
+    public static Dialog showFontPicker( Font currentFont, Consumer<Font> selectionCallback ) {
         ComboBox<String> fontNames = new ComboBox<>(
                 observableList( Font.getFontNames() ) );
         fontNames.getSelectionModel().select( currentFont.getName() );
@@ -45,6 +45,7 @@ public class FontPicker {
         dialog.setAlwaysOnTop( true );
 
         dialog.show();
+        return dialog;
     }
 
 }

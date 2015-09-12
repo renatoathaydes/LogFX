@@ -52,6 +52,10 @@ public class Dialog {
         dialogStage.hide();
     }
 
+    public boolean isVisible() {
+        return dialogStage.isShowing();
+    }
+
     public static void showConfirmDialog( String text ) {
         Button okButton = new Button( "OK" );
         Dialog dialog = new Dialog(

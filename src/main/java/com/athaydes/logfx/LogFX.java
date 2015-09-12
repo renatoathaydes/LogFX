@@ -15,6 +15,7 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
 import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
@@ -104,9 +105,14 @@ public class LogFX extends Application {
         MenuItem font = new MenuItem( "Fon_t" );
         font.setMnemonicParsing( true );
 
-        font.setOnAction( ( event ) ->
-                showFontPicker( fontValue.getValue(), selectedFont ->
+        AtomicReference<com.athaydes.logfx.ui.Dialog> fontPicker = new AtomicReference<>();
+
+        font.setOnAction( ( event ) -> {
+            if ( fontPicker.get() == null || !fontPicker.get().isVisible() ) {
+                fontPicker.set( showFontPicker( fontValue.getValue(), selectedFont ->
                         fontValue.setValue( selectedFont ) ) );
+            }
+        } );
 
         menu.getItems().addAll( highlight, font );
         return menu;
