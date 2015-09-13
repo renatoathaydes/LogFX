@@ -30,7 +30,6 @@ public class Dialog {
     public Dialog( Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
         dialogStage.initModality( Modality.NONE );
-        dialogStage.setResizable( false );
         VBox box = new VBox( 10 );
         box.setAlignment( Pos.CENTER );
         box.setPadding( new Insets( 20 ) );
@@ -44,6 +43,10 @@ public class Dialog {
                 dialogStage.setOpacity( 0.5 );
             }
         } );
+    }
+
+    public void setResizable( boolean resizable ) {
+        dialogStage.setResizable( resizable );
     }
 
     public void setTitle( String title ) {

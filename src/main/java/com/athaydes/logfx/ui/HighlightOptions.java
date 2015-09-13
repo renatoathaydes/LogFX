@@ -1,9 +1,15 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.text.HighlightExpression;
-import com.sun.javafx.collections.ObservableListWrapper;
+import javafx.collections.FXCollections;
+import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.scene.Node;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -12,17 +18,19 @@ import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
+
+import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
+import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 
 /**
  *
  */
 public class HighlightOptions extends VBox {
 
-    private final ObservableListWrapper<HighlightExpression> observableExpressions;
+    private final ObservableList<HighlightExpression> observableExpressions;
 
     public HighlightOptions() {
         setSpacing( 5 );
@@ -30,13 +38,26 @@ public class HighlightOptions extends VBox {
         Label label = new Label( "Enter highlight expressions:" );
         label.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
 
-        observableExpressions = new ObservableListWrapper<>( new ArrayList<>(
-                Arrays.asList(
-                        new HighlightExpression( ".*WARN.*", Color.YELLOW, Color.RED ),
-                        new HighlightExpression( ".*", Color.BLACK, Color.LIGHTGREY )
-                ) ) );
+        observableExpressions = FXCollections.observableArrayList(
+                new HighlightExpression( ".*WARN.*", Color.YELLOW, Color.RED ),
+                new HighlightExpression( ".*", Color.BLACK, Color.LIGHTGREY ) );
 
-        getChildren().addAll( label, new Row( ".*WARN.*" ), new Row( ".*", false ) );
+        Button newRow = new Button( "Add rule" );
+        newRow.setOnAction( this::addRow );
+
+        getChildren().addAll( label, new Row( ".*WARN.*" ), new CatchAllRow( ".*" ), newRow );
+    }
+
+
+    private void addRow( Object ignore ) {
+        int index = 0;
+        for ( Node child : getChildren() ) {
+            if ( child instanceof CatchAllRow ) {
+                break;
+            }
+            index++;
+        }
+        getChildren().add( index - 1, new Row( ".*text.*" ) );
     }
 
     private List<HighlightExpression> computeExpressions() {
@@ -51,7 +72,7 @@ public class HighlightOptions extends VBox {
                 } ).collect( Collectors.toList() );
     }
 
-    public ObservableListWrapper<HighlightExpression> getObservableExpressions() {
+    public ObservableList<HighlightExpression> getObservableExpressions() {
         return observableExpressions;
     }
 
@@ -66,6 +87,38 @@ public class HighlightOptions extends VBox {
 
     private void updateExpressions() {
         observableExpressions.setAll( computeExpressions() );
+    }
+
+    private EventHandler<ActionEvent> moveUpEventHandler( Row row ) {
+        return ( event ) -> {
+            int childIndex = getChildren().indexOf( row );
+            if ( childIndex > 1 ) { // first child is a label
+                Node previousChild = getChildren().remove( childIndex - 1 );
+                getChildren().add( childIndex, previousChild );
+            }
+        };
+    }
+
+    private EventHandler<ActionEvent> moveDownEventHandler( Row row ) {
+        return ( event ) -> {
+            int childIndex = getChildren().indexOf( row );
+            Node nextChild = getChildren().get( childIndex + 1 );
+            if ( !( nextChild instanceof CatchAllRow ) && ( nextChild instanceof Row ) ) {
+                getChildren().remove( nextChild );
+                getChildren().add( childIndex, nextChild );
+            }
+        };
+    }
+
+    private class CatchAllRow extends Row {
+        CatchAllRow( String text ) {
+            super( text, false );
+        }
+
+        @Override
+        protected Optional<Node> upDownButtons() {
+            return Optional.empty();
+        }
     }
 
     private class Row extends HBox {
@@ -98,6 +151,19 @@ public class HighlightOptions extends VBox {
             getChildren().addAll( expressionField,
                     bkgColorField, bkgColorRectangle,
                     fillColorField, fillColorRectangle );
+
+            Optional<Node> upDown = upDownButtons();
+            if ( upDown.isPresent() ) {
+                getChildren().add( upDown.get() );
+            }
+        }
+
+        protected Optional<Node> upDownButtons() {
+            VBox upDownArrows = new VBox( 2 );
+            upDownArrows.getChildren().addAll(
+                    Arrow.arrowButton( UP, moveUpEventHandler( this ) ),
+                    Arrow.arrowButton( DOWN, moveDownEventHandler( this ) ) );
+            return Optional.of( upDownArrows );
         }
 
         private TextField fieldFor( Rectangle colorRectangle, String initialColor ) {
@@ -118,7 +184,9 @@ public class HighlightOptions extends VBox {
     }
 
     public static Dialog showHighlightOptionsDialog( HighlightOptions highlightOptions ) {
-        Dialog dialog = new Dialog( highlightOptions );
+        ScrollPane pane = new ScrollPane( highlightOptions );
+        pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
+        Dialog dialog = new Dialog( new ScrollPane( highlightOptions ) );
         dialog.setTitle( "Highlight Options" );
         dialog.setAlwaysOnTop( true );
         dialog.show();

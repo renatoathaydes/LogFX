@@ -43,6 +43,7 @@ public class FontPicker {
         Dialog dialog = new Dialog( grid );
         dialog.setTitle( "Select a font" );
         dialog.setAlwaysOnTop( true );
+        dialog.setResizable( false );
 
         dialog.show();
         return dialog;
