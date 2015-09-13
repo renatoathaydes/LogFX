@@ -113,6 +113,8 @@ public class HighlightOptions extends VBox {
     private class CatchAllRow extends Row {
         CatchAllRow( String text ) {
             super( text, false );
+            expressionField.setEditable( false );
+            expressionField.setDisable( true );
         }
 
         @Override
