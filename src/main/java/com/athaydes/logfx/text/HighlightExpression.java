@@ -27,6 +27,10 @@ public class HighlightExpression {
         return fillColor;
     }
 
+    public Pattern getPattern() {
+        return expression;
+    }
+
     public boolean matches( String text ) {
         if ( text == null || text.equals( "" ) ) {
             text = ".*";
@@ -34,4 +38,12 @@ public class HighlightExpression {
         return expression.matcher( text ).matches();
     }
 
+    @Override
+    public String toString() {
+        return "{" +
+                "expression=" + expression +
+                ", bkgColor=" + bkgColor +
+                ", fillColor=" + fillColor +
+                '}';
+    }
 }

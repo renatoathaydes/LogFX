@@ -1,6 +1,7 @@
 package com.athaydes.logfx;
 
 import com.athaydes.logfx.binding.BindableValue;
+import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.HighlightOptions;
@@ -19,6 +20,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.File;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -35,8 +38,20 @@ public class LogFX extends Application {
     private Stage stage;
     private final VBox root = new VBox( 10 );
     private volatile FileReader fileReader;
-    private final HighlightOptions highlightOptions = new HighlightOptions();
-    private final LogView view = new LogView( fontValue, root.widthProperty(), highlightOptions );
+    private final Config config;
+    private final HighlightOptions highlightOptions;
+    private final LogView view;
+
+    public LogFX() {
+        String userHome = System.getProperty( "user.home" );
+        if ( userHome == null ) {
+            throw new IllegalStateException( "Cannot start LogFX, user.home property is not defined" );
+        }
+        Path configFile = Paths.get( userHome, ".logfx" );
+        this.config = new Config( configFile );
+        this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
+        this.view = new LogView( fontValue, root.widthProperty(), highlightOptions );
+    }
 
     @Override
     public void start( Stage primaryStage ) throws Exception {
