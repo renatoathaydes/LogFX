@@ -2,7 +2,6 @@ package com.athaydes.logfx.file;
 
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.LogView;
-import javafx.application.Platform;
 
 import java.io.File;
 import java.io.IOException;
@@ -12,7 +11,12 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -119,7 +123,7 @@ public class FileReader {
 
             return true;
         } catch ( MalformedInputException e ) {
-            Platform.runLater( () -> Dialog.showConfirmDialog( "Bad encoding." ) );
+            Dialog.showConfirmDialog( "Bad encoding." );
         } catch ( Exception e ) {
             e.printStackTrace();
         }

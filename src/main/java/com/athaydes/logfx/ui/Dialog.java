@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -75,12 +76,14 @@ public class Dialog {
     }
 
     public static void showConfirmDialog( String text ) {
-        Button okButton = new Button( "OK" );
-        Dialog dialog = new Dialog(
-                new Text( text ),
-                okButton );
-        okButton.setOnAction( event -> dialog.hide() );
-        dialog.show();
+        Platform.runLater( () -> {
+            Button okButton = new Button( "OK" );
+            Dialog dialog = new Dialog(
+                    new Text( text ),
+                    okButton );
+            okButton.setOnAction( event -> dialog.hide() );
+            dialog.show();
+        } );
     }
 
 }
