@@ -61,6 +61,7 @@ public class LogFX extends Application {
         setPrimaryStage( primaryStage );
 
         MenuBar menuBar = new MenuBar();
+        menuBar.useSystemMenuBarProperty().set( true );
         menuBar.getMenus().addAll( fileMenu(), viewMenu(), new Menu( "About" ) );
 
         ScrollPane viewPane = new ScrollPane( view );
