@@ -34,6 +34,8 @@ import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
  */
 public class LogFX extends Application {
 
+    static final String TITLE = "LogFX";
+
     private final BindableValue<Font> fontValue = new BindableValue<>( Font.getDefault() );
     private Stage stage;
     private final VBox root = new VBox( 10 );
@@ -59,7 +61,7 @@ public class LogFX extends Application {
         setPrimaryStage( primaryStage );
 
         MenuBar menuBar = new MenuBar();
-        menuBar.getMenus().addAll( fileMenu(), editMenu(), new Menu( "About" ) );
+        menuBar.getMenus().addAll( fileMenu(), viewMenu(), new Menu( "About" ) );
 
         ScrollPane viewPane = new ScrollPane( view );
         viewPane.prefViewportHeightProperty().bind( root.heightProperty() );
@@ -69,6 +71,7 @@ public class LogFX extends Application {
         Scene scene = new Scene( root, 800, 600, Color.RED );
         primaryStage.setScene( scene );
         primaryStage.centerOnScreen();
+        primaryStage.setTitle( TITLE );
         primaryStage.show();
 
         primaryStage.setOnHidden( event -> {
@@ -100,6 +103,7 @@ public class LogFX extends Application {
     }
 
     private void updateFile( File file ) {
+        stage.setTitle( TITLE + " - " + file.getName() );
         final FileReader oldFileReader = fileReader;
         fileReader = new FileReader( file, view::showLines );
         fileReader.start( accepted -> {
@@ -109,7 +113,7 @@ public class LogFX extends Application {
         } );
     }
 
-    private Menu editMenu() {
+    private Menu viewMenu() {
         Menu menu = new Menu( "_View" );
         menu.setMnemonicParsing( true );
 
