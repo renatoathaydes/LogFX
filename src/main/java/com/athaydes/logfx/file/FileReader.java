@@ -11,17 +11,13 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
@@ -38,17 +34,22 @@ public class FileReader {
 
     private final File file;
     private final Consumer<List<String>> lineFeed;
+    private final long minMillisBetweenUpdates;
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final Thread watcherThread;
-    private final ExecutorService readerThread = Executors.newSingleThreadExecutor();
+    private final ScheduledExecutorService updateThread = Executors.newSingleThreadScheduledExecutor();
+    private final AtomicBoolean updateScheduled = new AtomicBoolean( false );
 
-    public FileReader( File file, Consumer<List<String>> lineFeed, long maxBytes, long bufferSize ) {
+    public FileReader( File file, Consumer<List<String>> lineFeed,
+                       long minMillisBetweenUpdates, long maxBytes, long bufferSize ) {
         if ( bufferSize > maxBytes ) {
             throw new IllegalArgumentException( "bufferSize > maxBytes" );
         }
         if ( bufferSize <= 0 ) {
             throw new IllegalArgumentException( "bufferSize <= 0" );
         }
+
+        this.minMillisBetweenUpdates = Math.max( 0, minMillisBetweenUpdates );
         this.file = file;
         this.lineFeed = lineFeed;
         this.maxBytes = maxBytes;
@@ -57,16 +58,15 @@ public class FileReader {
         watcherThread.setDaemon( true );
     }
 
-    public FileReader( File file, Consumer<List<String>> lineFeed ) {
-        this( file, lineFeed, DEFAULT_MAX_BYTES, DEFAULT_BUFFER_SIZE );
+    public FileReader( File file, Consumer<List<String>> lineFeed, long minMillisBetweenUpdates ) {
+        this( file, lineFeed, minMillisBetweenUpdates, DEFAULT_MAX_BYTES, DEFAULT_BUFFER_SIZE );
     }
 
     /**
      * @param onDone called when done, if all good, true is passed to the function, otherwise, false.
      */
     public void start( Consumer<Boolean> onDone ) {
-        readerThread.execute( () -> {
-            boolean fileReadOk = onChange();
+        onChange( fileReadOk -> {
             if ( fileReadOk ) {
                 watcherThread.start();
             }
@@ -84,11 +84,11 @@ public class FileReader {
 
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
-                    for ( WatchEvent<?> event : wk.pollEvents() ) {
+                    for (WatchEvent<?> event : wk.pollEvents()) {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
-                            readerThread.execute( this::onChange );
+                            onChange();
                         }
                     }
                     // reset the key
@@ -109,25 +109,36 @@ public class FileReader {
         } );
     }
 
-    private boolean onChange() {
-        //TODO implement reading file from any position
-        try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
-            FileChannel channel = reader.getChannel();
-            final long channelLength = channel.size();
-            if ( channelLength == 0 ) {
-                lineFeed.accept( Collections.emptyList() );
-                return true;
-            }
+    private void onChange() {
+        onChange( ( ignored ) -> {
+        } );
+    }
 
-            lineFeed.accept( lines( channel, channelLength ) );
+    private void onChange( Consumer<Boolean> fileUpdatedCallback ) {
+        if ( updateScheduled.compareAndSet( false, true ) ) {
+            updateThread.schedule( () -> {
+                updateScheduled.set( false );
 
-            return true;
-        } catch ( MalformedInputException e ) {
-            Dialog.showConfirmDialog( "Bad encoding." );
-        } catch ( Exception e ) {
-            e.printStackTrace();
+                //TODO implement reading file from any position
+                try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
+                    FileChannel channel = reader.getChannel();
+                    final long channelLength = channel.size();
+                    if ( channelLength == 0 ) {
+                        lineFeed.accept( Collections.emptyList() );
+                        fileUpdatedCallback.accept( true );
+                    } else {
+                        lineFeed.accept( lines( channel, channelLength ) );
+                    }
+                    fileUpdatedCallback.accept( true );
+                } catch ( MalformedInputException e ) {
+                    fileUpdatedCallback.accept( false );
+                    Dialog.showConfirmDialog( "Bad encoding." );
+                } catch ( Exception e ) {
+                    fileUpdatedCallback.accept( false );
+                    e.printStackTrace();
+                }
+            }, minMillisBetweenUpdates, TimeUnit.MILLISECONDS );
         }
-        return false;
     }
 
     private List<String> lines( FileChannel channel, long channelLength )
@@ -168,7 +179,7 @@ public class FileReader {
                 fileLines.set( 0, reversedLines.removeFirst() + fileLines.get( 0 ) );
             }
 
-            for ( String line : reversedLines ) {
+            for (String line : reversedLines) {
                 fileLines.addFirst( line );
             }
 
@@ -211,7 +222,7 @@ public class FileReader {
     public void stop() {
         closed.set( true );
         watcherThread.interrupt();
-        readerThread.shutdownNow();
+        updateThread.shutdownNow();
     }
 
 }

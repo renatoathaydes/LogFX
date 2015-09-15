@@ -106,7 +106,7 @@ public class LogFX extends Application {
     private void updateFile( File file ) {
         stage.setTitle( TITLE + " - " + file.getName() );
         final FileReader oldFileReader = fileReader;
-        fileReader = new FileReader( file, view::showLines );
+        fileReader = new FileReader( file, view::showLines, 500L );
         fileReader.start( accepted -> {
             if ( accepted && oldFileReader != null ) {
                 oldFileReader.stop();

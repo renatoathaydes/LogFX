@@ -50,7 +50,7 @@ public class FileReaderTest extends Specification {
 
         and: 'A FileReader with a callback that saves all lines read in a list'
         def result = [ ]
-        def reader = new FileReader( file, { lines -> result.addAll lines } )
+        def reader = new FileReader( file, { lines -> result.addAll lines }, 0L )
 
         when: 'The FileReader is started and we wait until the done callback is called'
         def latch = new CountDownLatch( 1 )
@@ -82,7 +82,7 @@ public class FileReaderTest extends Specification {
         final List<List> fileLines = [ ]
         fileReader = new FileReader( file,
                 { lines -> fileLines.addAll lines },
-                maxBytes, bufferSize )
+                0, maxBytes, bufferSize )
 
         when: "The FileReader is started and we block until the the done callback is called"
         def latch = new CountDownLatch( 1 )
@@ -123,7 +123,7 @@ public class FileReaderTest extends Specification {
         and: "A FileReader using a buffer of size #bufferSize"
         final List fileLines = [ ]
         fileReader = new FileReader( file,
-                { lines -> fileLines.addAll lines }, 9999999, bufferSize )
+                { lines -> fileLines.addAll lines }, 0, 9999999, bufferSize )
 
         when: "The FileReader is started and we block until the the done callback is called"
         def latch = new CountDownLatch( 1 )
