@@ -36,13 +36,16 @@ public final class LogViewPane implements Closeable {
         }
     }
 
-    private static class LogViewWrapper extends ScrollPane {
+    private static class LogViewWrapper extends VBox {
 
         private final LogView logView;
         private final FileReader fileReader;
 
         LogViewWrapper( LogView logView, FileReader fileReader ) {
-            super( new VBox( 2.0, new Label( fileReader.getName() ), logView ) );
+            super( 2.0,
+                    new Label( fileReader.getName() ),
+                    new ScrollPane( logView ) );
+
             this.logView = logView;
             this.fileReader = fileReader;
         }
