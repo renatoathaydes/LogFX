@@ -75,12 +75,11 @@ public final class LogViewPane implements Closeable {
     private static class LogViewHeader extends BorderPane {
 
         LogViewHeader( File file, Runnable onClose ) {
-            setBackground( LogFxButton.onBkgrd );
-
             HBox leftAlignedBox = new HBox( 2.0 );
             HBox rightAlignedBox = new HBox( 2.0 );
 
-            Button fileNameLabel = LogFxButton.defaultLabel( file.getName() );
+            Button fileNameLabel = new Button( file.getName() );
+            fileNameLabel.setDisable( true );
             fileNameLabel.setTooltip( new Tooltip( file.getAbsolutePath() ) );
             leftAlignedBox.getChildren().add( fileNameLabel );
 
@@ -97,7 +96,10 @@ public final class LogViewPane implements Closeable {
                 fileNameLabel.setText( fileNameLabel.getText() + " " + fileSizeText );
             }
 
-            rightAlignedBox.getChildren().add( LogFxButton.closeButton( onClose ) );
+            Button closeButton = new Button( "Close" );
+            closeButton.setOnAction( event -> onClose.run() );
+
+            rightAlignedBox.getChildren().add( closeButton );
 
             setLeft( leftAlignedBox );
             setRight( rightAlignedBox );

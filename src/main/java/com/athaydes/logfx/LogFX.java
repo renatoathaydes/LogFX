@@ -80,6 +80,8 @@ public class LogFX extends Application {
         root.getChildren().addAll( menuBar, logsPane.getNode() );
 
         Scene scene = new Scene( root, 800, 600, Color.RED );
+        scene.getStylesheets().add( "css/LogFX.css" );
+
         primaryStage.setScene( scene );
         primaryStage.centerOnScreen();
         primaryStage.setTitle( TITLE );

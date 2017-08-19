@@ -1,0 +1,7 @@
+.root {
+    -fx-base: #1d1d1d;
+}
+
+.split-pane:horizontal > .split-pane-divider {
+    -fx-padding: 0 0 0 1;
+}
