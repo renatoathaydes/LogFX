@@ -13,7 +13,12 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.CharacterCodingException;
 import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.*;
+import java.nio.file.FileSystems;
+import java.nio.file.Path;
+import java.nio.file.StandardWatchEventKinds;
+import java.nio.file.WatchEvent;
+import java.nio.file.WatchKey;
+import java.nio.file.WatchService;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -88,7 +93,7 @@ public class FileReader {
 
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
-                    for (WatchEvent<?> event : wk.pollEvents()) {
+                    for ( WatchEvent<?> event : wk.pollEvents() ) {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
@@ -183,7 +188,7 @@ public class FileReader {
                 fileLines.set( 0, reversedLines.removeFirst() + fileLines.get( 0 ) );
             }
 
-            for (String line : reversedLines) {
+            for ( String line : reversedLines ) {
                 fileLines.addFirst( line );
             }
 
@@ -229,4 +234,7 @@ public class FileReader {
         updateThread.shutdownNow();
     }
 
+    public String getName() {
+        return file.getName();
+    }
 }

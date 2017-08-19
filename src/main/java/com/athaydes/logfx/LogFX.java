@@ -43,7 +43,6 @@ public class LogFX extends Application {
     private final BindableValue<Font> fontValue = new BindableValue<>( Font.getDefault() );
     private Stage stage;
     private final VBox root = new VBox( 10 );
-    private volatile FileReader fileReader;
     private final Config config;
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
@@ -57,9 +56,11 @@ public class LogFX extends Application {
         this.config = new Config( configFile );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
-        this.logsPane = new LogViewPane(
-                new LogView( fontValue, root.widthProperty(), highlightOptions ),
-                "<empty>" );
+        this.logsPane = new LogViewPane();
+    }
+
+    private LogView newLogView() {
+        return new LogView( fontValue, root.widthProperty(), highlightOptions );
     }
 
     @Override
@@ -82,7 +83,7 @@ public class LogFX extends Application {
         primaryStage.show();
 
         primaryStage.setOnHidden( event -> {
-            if ( fileReader != null ) fileReader.stop();
+            logsPane.close();
         } );
     }
 
@@ -99,29 +100,25 @@ public class LogFX extends Application {
             File file = fileChooser.showOpenDialog( stage );
             log.debug( "Selected file {}", file );
             if ( file != null ) {
-                updateFile( file );
+                open( file );
             }
         } );
+
         MenuItem close = new MenuItem( "E_xit" );
         close.setMnemonicParsing( true );
         close.setOnAction( ( event ) -> stage.close() );
         menu.getItems().addAll( open, close );
+
         return menu;
     }
 
-    private void updateFile( File file ) {
-        stage.setTitle( TITLE + " - " + file.getName() );
-        final FileReader oldFileReader = fileReader;
-
-        // TODO allow more than one view in the pane
-        LogView view = logsPane.get( 0 );
-
-        fileReader = new FileReader( file, view::showLines, 500L );
+    private void open( File file ) {
+        LogView view = newLogView();
+        FileReader fileReader = new FileReader( file, view::showLines, 500L );
         fileReader.start( accepted -> {
-            if ( accepted && oldFileReader != null ) {
-                oldFileReader.stop();
-            }
+            // TODO may need to close this view or warn user
         } );
+        logsPane.add( view, fileReader );
     }
 
     private Menu viewMenu() {

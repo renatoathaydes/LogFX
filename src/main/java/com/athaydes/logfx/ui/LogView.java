@@ -53,7 +53,7 @@ public class LogView extends VBox {
             for ( String line : linesCopy ) {
                 updateLine( lineAt( i++ ), line );
             }
-            for (; i < max; i++ ) {
+            for ( ; i < max; i++ ) {
                 updateLine( lineAt( i ), "" );
             }
         } );
