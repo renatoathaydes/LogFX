@@ -4,6 +4,7 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.ui.Dialog;
+import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
@@ -32,15 +33,15 @@ import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
 import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
 
 /**
- *
+ * The LogFX JavaFX Application.
  */
 public class LogFX extends Application {
 
     private static final Logger log = LoggerFactory.getLogger( LogFX.class );
 
-    static final String TITLE = "LogFX";
+    private static final String TITLE = "LogFX";
 
-    private final BindableValue<Font> fontValue = new BindableValue<>( Font.getDefault() );
+    private final BindableValue<Font> fontValue = new BindableValue<>( Font.font( "Monaco" ) );
     private Stage stage;
     private final VBox root = new VBox( 10 );
     private final Config config;
@@ -84,6 +85,7 @@ public class LogFX extends Application {
 
         primaryStage.setOnHidden( event -> {
             logsPane.close();
+            FxUtils.shutdown();
         } );
     }
 

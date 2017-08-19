@@ -165,7 +165,7 @@ public class HighlightOptions extends VBox {
             expressionField = new TextField( expression.getPattern().pattern() );
             expressionField.setEditable( editable );
             expressionField.setMinWidth( 300 );
-            expressionField.setOnAction( event -> updateExpression() );
+            expressionField.textProperty().addListener( event -> updateExpression() );
 
             bkgColorRectangle = new Rectangle( 20, 20 );
             fillColorRectangle = new Rectangle( 20, 20 );
@@ -179,9 +179,7 @@ public class HighlightOptions extends VBox {
                     fillColorField, fillColorRectangle );
 
             Optional<Node> upDown = upDownButtons();
-            if ( upDown.isPresent() ) {
-                getChildren().add( upDown.get() );
-            }
+            upDown.ifPresent( getChildren()::add );
         }
 
         protected Optional<Node> upDownButtons() {

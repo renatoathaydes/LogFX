@@ -2,6 +2,7 @@ package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
+import com.athaydes.logfx.ui.FxUtils;
 import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -37,10 +38,12 @@ public class Config {
         // the last item must always be the 'catch-all' item
         observableExpressions.add( new HighlightExpression( ".*", Color.BLACK, Color.LIGHTGREY ) );
 
-        log.debug( "Listening to changes on list" );
-        observableExpressions.addListener( ( InvalidationListener ) event -> {
-            dumpConfigToFile();
-        } );
+        // make this a singleton object so that it can be remembered when we try to run it many times below
+        final Runnable updateConfigFile = this::dumpConfigToFile;
+
+        log.debug( "Listening to changes on observableExpressions list" );
+        observableExpressions.addListener( ( InvalidationListener ) event ->
+                FxUtils.runWithMaxFrequency( updateConfigFile, 2000L ) );
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
