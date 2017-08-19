@@ -16,6 +16,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -27,6 +29,8 @@ import static java.util.stream.Collectors.toList;
  *
  */
 public class HighlightOptions extends VBox {
+
+    private static final Logger log = LoggerFactory.getLogger( HighlightOptions.class );
 
     private final ObservableList<HighlightExpression> observableExpressions;
 
@@ -206,7 +210,7 @@ public class HighlightOptions extends VBox {
                     colorRectangle.setFill( Color.valueOf( newValue ) );
                     updateExpression();
                 } catch ( IllegalArgumentException e ) {
-                    System.out.println( "Invalid color entered" );
+                    log.debug( "Invalid color entered" );
                 }
             } );
             return field;

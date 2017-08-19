@@ -18,6 +18,8 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -33,6 +35,8 @@ import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
  *
  */
 public class LogFX extends Application {
+
+    private static final Logger log = LoggerFactory.getLogger( LogFX.class );
 
     static final String TITLE = "LogFX";
 
@@ -87,11 +91,11 @@ public class LogFX extends Application {
         MenuItem open = new MenuItem( "_Open File" );
         open.setMnemonicParsing( true );
         open.setOnAction( ( event ) -> {
-            System.out.println( "Opening" );
+            log.debug( "Opening" );
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle( "Select a file" );
             File file = fileChooser.showOpenDialog( stage );
-            System.out.println( "Selected " + file );
+            log.debug( "Selected " + file );
             if ( file != null ) {
                 updateFile( file );
             }

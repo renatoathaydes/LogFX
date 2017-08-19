@@ -4,10 +4,8 @@ version '1.0-SNAPSHOT'
 apply plugin: 'groovy'
 apply plugin: 'application'
 
-compileJava {
-    sourceCompatibility = 1.8
-    targetCompatibility = 1.8
-}
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
 
 mainClassName = "com.athaydes.logfx.LogFX"
 
@@ -18,6 +16,7 @@ repositories {
 
 dependencies {
     compile group: 'commons-io', name: 'commons-io', version: '2.4'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
     testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.4'
     testCompile group: 'org.spockframework', name: 'spock-core', version: '1.0-groovy-2.4', {
         transitive = false

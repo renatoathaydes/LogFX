@@ -6,6 +6,8 @@ import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.scene.paint.Color;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -17,6 +19,8 @@ import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 public class Config {
+
+    private static final Logger log = LoggerFactory.getLogger( Config.class );
 
     private final Path path;
     private final ObservableList<HighlightExpression> observableExpressions;
@@ -33,7 +37,7 @@ public class Config {
         // the last item must always be the 'catch-all' item
         observableExpressions.add( new HighlightExpression( ".*", Color.BLACK, Color.LIGHTGREY ) );
 
-        System.out.println( "Listening to changes on list" );
+        log.debug( "Listening to changes on list" );
         observableExpressions.addListener( ( InvalidationListener ) event -> {
             dumpConfigToFile();
         } );
@@ -73,7 +77,7 @@ public class Config {
     }
 
     private void dumpConfigToFile() {
-        System.out.println( "Writing config to " + path );
+        log.debug( "Writing config to " + path );
         try ( FileWriter writer = new FileWriter( path.toFile() ) ) {
             writer.write( "expressions:\n" );
             for ( HighlightExpression expression : observableExpressions.subList( 0, observableExpressions.size() - 1 ) ) {

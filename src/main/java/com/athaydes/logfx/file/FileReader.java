@@ -2,6 +2,8 @@ package com.athaydes.logfx.file;
 
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.LogView;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -25,6 +27,8 @@ import java.util.function.Consumer;
  *
  */
 public class FileReader {
+
+    private static final Logger log = LoggerFactory.getLogger( FileReader.class );
 
     private static final int DEFAULT_BUFFER_SIZE = 1024;
     private static final int DEFAULT_MAX_BYTES = DEFAULT_BUFFER_SIZE * 1_000;
@@ -80,7 +84,7 @@ public class FileReader {
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
                 watchKey = path.getParent().register( watchService, StandardWatchEventKinds.ENTRY_MODIFY );
 
-                System.out.println( "Watching path " + path.getFileName() );
+                log.debug( "Watching path " + path.getFileName() );
 
                 while ( !closed.get() ) {
                     WatchKey wk = watchService.take();
@@ -94,11 +98,11 @@ public class FileReader {
                     // reset the key
                     boolean valid = wk.reset();
                     if ( !valid ) {
-                        System.out.println( "Key has been unregistered!!!!" );
+                        log.debug( "Key has been unregistered!!!!" );
                     }
                 }
             } catch ( InterruptedException e ) {
-                System.out.println( "Interrupted watching file " + file );
+                log.debug( "Interrupted watching file " + file );
             } catch ( IOException e ) {
                 e.printStackTrace();
             } finally {
@@ -158,7 +162,7 @@ public class FileReader {
             size = Math.min( bufferSize, bufferSize + startPosition );
             long nonNegativeStartPosition = Math.max( 0, startPosition );
 
-            System.out.println( "Mapping file partition from " + nonNegativeStartPosition +
+            log.debug( "Mapping file partition from " + nonNegativeStartPosition +
                     " to " + ( nonNegativeStartPosition + size ) );
 
             MappedByteBuffer mapBuffer = channel.map( FileChannel.MapMode.READ_ONLY,
@@ -172,10 +176,10 @@ public class FileReader {
                 reversedLines.removeFirst(); // empty-line can be removed as partition already broke up the lines
             }
 
-            System.out.println( "Partition: " + partition.replace( "\n", "#" ) );
-            System.out.println( "Lines: " + reversedLines );
+            log.debug( "Partition: " + partition.replace( "\n", "#" ) );
+            log.debug( "Lines: " + reversedLines );
             if ( !newLineAtEnd && !fileLines.isEmpty() ) {
-                System.out.println( "Joining with first in lines: " + fileLines );
+                log.debug( "Joining with first in lines: " + fileLines );
                 fileLines.set( 0, reversedLines.removeFirst() + fileLines.get( 0 ) );
             }
 
@@ -188,15 +192,15 @@ public class FileReader {
 
             // get out if already have enough lines (+ 1 so we can complete the last line if necessary)
             if ( totalLinesRead > LogView.getMaxLines() + 1 ) {
-                System.out.println( "Got enough lines already: " + totalLinesRead );
+                log.debug( "Got enough lines already: " + totalLinesRead );
                 break;
             }
 
             //joinPrevious = !partition.startsWith( "\n" );
 
         } while ( startPosition > 0 && currentIterations < maxIterations );
-        System.out.println( "PARTITIONS: " + fileLines );
-        System.out.println( "Done mapping file in " + currentIterations + " of " + maxIterations + " iterations" );
+        log.debug( "PARTITIONS: " + fileLines );
+        log.debug( "Done mapping file in " + currentIterations + " of " + maxIterations + " iterations" );
         return fileLines;
     }
 
