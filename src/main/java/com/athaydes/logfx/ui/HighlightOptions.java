@@ -201,9 +201,9 @@ public class HighlightOptions extends VBox {
             TextField field = new TextField( initialColor );
             colorRectangle.setFill( Color.valueOf( field.getText() ) );
             field.setMinWidth( 30 );
-            field.setOnAction( event -> {
+            field.textProperty().addListener( ( ignore, oldValue, newValue ) -> {
                 try {
-                    colorRectangle.setFill( Color.valueOf( field.getText() ) );
+                    colorRectangle.setFill( Color.valueOf( newValue ) );
                     updateExpression();
                 } catch ( IllegalArgumentException e ) {
                     System.out.println( "Invalid color entered" );
