@@ -37,6 +37,7 @@ public class Dialog {
         box.getChildren().add( top );
         box.getChildren().addAll( others );
         dialogStage.setScene( new Scene( box ) );
+        dialogStage.getScene().getStylesheets().add( "css/LogFX.css" );
         dialogStage.focusedProperty().addListener( observable -> {
             if ( dialogStage.isFocused() ) {
                 dialogStage.setOpacity( 1.0 );
