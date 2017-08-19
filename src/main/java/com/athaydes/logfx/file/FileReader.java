@@ -234,7 +234,7 @@ public class FileReader {
         updateThread.shutdownNow();
     }
 
-    public String getName() {
-        return file.getName();
+    public File getFile() {
+        return file;
     }
 }
