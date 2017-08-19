@@ -85,8 +85,16 @@ public final class LogViewPane implements Closeable {
             leftAlignedBox.getChildren().add( fileNameLabel );
 
             if ( file.exists() ) {
-                double fileSize = ( ( double ) file.length() ) / 1_000_000.0;
-                fileNameLabel.setText( fileNameLabel.getText() + " (" + fileSize + " MB)" );
+                double fileLength = ( double ) file.length();
+                String fileSizeText;
+                if ( fileLength < 10_000 ) {
+                    fileSizeText = String.format( "(%.0f bytes)", fileLength );
+                } else {
+                    double fileSize = fileLength / 1_000_000.0;
+                    fileSizeText = String.format( "(%.2f MB)", fileSize );
+                }
+
+                fileNameLabel.setText( fileNameLabel.getText() + " " + fileSizeText );
             }
 
             rightAlignedBox.getChildren().add( LogFxButton.closeButton( onClose ) );
