@@ -70,20 +70,20 @@ public class FxUtils {
             log.debug( "Scheduling new task: {}", runnable );
             executor.schedule( () -> {
                 try {
-                    log.info( "Running {}", runnable );
+                    log.debug( "Running {}", runnable );
                     runnable.run();
                 } catch ( Exception e ) {
-                    log.error( "Error running runnable", e );
+                    log.warn( "Error running runnable", e );
                 } finally {
                     scheduledTasks.remove( runnable );
-                    log.debug( "{} scheduled tasks after removing {}", scheduledTasks.size(), runnable );
+                    log.trace( "{} scheduled tasks after removing {}", scheduledTasks.size(), runnable );
                 }
             }, maxFrequencyInMs, TimeUnit.MILLISECONDS );
         }
     }
 
     public static void shutdown() {
-        log.warn( "Shutting down FxUtils" );
+        log.debug( "Shutting down FxUtils" );
         executor.shutdown();
     }
 
