@@ -6,17 +6,17 @@ import com.athaydes.logfx.ui.FxUtils;
 import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
 import javafx.scene.paint.Color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.List;
 import java.util.regex.PatternSyntaxException;
 
 public class Config {
@@ -25,10 +25,13 @@ public class Config {
 
     private final Path path;
     private final ObservableList<HighlightExpression> observableExpressions;
+    private final ObservableSet<File> observableFiles;
 
     public Config( Path path ) {
         this.path = path;
         observableExpressions = FXCollections.observableArrayList();
+        observableFiles = FXCollections.observableSet();
+
         if ( path.toFile().exists() ) {
             readConfigFile( path );
         } else {
@@ -41,42 +44,73 @@ public class Config {
         // make this a singleton object so that it can be remembered when we try to run it many times below
         final Runnable updateConfigFile = this::dumpConfigToFile;
 
-        log.debug( "Listening to changes on observableExpressions list" );
-        observableExpressions.addListener( ( InvalidationListener ) event ->
-                FxUtils.runWithMaxFrequency( updateConfigFile, 2000L ) );
+        log.debug( "Listening to changes on observable Lists" );
+
+        InvalidationListener listener = ( event ) ->
+                FxUtils.runWithMaxFrequency( updateConfigFile, 2000L );
+
+        observableExpressions.addListener( listener );
+        observableFiles.addListener( listener );
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
         return observableExpressions;
     }
 
+    public ObservableSet<File> getObservableFiles() {
+        return observableFiles;
+    }
+
     private void readConfigFile( Path path ) {
         try {
-            Iterator<String> lines = Files.readAllLines( path ).iterator();
-            while ( lines.hasNext() ) {
-                String line = lines.next();
-                switch ( line.trim() ) {
-                    case "expressions:":
-                        observableExpressions.addAll( parseExpressions( lines ) );
-                }
-            }
+            Iterator<String> lines = Files.lines( path ).iterator();
+            parseConfigFile( null, lines );
         } catch ( IOException e ) {
             Dialog.showConfirmDialog( "Could not read config file: " + path +
                     "\n\n" + e );
         }
     }
 
-    private List<HighlightExpression> parseExpressions( Iterator<String> lines ) {
-        List<HighlightExpression> result = new ArrayList<>();
+    private void parseConfigFile( String currentLine, Iterator<String> lines ) {
+        String line;
+        if ( currentLine != null ) {
+            line = currentLine;
+        } else if ( lines.hasNext() ) {
+            line = lines.next();
+        } else {
+            return; // no lines left
+        }
+
+        switch ( line.trim() ) {
+            case "expressions:":
+                parseExpressions( lines );
+            case "files:":
+                parseFiles( lines );
+        }
+    }
+
+    private void parseExpressions( Iterator<String> lines ) {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                result.add( parseHighlightExpression( line.trim() ) );
-            } else {
+                observableExpressions.add( parseHighlightExpression( line.trim() ) );
+            } else if ( !line.trim().isEmpty() ) {
+                parseConfigFile( line, lines );
                 break;
             }
         }
-        return result;
+    }
+
+    private void parseFiles( Iterator<String> lines ) {
+        while ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                observableFiles.add( new File( line.trim() ) );
+            } else if ( !line.trim().isEmpty() ) {
+                parseConfigFile( line, lines );
+                break;
+            }
+        }
     }
 
     private void dumpConfigToFile() {
@@ -89,6 +123,13 @@ public class Config {
                 writer.write( " " + expression.getPattern().pattern() );
                 writer.write( "\n" );
             }
+
+            writer.write( "files:\n" );
+            for ( File file : observableFiles ) {
+                writer.write( "  " + file.getAbsolutePath() );
+                writer.write( "\n" );
+            }
+
             writer.write( "\n" );
         } catch ( IOException e ) {
             Dialog.showConfirmDialog( "Could not write config file: " + path +

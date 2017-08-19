@@ -58,6 +58,8 @@ public class LogFX extends Application {
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
         this.logsPane = new LogViewPane();
+
+        config.getObservableFiles().forEach( this::open );
     }
 
     private LogView newLogView() {
@@ -121,6 +123,7 @@ public class LogFX extends Application {
             // TODO may need to close this view or warn user
         } );
         logsPane.add( view, fileReader );
+        config.getObservableFiles().add( file );
     }
 
     private Menu viewMenu() {
