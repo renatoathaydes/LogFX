@@ -20,8 +20,10 @@ public class LogFxButton extends Button {
         setOnMouseExited( ( event ) -> setBackground( off ) );
     }
 
-    public static LogFxButton closeButton() {
-        return new LogFxButton( "Close", offBkgrd, onBkgrd );
+    public static LogFxButton closeButton( Runnable action ) {
+        LogFxButton button = new LogFxButton( "Close", offBkgrd, onBkgrd );
+        button.setOnAction( event -> action.run() );
+        return button;
     }
 
     public static LogFxButton defaultLabel( String text ) {

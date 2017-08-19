@@ -122,7 +122,9 @@ public class LogFX extends Application {
         fileReader.start( accepted -> {
             // TODO may need to close this view or warn user
         } );
-        logsPane.add( view, fileReader );
+        logsPane.add( view, fileReader, () -> {
+            config.getObservableFiles().remove( file );
+        } );
         config.getObservableFiles().add( file );
     }
 

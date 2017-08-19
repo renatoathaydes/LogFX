@@ -13,6 +13,7 @@ import javafx.scene.layout.VBox;
 
 import java.io.Closeable;
 import java.io.File;
+import java.util.function.Consumer;
 
 /**
  * A container of {@link LogView}s.
@@ -29,8 +30,16 @@ public final class LogViewPane implements Closeable {
         return pane;
     }
 
-    public void add( LogView logView, FileReader fileReader ) {
-        pane.getItems().add( new LogViewWrapper( logView, fileReader ) );
+    public void add( LogView logView, FileReader fileReader, Runnable onCloseFile ) {
+        pane.getItems().add( new LogViewWrapper( logView, fileReader,
+                ( wrapper ) -> {
+                    pane.getItems().remove( wrapper );
+                    try {
+                        onCloseFile.run();
+                    } finally {
+                        wrapper.close();
+                    }
+                } ) );
     }
 
     public void close() {
@@ -46,13 +55,16 @@ public final class LogViewPane implements Closeable {
         private final FileReader fileReader;
 
         LogViewWrapper( LogView logView,
-                        FileReader fileReader ) {
-            super( 2.0,
-                    new LogViewHeader( fileReader.getFile() ),
-                    new ScrollPane( logView ) );
+                        FileReader fileReader,
+                        Consumer<LogViewWrapper> onClose ) {
+            super( 2.0 );
 
             this.logView = logView;
             this.fileReader = fileReader;
+
+            getChildren().addAll(
+                    new LogViewHeader( fileReader.getFile(), () -> onClose.accept( this ) ),
+                    new ScrollPane( logView ) );
         }
 
         void close() {
@@ -62,7 +74,7 @@ public final class LogViewPane implements Closeable {
 
     private static class LogViewHeader extends BorderPane {
 
-        LogViewHeader( File file ) {
+        LogViewHeader( File file, Runnable onClose ) {
             setBackground( LogFxButton.onBkgrd );
 
             HBox leftAlignedBox = new HBox( 2.0 );
@@ -77,7 +89,7 @@ public final class LogViewPane implements Closeable {
                 fileNameLabel.setText( fileNameLabel.getText() + " (" + fileSize + " MB)" );
             }
 
-            rightAlignedBox.getChildren().add( LogFxButton.closeButton() );
+            rightAlignedBox.getChildren().add( LogFxButton.closeButton( onClose ) );
 
             setLeft( leftAlignedBox );
             setRight( rightAlignedBox );
