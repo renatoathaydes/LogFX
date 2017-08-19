@@ -6,13 +6,13 @@ import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
+import com.athaydes.logfx.ui.LogViewPane;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -46,7 +46,7 @@ public class LogFX extends Application {
     private volatile FileReader fileReader;
     private final Config config;
     private final HighlightOptions highlightOptions;
-    private final LogView view;
+    private final LogViewPane logsPane;
 
     public LogFX() {
         String userHome = System.getProperty( "user.home" );
@@ -56,7 +56,10 @@ public class LogFX extends Application {
         Path configFile = Paths.get( userHome, ".logfx" );
         this.config = new Config( configFile );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
-        this.view = new LogView( fontValue, root.widthProperty(), highlightOptions );
+
+        this.logsPane = new LogViewPane(
+                new LogView( fontValue, root.widthProperty(), highlightOptions ),
+                "<empty>" );
     }
 
     @Override
@@ -68,10 +71,9 @@ public class LogFX extends Application {
         menuBar.useSystemMenuBarProperty().set( true );
         menuBar.getMenus().addAll( fileMenu(), viewMenu(), new Menu( "About" ) );
 
-        ScrollPane viewPane = new ScrollPane( view );
-        viewPane.prefViewportHeightProperty().bind( root.heightProperty() );
+        logsPane.prefHeightProperty().bind( root.heightProperty() );
 
-        root.getChildren().addAll( menuBar, viewPane );
+        root.getChildren().addAll( menuBar, logsPane.getNode() );
 
         Scene scene = new Scene( root, 800, 600, Color.RED );
         primaryStage.setScene( scene );
@@ -91,11 +93,11 @@ public class LogFX extends Application {
         MenuItem open = new MenuItem( "_Open File" );
         open.setMnemonicParsing( true );
         open.setOnAction( ( event ) -> {
-            log.debug( "Opening" );
+            log.debug( "Opening file" );
             FileChooser fileChooser = new FileChooser();
             fileChooser.setTitle( "Select a file" );
             File file = fileChooser.showOpenDialog( stage );
-            log.debug( "Selected " + file );
+            log.debug( "Selected file {}", file );
             if ( file != null ) {
                 updateFile( file );
             }
@@ -110,6 +112,10 @@ public class LogFX extends Application {
     private void updateFile( File file ) {
         stage.setTitle( TITLE + " - " + file.getName() );
         final FileReader oldFileReader = fileReader;
+
+        // TODO allow more than one view in the pane
+        LogView view = logsPane.get( 0 );
+
         fileReader = new FileReader( file, view::showLines, 500L );
         fileReader.start( accepted -> {
             if ( accepted && oldFileReader != null ) {
