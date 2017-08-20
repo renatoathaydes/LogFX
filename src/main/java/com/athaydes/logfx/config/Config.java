@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.regex.PatternSyntaxException;
 
 public class Config {
@@ -30,7 +31,7 @@ public class Config {
     public Config( Path path ) {
         this.path = path;
         observableExpressions = FXCollections.observableArrayList();
-        observableFiles = FXCollections.observableSet();
+        observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
 
         if ( path.toFile().exists() ) {
             readConfigFile( path );
