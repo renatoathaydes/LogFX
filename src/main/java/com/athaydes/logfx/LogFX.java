@@ -2,7 +2,8 @@ package com.athaydes.logfx;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
-import com.athaydes.logfx.file.FileReader;
+import com.athaydes.logfx.file.FileContentRequester;
+import com.athaydes.logfx.file.NewFileReader;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
@@ -59,11 +60,7 @@ public class LogFX extends Application {
 
         this.logsPane = new LogViewPane();
 
-        config.getObservableFiles().forEach( this::open );
-    }
-
-    private LogView newLogView() {
-        return new LogView( fontValue, root.widthProperty(), highlightOptions );
+        openFilesFromConfig();
     }
 
     @Override
@@ -118,16 +115,29 @@ public class LogFX extends Application {
         return menu;
     }
 
+    private void openFilesFromConfig() {
+        for ( File file : config.getObservableFiles() ) {
+            openViewFor( file );
+        }
+    }
+
     private void open( File file ) {
-        LogView view = newLogView();
-        FileReader fileReader = new FileReader( file, view::showLines, 500L );
-        fileReader.start( accepted -> {
-            // TODO may need to close this view or warn user
-        } );
-        logsPane.add( view, fileReader, () -> {
-            config.getObservableFiles().remove( file );
-        } );
-        config.getObservableFiles().add( file );
+        if ( config.getObservableFiles().contains( file ) ) {
+            log.debug( "Tried to open file that is already opened, will focus on it" );
+            logsPane.focusOn( file );
+        } else {
+            openViewFor( file );
+            config.getObservableFiles().add( file );
+        }
+    }
+
+    private void openViewFor( File file ) {
+        log.debug( "Creating file reader and view for file {}", file );
+
+        FileContentRequester fileReader = new NewFileReader( file );
+        LogView view = new LogView( fontValue, root.widthProperty(), highlightOptions, fileReader );
+
+        logsPane.add( view, () -> config.getObservableFiles().remove( file ) );
     }
 
     private Menu viewMenu() {

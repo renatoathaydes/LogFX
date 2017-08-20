@@ -82,6 +82,10 @@ public class FxUtils {
         }
     }
 
+    public static void runLater( Runnable runnable ) {
+        executor.execute( runnable );
+    }
+
     public static void shutdown() {
         log.debug( "Shutting down FxUtils" );
         executor.shutdown();

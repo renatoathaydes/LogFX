@@ -1,6 +1,7 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.binding.BindableValue;
+import com.athaydes.logfx.file.FileContentRequester;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
@@ -10,53 +11,85 @@ import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.io.File;
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.stream.Stream;
 
 /**
- *
+ * View of a log file.
  */
 public class LogView extends VBox {
 
-    private static final AtomicInteger maxLines = new AtomicInteger( 100 );
+    private static final int MAX_LINES = 100;
+
     private final HighlightOptions highlightOptions;
+    private final FileContentRequester fileContentRequester;
 
     public LogView( BindableValue<Font> fontValue,
                     ReadOnlyDoubleProperty widthProperty,
-                    HighlightOptions highlightOptions ) {
+                    HighlightOptions highlightOptions,
+                    FileContentRequester fileContentRequester ) {
         this.highlightOptions = highlightOptions;
-        updateCapacity( fontValue, Bindings.max( widthProperty(), widthProperty ) );
+        this.fileContentRequester = fileContentRequester;
+
+        final HighlightExpression expression = highlightOptions.expressionFor( "" );
+        final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
+
+        for ( int i = 0; i < MAX_LINES; i++ ) {
+            getChildren().add( new LogLine( fontValue, width,
+                    expression.getBkgColor(), expression.getFillColor() ) );
+        }
+
         highlightOptions.getObservableExpressions().addListener( ( Observable observable ) -> {
-            synchronized ( maxLines ) {
-                for ( int i = 0; i < maxLines.get(); i++ ) {
-                    updateLine( i );
-                }
+            for ( int i = 0; i < MAX_LINES; i++ ) {
+                updateLine( i );
             }
         } );
+
+        fileContentRequester.setChangeListener( this::onFileChange );
+
+        FxUtils.runLater( this::immediateOnFileChange );
     }
 
-    private void updateCapacity( BindableValue<Font> fontValue, NumberBinding widthProperty ) {
-        final HighlightExpression expression = highlightOptions.expressionFor( "" );
-        for ( int i = 0; i < maxLines.get(); i++ ) {
-            getChildren().add( new LogLine( fontValue, widthProperty,
-                    expression.getBkgColor(), expression.getFillColor() ) );
+    private void onFileChange() {
+        FxUtils.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
+    }
+
+    private void immediateOnFileChange() {
+        Optional<Stream<String>> lines = fileContentRequester.refresh( MAX_LINES );
+        if ( lines.isPresent() ) {
+            updateWith( lines.get().iterator() );
+        } else {
+            fileDoesNotExist();
         }
     }
 
-    public void showLines( List<String> lines ) {
-        final int max = maxLines.get();
-        final int extraLines = lines.size() - max;
+    private void updateWith( Iterator<String> lines ) {
+        int index = 0;
 
-        final List<String> linesCopy = lines.subList( Math.max( 0, extraLines ), lines.size() );
-        Platform.runLater( () -> {
-            int i = 0;
-            for ( String line : linesCopy ) {
-                updateLine( lineAt( i++ ), line );
-            }
-            for ( ; i < max; i++ ) {
-                updateLine( lineAt( i ), "" );
-            }
-        } );
+        while ( lines.hasNext() ) {
+            final int currentIndex = index;
+            final String lineText = lines.next();
+            Platform.runLater( () -> {
+                LogLine line = lineAt( currentIndex );
+                updateLine( line, lineText );
+            } );
+            index++;
+        }
+
+        // fill the remaining lines with the empty String
+        for ( ; index < MAX_LINES; index++ ) {
+            final int currentIndex = index;
+            Platform.runLater( () -> {
+                LogLine line = lineAt( currentIndex );
+                updateLine( line, "" );
+            } );
+        }
+    }
+
+    private void fileDoesNotExist() {
+        // TODO show special tab
     }
 
     private void updateLine( int index ) {
@@ -73,8 +106,11 @@ public class LogView extends VBox {
         return ( LogLine ) getChildren().get( index );
     }
 
-    public static int getMaxLines() {
-        return maxLines.get();
+    public File getFile() {
+        return fileContentRequester.getFile();
     }
 
+    public void closeFileReader() {
+        fileContentRequester.close();
+    }
 }
