@@ -18,7 +18,7 @@ class FileContentReaderSpec extends Specification {
 
     def "Can read the tail of a single-line file spanning multiple buffers"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new NewFileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 8 )
 
         when: 'A file with a very long line is created'
         file << ( 'Z' * 100 )
@@ -32,7 +32,7 @@ class FileContentReaderSpec extends Specification {
 
     def "Can read the tail of a multi-line file with some lines spanning multiple buffers"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new NewFileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 8 )
 
         when: 'A file with some long and short lines is created'
         file << ( 'Z' * 100 ) << '\n' << 'abc' << '\n\n' << ( 'X' * 10 ) << '\n'
@@ -47,7 +47,7 @@ class FileContentReaderSpec extends Specification {
     @Unroll
     def "Can read the tail of a short file"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new NewFileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 8 )
 
         when: 'A file with 10 lines is created'
         file << ( 1..10 ).join( '\n' )
@@ -70,7 +70,7 @@ class FileContentReaderSpec extends Specification {
     @Unroll
     def "Can read the tail of a long file"() {
         given: 'a file reader with a default buffer'
-        FileContentReader reader = new NewFileReader( file )
+        FileContentReader reader = new FileReader( file )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
@@ -93,7 +93,7 @@ class FileContentReaderSpec extends Specification {
     @Unroll
     def "Can read the top of a long file"() {
         given: 'a file reader with a default buffer'
-        FileContentReader reader = new NewFileReader( file )
+        FileContentReader reader = new FileReader( file )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
@@ -116,7 +116,7 @@ class FileContentReaderSpec extends Specification {
     @Unroll
     def "Can read the tail of a long file, then move up"() {
         given: 'a file reader with a default buffer'
-        FileContentReader reader = new NewFileReader( file )
+        FileContentReader reader = new FileReader( file )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
