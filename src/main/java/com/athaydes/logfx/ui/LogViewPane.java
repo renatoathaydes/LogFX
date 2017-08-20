@@ -14,6 +14,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.io.File;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -25,17 +26,24 @@ public final class LogViewPane {
 
     public LogViewPane() {
         MenuItem closeMenuItem = new MenuItem( "Close" );
-        closeMenuItem.setOnAction( ( event ) -> {
-            Node focusedNode = pane.getScene().focusOwnerProperty().get();
-            if ( focusedNode instanceof LogViewScrollPane ) {
-                ( ( LogViewScrollPane ) focusedNode ).closeView();
-            }
-        } );
+        closeMenuItem.setOnAction( ( event ) ->
+                getFocusedView().ifPresent( LogViewScrollPane::closeView ) );
 
         MenuItem hideMenuItem = new MenuItem( "Hide" );
         hideMenuItem.setOnAction( event -> {
-            // TODO hide pane properly
-            hide();
+            if ( pane.getItems().size() < 2 ) {
+                return; // we can't hide anything if there isn't more than 1 pane
+            }
+            getFocusedView().ifPresent( scrollPane -> {
+                int index = pane.getItems().indexOf( scrollPane.wrapper );
+                if ( index == pane.getItems().size() - 1 ) {
+                    // last pane, so we can only hide by opening up the previous one
+                    pane.setDividerPosition( index - 1, 1.0 );
+                } else if ( index >= 0 ) {
+                    // in all other cases, just hide the pane itself
+                    pane.setDividerPosition( index, 0.0 );
+                }
+            } );
         } );
 
         pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem ) );
@@ -54,6 +62,15 @@ public final class LogViewPane {
             pane.getItems().remove( wrapper );
             onCloseFile.run();
         } ) );
+    }
+
+    private Optional<LogViewScrollPane> getFocusedView() {
+        Node focusedNode = pane.getScene().focusOwnerProperty().get();
+        if ( focusedNode instanceof LogViewScrollPane ) {
+            return Optional.of( ( LogViewScrollPane ) focusedNode );
+        } else {
+            return Optional.empty();
+        }
     }
 
     private void hide() {
@@ -131,10 +148,13 @@ public final class LogViewPane {
     private static class LogViewHeader extends BorderPane {
 
         LogViewHeader( File file, Runnable onClose ) {
+            setMinWidth( 10.0 );
+
             HBox leftAlignedBox = new HBox( 2.0 );
             HBox rightAlignedBox = new HBox( 2.0 );
 
             Button fileNameLabel = new Button( file.getName() );
+            fileNameLabel.setMinWidth( 5.0 );
             fileNameLabel.setTooltip( new Tooltip( file.getAbsolutePath() ) );
             leftAlignedBox.getChildren().add( fileNameLabel );
 
