@@ -4,7 +4,9 @@ import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -21,7 +23,7 @@ import java.util.stream.Stream;
 /**
  *
  */
-public class NewFileReader implements FileContentRequester {
+public class NewFileReader implements FileContentReader {
 
     private static final Logger log = LoggerFactory.getLogger( NewFileReader.class );
 
@@ -114,7 +116,22 @@ public class NewFileReader implements FileContentRequester {
 
     @Override
     public Optional<Stream<String>> toTop( int lines ) {
-        return loadTail( lines );
+        if ( !file.isFile() ) {
+            return Optional.empty();
+        }
+        try {
+            BufferedReader reader = new BufferedReader( new FileReader( file ) );
+            LinkedList<String> result = new LinkedList<>();
+            String line;
+            while ( result.size() < lines && ( line = reader.readLine() ) != null ) {
+                result.addLast( line );
+            }
+            log.debug( "Loaded {} lines from file {}", result.size(), file );
+            return Optional.of( result.stream() );
+        } catch ( IOException e ) {
+            log.warn( "Error reading file [{}]: {}", file, e );
+            return Optional.empty();
+        }
     }
 
     @Override

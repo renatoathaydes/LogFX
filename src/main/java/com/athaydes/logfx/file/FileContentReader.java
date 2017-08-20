@@ -7,7 +7,7 @@ import java.util.stream.Stream;
 /**
  * API for the {@link com.athaydes.logfx.ui.LogView} to request file contents.
  */
-public interface FileContentRequester {
+public interface FileContentReader {
 
     /**
      * Request the file contents up from the current position.

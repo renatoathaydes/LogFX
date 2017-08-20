@@ -1,7 +1,7 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.binding.BindableValue;
-import com.athaydes.logfx.file.FileContentRequester;
+import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
@@ -24,14 +24,14 @@ public class LogView extends VBox {
     private static final int MAX_LINES = 100;
 
     private final HighlightOptions highlightOptions;
-    private final FileContentRequester fileContentRequester;
+    private final FileContentReader fileContentReader;
 
     public LogView( BindableValue<Font> fontValue,
                     ReadOnlyDoubleProperty widthProperty,
                     HighlightOptions highlightOptions,
-                    FileContentRequester fileContentRequester ) {
+                    FileContentReader fileContentReader ) {
         this.highlightOptions = highlightOptions;
-        this.fileContentRequester = fileContentRequester;
+        this.fileContentReader = fileContentReader;
 
         final HighlightExpression expression = highlightOptions.expressionFor( "" );
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
@@ -47,7 +47,7 @@ public class LogView extends VBox {
             }
         } );
 
-        fileContentRequester.setChangeListener( this::onFileChange );
+        fileContentReader.setChangeListener( this::onFileChange );
 
         FxUtils.runLater( this::immediateOnFileChange );
     }
@@ -57,7 +57,7 @@ public class LogView extends VBox {
     }
 
     private void immediateOnFileChange() {
-        Optional<Stream<String>> lines = fileContentRequester.refresh( MAX_LINES );
+        Optional<Stream<String>> lines = fileContentReader.refresh( MAX_LINES );
         if ( lines.isPresent() ) {
             updateWith( lines.get().iterator() );
         } else {
@@ -107,10 +107,10 @@ public class LogView extends VBox {
     }
 
     public File getFile() {
-        return fileContentRequester.getFile();
+        return fileContentReader.getFile();
     }
 
     public void closeFileReader() {
-        fileContentRequester.close();
+        fileContentReader.close();
     }
 }

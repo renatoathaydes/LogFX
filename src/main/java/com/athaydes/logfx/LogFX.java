@@ -2,7 +2,7 @@ package com.athaydes.logfx;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
-import com.athaydes.logfx.file.FileContentRequester;
+import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.NewFileReader;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FxUtils;
@@ -134,7 +134,7 @@ public class LogFX extends Application {
     private void openViewFor( File file ) {
         log.debug( "Creating file reader and view for file {}", file );
 
-        FileContentRequester fileReader = new NewFileReader( file );
+        FileContentReader fileReader = new NewFileReader( file );
         LogView view = new LogView( fontValue, root.widthProperty(), highlightOptions, fileReader );
 
         logsPane.add( view, () -> config.getObservableFiles().remove( file ) );
