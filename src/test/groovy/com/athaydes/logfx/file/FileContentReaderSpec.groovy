@@ -2,7 +2,6 @@ package com.athaydes.logfx.file
 
 import spock.lang.Shared
 import spock.lang.Specification
-import spock.lang.Subject
 import spock.lang.Unroll
 
 import java.nio.file.Files
@@ -12,16 +11,67 @@ class FileContentReaderSpec extends Specification {
     @Shared
     File file = Files.createTempFile( 'file-content-reader', '.log' ).toFile()
 
-    @Subject
-    FileContentReader reader = new NewFileReader( file )
-
     def setup() {
         file.delete()
         file.deleteOnExit()
     }
 
+    def "Can read the tail of a single-line file spanning multiple buffers"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new NewFileReader( file, 8 )
+
+        when: 'A file with a very long line is created'
+        file << ( 'Z' * 100 )
+
+        then: 'The file tail can be read'
+        def tail = reader.toTail( 5 )
+        tail.isPresent()
+        tail.get().iterator().toList() == [ 'Z' * 100 ]
+
+    }
+
+    def "Can read the tail of a multi-line file with some lines spanning multiple buffers"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new NewFileReader( file, 8 )
+
+        when: 'A file with some long and short lines is created'
+        file << ( 'Z' * 100 ) << '\n' << 'abc' << '\n\n' << ( 'X' * 10 ) << '\n'
+
+        then: 'The file tail can be read'
+        def tail = reader.toTail( 5 )
+        tail.isPresent()
+        tail.get().iterator().toList() == [ 'Z' * 100, 'abc', '', ( 'X' * 10 ), '' ]
+
+    }
+
     @Unroll
-    def "Can read the tail of a file"() {
+    def "Can read the tail of a short file"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new NewFileReader( file, 8 )
+
+        when: 'A file with 10 lines is created'
+        file << ( 1..10 ).join( '\n' )
+
+        then: 'The file tail can be read'
+        def tail = reader.toTail( lines )
+        tail.isPresent()
+        tail.get().iterator().toList() == expectedLines
+
+        where:
+        lines || expectedLines
+        1     || [ '10' ]
+        2     || [ '9', '10' ]
+        3     || [ '8', '9', '10' ]
+        10    || ( 1..10 ).collect { it.toString() }
+        100   || ( 1..10 ).collect { it.toString() }
+
+    }
+
+    @Unroll
+    def "Can read the tail of a long file"() {
+        given: 'a file reader with a default buffer'
+        FileContentReader reader = new NewFileReader( file )
+
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
 
@@ -41,7 +91,10 @@ class FileContentReaderSpec extends Specification {
     }
 
     @Unroll
-    def "Can read the top of a file"() {
+    def "Can read the top of a long file"() {
+        given: 'a file reader with a default buffer'
+        FileContentReader reader = new NewFileReader( file )
+
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
 
@@ -57,6 +110,39 @@ class FileContentReaderSpec extends Specification {
         3     || [ '1', '2', '3' ]
         10    || ( 1..10 ).collect { it.toString() }
         100   || ( 1..100 ).collect { it.toString() }
+
+    }
+
+    @Unroll
+    def "Can read the tail of a long file, then move up"() {
+        given: 'a file reader with a default buffer'
+        FileContentReader reader = new NewFileReader( file )
+
+        when: 'A file with 100,000 lines is created'
+        file << ( 1..100_000 ).join( '\n' )
+
+        then: 'The file tail can be read'
+        def tail = reader.toTail( lines )
+        tail.isPresent()
+
+        when: 'we move up a certain number of lines'
+        def result = reader.moveUp( lines )
+
+        then: 'we get the expected lines'
+        result.isPresent()
+        result.get().iterator().toList() == expectedLines
+
+        when: 'we move up again'
+        result = reader.moveUp( lines )
+
+        then: 'we get the expected lines'
+        result.get().iterator().toList() == expectedLines2
+
+        where:
+        lines || expectedLines                 | expectedLines2
+        1     || [ '99999' ]                   | [ '99998' ]
+        2     || [ '99997', '99998' ]          | [ '99995', '99996' ]
+        3     || [ '99996', '99997', '99998' ] | [ '99993', '99994', '99995' ]
 
     }
 
