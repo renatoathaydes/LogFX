@@ -45,9 +45,32 @@ class FileContentReaderSpec extends Specification {
     }
 
     @Unroll
-    def "Can read the tail of a short file"() {
+    def "Can read the tail of a short file with a short buffer"() {
         given: 'a file reader with a short byte buffer'
         FileContentReader reader = new FileReader( file, 8 )
+
+        when: 'A file with 10 lines is created'
+        file << ( 1..10 ).join( '\n' )
+
+        then: 'The file tail can be read'
+        def tail = reader.toTail( lines )
+        tail.isPresent()
+        tail.get().iterator().toList() == expectedLines
+
+        where:
+        lines || expectedLines
+        1     || [ '10' ]
+        2     || [ '9', '10' ]
+        3     || [ '8', '9', '10' ]
+        10    || ( 1..10 ).collect { it.toString() }
+        100   || ( 1..10 ).collect { it.toString() }
+
+    }
+
+    @Unroll
+    def "Can read the tail of a short file with the default buffer"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file )
 
         when: 'A file with 10 lines is created'
         file << ( 1..10 ).join( '\n' )
@@ -142,7 +165,7 @@ class FileContentReaderSpec extends Specification {
         lines || expectedLines                 | expectedLines2
         1     || [ '99999' ]                   | [ '99998' ]
         2     || [ '99997', '99998' ]          | [ '99995', '99996' ]
-        3     || [ '99996', '99997', '99998' ] | [ '99993', '99994', '99995' ]
+        3     || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
 
     }
 
