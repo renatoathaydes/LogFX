@@ -137,7 +137,7 @@ class FileContentReaderSpec extends Specification {
     }
 
     @Unroll
-    def "Can read the tail of a long file, then move up"() {
+    def "Can read the tail of a long file, then move up using a large or small buffer"() {
         given: 'a file reader with a default buffer'
         FileContentReader reader = new FileReader( file )
 
@@ -162,10 +162,17 @@ class FileContentReaderSpec extends Specification {
         result.get().iterator().toList() == expectedLines2
 
         where:
-        lines || expectedLines                 | expectedLines2
-        1     || [ '99999' ]                   | [ '99998' ]
-        2     || [ '99997', '99998' ]          | [ '99995', '99996' ]
-        3     || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        lines | bufferSize || expectedLines                 | expectedLines2
+        1     | 2          || [ '99999' ]                   | [ '99998' ]
+        2     | 3          || [ '99997', '99998' ]          | [ '99995', '99996' ]
+        3     | 4          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3     | 5          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3     | 6          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3     | 7          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3     | 8          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        1     | 4096       || [ '99999' ]                   | [ '99998' ]
+        2     | 4096       || [ '99997', '99998' ]          | [ '99995', '99996' ]
+        3     | 4096       || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
 
     }
 
