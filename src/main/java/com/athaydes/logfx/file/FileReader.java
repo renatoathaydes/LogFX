@@ -96,7 +96,7 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<Stream<String>> moveDown( int lines ) {
-        return loadFromBottom( lines );
+        return loadFromTop( lines );
     }
 
     @Override
@@ -113,6 +113,7 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<Stream<String>> refresh( int lines ) {
+        position -= bufferSize;
         return loadFromTop( lines );
     }
 
@@ -127,7 +128,84 @@ public class FileReader implements FileContentReader {
     }
 
     private Optional<Stream<String>> loadFromTop( int lines ) {
-        throw new UnsupportedOperationException();
+        if ( !file.isFile() ) {
+            return Optional.empty();
+        }
+        byte[] buffer = new byte[ bufferSize ];
+
+        LinkedList<String> result = new LinkedList<>();
+        byte[] topBytes = new byte[ 0 ];
+
+        try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
+
+            readerMainLoop:
+            while ( true ) {
+                log.debug( "Seeking position {}", position );
+                reader.seek( position );
+
+                final long startIndex = reader.getFilePointer();
+
+                log.trace( "Reading chunk {}:{}",
+                        startIndex, startIndex + bufferSize );
+
+                final int bytesRead = reader.read( buffer );
+                int lineStartIndex = 0;
+
+                for ( int i = 0; i < bytesRead; i++ ) {
+                    byte b = buffer[ i ];
+                    boolean isNewLine = ( b == '\n' );
+                    if ( isNewLine || i + 1 == bytesRead ) {
+
+                        // if the byte is a new line, don't include it in the result
+                        int lineEndIndex = isNewLine ? i - 1 : i;
+                        int lineLength = lineEndIndex - lineStartIndex + 1;
+
+                        byte[] lineBytes = new byte[ lineLength + topBytes.length ];
+                        log.trace( "Found line, copying [{}:{}] bytes from buffer + {} from top",
+                                lineStartIndex, lineLength, topBytes.length );
+                        System.arraycopy( buffer, lineStartIndex, lineBytes, 0, lineLength );
+                        System.arraycopy( topBytes, 0, lineBytes, lineLength, topBytes.length );
+                        result.addLast( new String( lineBytes, StandardCharsets.UTF_8 ) );
+                        log.debug( "Added line: {}", result.getLast() );
+
+                        if ( result.size() >= lines ) {
+                            log.trace( "Got enough lines, breaking out" );
+
+                            // set the position to the index where we stopped reading
+                            position += isNewLine ? i + 1 : i + 2;
+                            log.trace( "Leaving file position at {}, i = {}", position, i );
+
+                            break readerMainLoop;
+                        }
+
+                        topBytes = new byte[ 0 ];
+                        lineStartIndex = isNewLine ? i + 1 : i;
+                    }
+                }
+
+                // read the chunk below in the next iteration
+                position += bufferSize;
+
+                if ( position >= reader.length() ) {
+                    log.trace( "Already reached file end, breaking out of loop" );
+                    break;
+                }
+
+                // remember the current buffer bytes as the next top bytes
+                int bytesToCopy = bufferSize - lineStartIndex;
+                byte[] newTop = new byte[ topBytes.length + bytesToCopy ];
+                System.arraycopy( buffer, lineStartIndex, newTop, 0, bytesToCopy );
+                System.arraycopy( topBytes, 0, newTop, bytesToCopy, topBytes.length );
+                log.trace( "Updated top bytes, now top has {} bytes", newTop.length );
+                topBytes = newTop;
+            }
+
+            log.debug( "Loaded {} lines from file {}", result.size(), file );
+            return Optional.of( result.stream() );
+        } catch ( IOException e ) {
+            log.warn( "Error reading file [{}]: {}", file, e );
+            return Optional.empty();
+        }
     }
 
     private Optional<Stream<String>> loadFromBottom( int lines ) {

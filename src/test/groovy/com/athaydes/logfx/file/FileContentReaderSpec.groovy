@@ -138,8 +138,8 @@ class FileContentReaderSpec extends Specification {
 
     @Unroll
     def "Can read the tail of a long file, then move up using a large or small buffer"() {
-        given: 'a file reader with a default buffer'
-        FileContentReader reader = new FileReader( file )
+        given: 'a file reader with a buffer of size #bufferSize'
+        FileContentReader reader = new FileReader( file, bufferSize )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
@@ -173,6 +173,46 @@ class FileContentReaderSpec extends Specification {
         1     | 4096       || [ '99999' ]                   | [ '99998' ]
         2     | 4096       || [ '99997', '99998' ]          | [ '99995', '99996' ]
         3     | 4096       || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+
+    }
+
+    @Unroll
+    def "Can read the top of a long file, then move down using a large or small buffer"() {
+        given: 'a file reader with a buffer of size #bufferSize'
+        FileContentReader reader = new FileReader( file, bufferSize )
+
+        when: 'A file with 100,000 lines is created'
+        file << ( 1..100_000 ).join( '\n' )
+
+        then: 'The file top can be read'
+        def top = reader.toTop( lines )
+        top.isPresent()
+
+        when: 'we move down a certain number of lines'
+        def result = reader.moveDown( lines )
+
+        then: 'we get the expected lines'
+        result.isPresent()
+        result.get().iterator().toList() == expectedLines
+
+        when: 'we move down again'
+        result = reader.moveDown( lines )
+
+        then: 'we get the expected lines'
+        result.get().iterator().toList() == expectedLines2
+
+        where:
+        lines | bufferSize || expectedLines     | expectedLines2
+        1     | 2          || [ '2' ]           | [ '3' ]
+        2     | 3          || [ '3', '4' ]      | [ '5', '6' ]
+        3     | 4          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3     | 5          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3     | 6          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3     | 7          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3     | 8          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        1     | 4096       || [ '2' ]           | [ '3' ]
+        2     | 4096       || [ '3', '4' ]      | [ '5', '6' ]
+        3     | 4096       || [ '4', '5', '6' ] | [ '7', '8', '9' ]
 
     }
 
