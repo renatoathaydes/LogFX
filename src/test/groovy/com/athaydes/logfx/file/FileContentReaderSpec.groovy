@@ -26,7 +26,7 @@ class FileContentReaderSpec extends Specification {
         then: 'The file tail can be read'
         def tail = reader.toTail( 5 )
         tail.isPresent()
-        tail.get().iterator().toList() == [ 'Z' * 100 ]
+        tail.get() == [ 'Z' * 100 ]
 
     }
 
@@ -40,7 +40,7 @@ class FileContentReaderSpec extends Specification {
         then: 'The file tail can be read'
         def tail = reader.toTail( 5 )
         tail.isPresent()
-        tail.get().iterator().toList() == [ 'Z' * 100, 'abc', '', ( 'X' * 10 ), '' ]
+        tail.get() == [ 'Z' * 100, 'abc', '', ( 'X' * 10 ), '' ]
 
     }
 
@@ -55,7 +55,7 @@ class FileContentReaderSpec extends Specification {
         then: 'The file tail can be read'
         def tail = reader.toTail( lines )
         tail.isPresent()
-        tail.get().iterator().toList() == expectedLines
+        tail.get() == expectedLines
 
         where:
         lines || expectedLines
@@ -78,7 +78,7 @@ class FileContentReaderSpec extends Specification {
         then: 'The file tail can be read'
         def tail = reader.toTail( lines )
         tail.isPresent()
-        tail.get().iterator().toList() == expectedLines
+        tail.get() == expectedLines
 
         where:
         lines || expectedLines
@@ -101,7 +101,7 @@ class FileContentReaderSpec extends Specification {
         then: 'The file tail can be read'
         def tail = reader.toTail( lines )
         tail.isPresent()
-        tail.get().iterator().toList() == expectedLines
+        tail.get() == expectedLines
 
         where:
         lines || expectedLines
@@ -124,7 +124,7 @@ class FileContentReaderSpec extends Specification {
         then: 'The file top can be read'
         def top = reader.toTop( lines )
         top.isPresent()
-        top.get().iterator().toList() == expectedLines
+        top.get() == expectedLines
 
         where:
         lines || expectedLines
@@ -153,13 +153,13 @@ class FileContentReaderSpec extends Specification {
 
         then: 'we get the expected lines'
         result.isPresent()
-        result.get().iterator().toList() == expectedLines
+        result.get() == expectedLines
 
         when: 'we move up again'
         result = reader.moveUp( lines )
 
         then: 'we get the expected lines'
-        result.get().iterator().toList() == expectedLines2
+        result.get() == expectedLines2
 
         where:
         lines | bufferSize || expectedLines                 | expectedLines2
@@ -193,13 +193,13 @@ class FileContentReaderSpec extends Specification {
 
         then: 'we get the expected lines'
         result.isPresent()
-        result.get().iterator().toList() == expectedLines
+        result.get() == expectedLines
 
         when: 'we move down again'
         result = reader.moveDown( lines )
 
         then: 'we get the expected lines'
-        result.get().iterator().toList() == expectedLines2
+        result.get() == expectedLines2
 
         where:
         lines | bufferSize || expectedLines     | expectedLines2
@@ -213,6 +213,96 @@ class FileContentReaderSpec extends Specification {
         1     | 4096       || [ '2' ]           | [ '3' ]
         2     | 4096       || [ '3', '4' ]      | [ '5', '6' ]
         3     | 4096       || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+
+    }
+
+    @Unroll
+    def "Refresh at top should cause the previously read lines to be read again"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'the reader refreshes 3 lines'
+        def lines = reader.refresh( 3 )
+
+        then: 'The top 3 lines are read'
+        lines.isPresent()
+        lines.get() == [ '000', '111', '222' ]
+
+        when: 'the reader refreshes 3 lines'
+        lines = reader.refresh( 3 )
+
+        then: 'The top 3 lines are read'
+        lines.isPresent()
+        lines.get() == [ '000', '111', '222' ]
+
+        when: 'the reader refreshes 4 lines'
+        lines = reader.refresh( 4 )
+
+        then: 'The top 4 lines are read'
+        lines.isPresent()
+        lines.get() == [ '000', '111', '222', '333' ]
+
+        when: 'the reader refreshes 5 lines'
+        lines = reader.refresh( 5 )
+
+        then: 'The top 5 lines are read'
+        lines.isPresent()
+        lines.get() == [ '000', '111', '222', '333', '444' ]
+
+        when: 'the reader refreshes 2 lines'
+        lines = reader.refresh( 2 )
+
+        then: 'The top 2 lines are read'
+        lines.isPresent()
+        lines.get() == [ '000', '111' ]
+
+    }
+
+    @Unroll
+    def "Refresh at tail should cause the previously read lines to be read again"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The reader moves to the 3 tail lines'
+        def lines = reader.toTail( 3 )
+
+        then: 'The last 3 lines of the file are returned'
+        lines.isPresent()
+        lines.get() == [ '777', '888', '999' ]
+
+        when: 'the reader refreshes 3 lines'
+        lines = reader.refresh( 3 )
+
+        then: 'The tail 3 lines are read'
+        lines.isPresent()
+        lines.get() == [ '777', '888', '999' ]
+
+        when: 'the reader refreshes 3 lines'
+        lines = reader.refresh( 3 )
+
+        then: 'The tail 3 lines are read'
+        lines.isPresent()
+        lines.get() == [ '777', '888', '999' ]
+
+        when: 'the reader refreshes 2 lines'
+        lines = reader.refresh( 2 )
+
+        then: 'The 2 lines at the top of the previous read are read'
+        lines.isPresent()
+        lines.get() == [ '777', '888' ]
+
+        when: 'the reader refreshes 5 lines'
+        lines = reader.refresh( 5 )
+
+        then: 'The 5 lines ending at the place where the previous read stopped are read'
+        lines.isPresent()
+        lines.get() == [ '444', '555', '666', '777', '888' ]
 
     }
 

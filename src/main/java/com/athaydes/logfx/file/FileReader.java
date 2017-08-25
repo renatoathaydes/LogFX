@@ -14,22 +14,30 @@ import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Stream;
+
+import static com.athaydes.logfx.file.FileReader.Direction.DOWN;
+import static com.athaydes.logfx.file.FileReader.Direction.UP;
 
 /**
- *
+ * Standard implementation of {@link FileContentReader}.
  */
 public class FileReader implements FileContentReader {
 
     private static final Logger log = LoggerFactory.getLogger( FileReader.class );
+
+    enum Direction {
+        UP, DOWN
+    }
 
     private final File file;
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final int bufferSize;
     private final Thread watcherThread;
     private volatile Runnable onChange;
+    private Direction lastReadDirection = UP;
 
     /**
      * The current position we should start reading in the file.
@@ -90,31 +98,37 @@ public class FileReader implements FileContentReader {
     }
 
     @Override
-    public Optional<Stream<String>> moveUp( int lines ) {
+    public Optional<? extends List<String>> moveUp( int lines ) {
         return loadFromBottom( lines );
     }
 
     @Override
-    public Optional<Stream<String>> moveDown( int lines ) {
+    public Optional<? extends List<String>> moveDown( int lines ) {
         return loadFromTop( lines );
     }
 
     @Override
-    public Optional<Stream<String>> toTop( int lines ) {
+    public Optional<? extends List<String>> toTop( int lines ) {
         position = 0L;
         return loadFromTop( lines );
     }
 
     @Override
-    public Optional<Stream<String>> toTail( int lines ) {
+    public Optional<? extends List<String>> toTail( int lines ) {
         position = file.length();
         return loadFromBottom( lines );
     }
 
     @Override
-    public Optional<Stream<String>> refresh( int lines ) {
-        position -= bufferSize;
-        return loadFromTop( lines );
+    public Optional<? extends List<String>> refresh( int lines ) {
+        switch ( lastReadDirection ) {
+            case UP:
+                return loadFromTop( lines );
+            case DOWN:
+                return loadFromBottom( lines );
+            default:
+                throw new IllegalArgumentException();
+        }
     }
 
     @Override
@@ -127,16 +141,21 @@ public class FileReader implements FileContentReader {
         return file;
     }
 
-    private Optional<Stream<String>> loadFromTop( int lines ) {
+    private Optional<LinkedList<String>> loadFromTop( int lines ) {
         if ( !file.isFile() ) {
             return Optional.empty();
         }
-        byte[] buffer = new byte[ bufferSize ];
 
+        log.trace( "Loading {} lines from the top of chunk, file: {}", lines, file );
+        lastReadDirection = DOWN;
+
+        byte[] buffer = new byte[ bufferSize ];
         LinkedList<String> result = new LinkedList<>();
         byte[] topBytes = new byte[ 0 ];
 
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
+            // in the last read, we stopped at a new line, so move after that
+            moveToNextLineStart( reader );
 
             readerMainLoop:
             while ( true ) {
@@ -172,7 +191,7 @@ public class FileReader implements FileContentReader {
                             log.trace( "Got enough lines, breaking out" );
 
                             // set the position to the index where we stopped reading
-                            position += isNewLine ? i + 1 : i + 2;
+                            position += i;
                             log.trace( "Leaving file position at {}, i = {}", position, i );
 
                             break readerMainLoop;
@@ -201,27 +220,33 @@ public class FileReader implements FileContentReader {
             }
 
             log.debug( "Loaded {} lines from file {}", result.size(), file );
-            return Optional.of( result.stream() );
+            return Optional.of( result );
         } catch ( IOException e ) {
             log.warn( "Error reading file [{}]: {}", file, e );
             return Optional.empty();
         }
     }
 
-    private Optional<Stream<String>> loadFromBottom( int lines ) {
+    private Optional<LinkedList<String>> loadFromBottom( int lines ) {
         if ( !file.isFile() ) {
             return Optional.empty();
         }
-        byte[] buffer = new byte[ bufferSize ];
 
+        log.trace( "Loading {} lines from the bottom of chunk, file: {}", lines, file );
+        lastReadDirection = UP;
+
+        byte[] buffer = new byte[ bufferSize ];
         LinkedList<String> result = new LinkedList<>();
         byte[] tailBytes = new byte[ 0 ];
-
-        // start reading from the bottom section of the file above the previous position that fits into the buffer
-        position = Math.max( 0, position - bufferSize );
-        long previousStartIndex = -1;
+        final long startPosition = position;
 
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
+            // in the last read, we stopped at a new line, so move before that
+            moveToPreviousLineEnd( reader );
+
+            // start reading from the bottom section of the file above the previous position that fits into the buffer
+            position = Math.max( 0, position - bufferSize );
+            long previousStartIndex = -1;
 
             readerMainLoop:
             while ( true ) {
@@ -293,11 +318,87 @@ public class FileReader implements FileContentReader {
                 tailBytes = newTail;
             }
 
+            if ( position == 0 && result.size() < lines && startPosition < reader.length() ) {
+                // try to read more lines below the start position
+                log.debug( "Unable to get enough lines reading up, trying to get more lines reading down, current position = {}", position );
+                position = startPosition;
+                Optional<LinkedList<String>> extraLines = loadFromTop( lines - result.size() );
+                result.addAll( extraLines.orElse( new LinkedList<>() ) );
+
+                // re-establish final state
+                position = 0;
+                lastReadDirection = UP;
+            }
+
             log.debug( "Loaded {} lines from file {}", result.size(), file );
-            return Optional.of( result.stream() );
+            return Optional.of( result );
         } catch ( IOException e ) {
             log.warn( "Error reading file [{}]: {}", file, e );
             return Optional.empty();
         }
     }
+
+    private void moveToNextLineStart( RandomAccessFile reader )
+            throws IOException {
+        if ( position == 0 ) {
+            return;
+        }
+
+        log.trace( "Moving to next line start, starting at position {}", position );
+        reader.seek( position );
+
+        boolean done = false;
+
+        while ( !done ) {
+            int b = reader.read();
+            if ( b < 0 ) {
+                return;
+            }
+
+            if ( b == '\n' ) {
+                done = true;
+            }
+
+            position++;
+            log.trace( "Forward to position {}", position );
+        }
+    }
+
+    private void moveToPreviousLineEnd( RandomAccessFile reader )
+            throws IOException {
+        if ( position == 0 ) {
+            return;
+        }
+
+        if ( position >= reader.length() - 1 ) {
+            position = reader.length();
+            log.trace( "File pointer at end of file, position {}", position );
+            return;
+        }
+
+        log.trace( "Moving to previous line end, starting at position {}", position );
+        reader.seek( position );
+
+        boolean done = false;
+
+        while ( !done ) {
+            int b = reader.read();
+            if ( b < 0 ) {
+                return;
+            }
+            if ( position == 0 ) {
+                return;
+            }
+
+            if ( b == '\n' ) {
+                log.trace( "Found newline" );
+                done = true;
+            } else {
+                position--;
+                log.trace( "Rewinded to position {}", position );
+                reader.seek( position );
+            }
+        }
+    }
+
 }
