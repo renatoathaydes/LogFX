@@ -134,7 +134,7 @@ public class LogFX extends Application {
     private void openViewFor( File file ) {
         log.debug( "Creating file reader and view for file {}", file );
 
-        FileContentReader fileReader = new FileReader( file );
+        FileContentReader fileReader = new FileReader( file, LogView.MAX_LINES );
         LogView view = new LogView( fontValue, root.widthProperty(), highlightOptions, fileReader );
 
         logsPane.add( view, () -> config.getObservableFiles().remove( file ) );

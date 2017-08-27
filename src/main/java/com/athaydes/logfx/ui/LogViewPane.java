@@ -103,6 +103,22 @@ public final class LogViewPane {
         LogViewScrollPane( LogViewWrapper wrapper ) {
             super( wrapper.logView );
             this.wrapper = wrapper;
+
+            setOnScroll( event -> {
+                double deltaY = event.getDeltaY();
+                switch ( event.getTextDeltaYUnits() ) {
+                    case NONE:
+                        // no change
+                        break;
+                    case LINES:
+                        deltaY *= 10.0;
+                        break;
+                    case PAGES:
+                        deltaY *= 50.0;
+                        break;
+                }
+                wrapper.logView.move( deltaY );
+            } );
         }
 
         void closeView() {

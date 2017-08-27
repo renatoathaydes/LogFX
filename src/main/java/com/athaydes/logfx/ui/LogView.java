@@ -10,18 +10,22 @@ import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Optional;
-import java.util.stream.Stream;
 
 /**
  * View of a log file.
  */
 public class LogView extends VBox {
 
-    private static final int MAX_LINES = 100;
+    private static final Logger log = LoggerFactory.getLogger( LogView.class );
+
+    public static final int MAX_LINES = 100;
 
     private final HighlightOptions highlightOptions;
     private final FileContentReader fileContentReader;
@@ -47,9 +51,18 @@ public class LogView extends VBox {
             }
         } );
 
-        fileContentReader.setChangeListener( this::onFileChange );
-
         FxUtils.runLater( this::immediateOnFileChange );
+    }
+
+    void move( double deltaY ) {
+        int lines = Double.valueOf( deltaY / 10.0 ).intValue();
+        log.trace( "Moving by deltaY={}, lines={}", deltaY, lines );
+
+        if ( deltaY > 0.0 ) {
+            fileContentReader.moveUp( lines );
+        } else {
+            fileContentReader.moveDown( -lines );
+        }
     }
 
     private void onFileChange() {
@@ -57,7 +70,7 @@ public class LogView extends VBox {
     }
 
     private void immediateOnFileChange() {
-        Optional<Stream<String>> lines = fileContentReader.refresh( MAX_LINES );
+        Optional<? extends List<String>> lines = fileContentReader.refresh();
         if ( lines.isPresent() ) {
             updateWith( lines.get().iterator() );
         } else {

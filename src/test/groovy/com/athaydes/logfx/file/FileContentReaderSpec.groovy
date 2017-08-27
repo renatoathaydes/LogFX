@@ -18,13 +18,13 @@ class FileContentReaderSpec extends Specification {
 
     def "Can read the tail of a single-line file spanning multiple buffers"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new FileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 5, 8 )
 
         when: 'A file with a very long line is created'
         file << ( 'Z' * 100 )
 
         then: 'The file tail can be read'
-        def tail = reader.toTail( 5 )
+        def tail = reader.tail()
         tail.isPresent()
         tail.get() == [ 'Z' * 100 ]
 
@@ -32,13 +32,13 @@ class FileContentReaderSpec extends Specification {
 
     def "Can read the tail of a multi-line file with some lines spanning multiple buffers"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new FileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 5, 8 )
 
         when: 'A file with some long and short lines is created'
         file << ( 'Z' * 100 ) << '\n' << 'abc' << '\n\n' << ( 'X' * 10 ) << '\n'
 
         then: 'The file tail can be read'
-        def tail = reader.toTail( 5 )
+        def tail = reader.tail()
         tail.isPresent()
         tail.get() == [ 'Z' * 100, 'abc', '', ( 'X' * 10 ), '' ]
 
@@ -47,263 +47,302 @@ class FileContentReaderSpec extends Specification {
     @Unroll
     def "Can read the tail of a short file with a short buffer"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new FileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, windowSize, 8 )
 
         when: 'A file with 10 lines is created'
         file << ( 1..10 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.toTail( lines )
+        def tail = reader.tail()
         tail.isPresent()
         tail.get() == expectedLines
 
         where:
-        lines || expectedLines
-        1     || [ '10' ]
-        2     || [ '9', '10' ]
-        3     || [ '8', '9', '10' ]
-        10    || ( 1..10 ).collect { it.toString() }
-        100   || ( 1..10 ).collect { it.toString() }
+        windowSize || expectedLines
+        1          || [ '10' ]
+        2          || [ '9', '10' ]
+        3          || [ '8', '9', '10' ]
+        10         || ( 1..10 ).collect { it.toString() }
+        100        || ( 1..10 ).collect { it.toString() }
 
     }
 
     @Unroll
     def "Can read the tail of a short file with the default buffer"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new FileReader( file )
+        FileContentReader reader = new FileReader( file, windowSize )
 
         when: 'A file with 10 lines is created'
         file << ( 1..10 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.toTail( lines )
+        def tail = reader.tail()
         tail.isPresent()
         tail.get() == expectedLines
 
         where:
-        lines || expectedLines
-        1     || [ '10' ]
-        2     || [ '9', '10' ]
-        3     || [ '8', '9', '10' ]
-        10    || ( 1..10 ).collect { it.toString() }
-        100   || ( 1..10 ).collect { it.toString() }
+        windowSize || expectedLines
+        1          || [ '10' ]
+        2          || [ '9', '10' ]
+        3          || [ '8', '9', '10' ]
+        10         || ( 1..10 ).collect { it.toString() }
+        100        || ( 1..10 ).collect { it.toString() }
 
     }
 
     @Unroll
     def "Can read the tail of a long file"() {
         given: 'a file reader with a default buffer'
-        FileContentReader reader = new FileReader( file )
+        FileContentReader reader = new FileReader( file, windowSize )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.toTail( lines )
+        def tail = reader.tail()
         tail.isPresent()
         tail.get() == expectedLines
 
         where:
-        lines || expectedLines
-        1     || [ '100000' ]
-        2     || [ '99999', '100000' ]
-        3     || [ '99998', '99999', '100000' ]
-        10    || ( 99991..100000 ).collect { it.toString() }
-        100   || ( 99901..100000 ).collect { it.toString() }
+        windowSize || expectedLines
+        1          || [ '100000' ]
+        2          || [ '99999', '100000' ]
+        3          || [ '99998', '99999', '100000' ]
+        10         || ( 99991..100000 ).collect { it.toString() }
+        100        || ( 99901..100000 ).collect { it.toString() }
 
     }
 
     @Unroll
     def "Can read the top of a long file"() {
         given: 'a file reader with a default buffer'
-        FileContentReader reader = new FileReader( file )
+        FileContentReader reader = new FileReader( file, windowSize )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file top can be read'
-        def top = reader.toTop( lines )
+        def top = reader.top()
         top.isPresent()
         top.get() == expectedLines
 
         where:
-        lines || expectedLines
-        1     || [ '1' ]
-        2     || [ '1', '2' ]
-        3     || [ '1', '2', '3' ]
-        10    || ( 1..10 ).collect { it.toString() }
-        100   || ( 1..100 ).collect { it.toString() }
+        windowSize || expectedLines
+        1          || [ '1' ]
+        2          || [ '1', '2' ]
+        3          || [ '1', '2', '3' ]
+        10         || ( 1..10 ).collect { it.toString() }
+        100        || ( 1..100 ).collect { it.toString() }
 
     }
 
     @Unroll
     def "Can read the tail of a long file, then move up using a large or small buffer"() {
         given: 'a file reader with a buffer of size #bufferSize'
-        FileContentReader reader = new FileReader( file, bufferSize )
+        FileContentReader reader = new FileReader( file, windowSize, bufferSize )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.toTail( lines )
+        def tail = reader.tail()
         tail.isPresent()
 
         when: 'we move up a certain number of lines'
-        def result = reader.moveUp( lines )
+        def result = reader.moveUp( windowSize )
 
         then: 'we get the expected lines'
         result.isPresent()
         result.get() == expectedLines
 
         when: 'we move up again'
-        result = reader.moveUp( lines )
+        result = reader.moveUp( windowSize )
 
         then: 'we get the expected lines'
         result.get() == expectedLines2
 
         where:
-        lines | bufferSize || expectedLines                 | expectedLines2
-        1     | 2          || [ '99999' ]                   | [ '99998' ]
-        2     | 3          || [ '99997', '99998' ]          | [ '99995', '99996' ]
-        3     | 4          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
-        3     | 5          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
-        3     | 6          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
-        3     | 7          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
-        3     | 8          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
-        1     | 4096       || [ '99999' ]                   | [ '99998' ]
-        2     | 4096       || [ '99997', '99998' ]          | [ '99995', '99996' ]
-        3     | 4096       || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        windowSize | bufferSize || expectedLines                 | expectedLines2
+        1          | 2          || [ '99999' ]                   | [ '99998' ]
+        2          | 3          || [ '99997', '99998' ]          | [ '99995', '99996' ]
+        3          | 4          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3          | 5          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3          | 6          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3          | 7          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        3          | 8          || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
+        1          | 4096       || [ '99999' ]                   | [ '99998' ]
+        2          | 4096       || [ '99997', '99998' ]          | [ '99995', '99996' ]
+        3          | 4096       || [ '99995', '99996', '99997' ] | [ '99992', '99993', '99994' ]
 
     }
 
     @Unroll
     def "Can read the top of a long file, then move down using a large or small buffer"() {
         given: 'a file reader with a buffer of size #bufferSize'
-        FileContentReader reader = new FileReader( file, bufferSize )
+        FileContentReader reader = new FileReader( file, windowSize, bufferSize )
 
         when: 'A file with 100,000 lines is created'
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file top can be read'
-        def top = reader.toTop( lines )
+        def top = reader.top()
         top.isPresent()
 
         when: 'we move down a certain number of lines'
-        def result = reader.moveDown( lines )
+        def result = reader.moveDown( windowSize )
 
         then: 'we get the expected lines'
         result.isPresent()
         result.get() == expectedLines
 
         when: 'we move down again'
-        result = reader.moveDown( lines )
+        result = reader.moveDown( windowSize )
 
         then: 'we get the expected lines'
         result.get() == expectedLines2
 
         where:
-        lines | bufferSize || expectedLines     | expectedLines2
-        1     | 2          || [ '2' ]           | [ '3' ]
-        2     | 3          || [ '3', '4' ]      | [ '5', '6' ]
-        3     | 4          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
-        3     | 5          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
-        3     | 6          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
-        3     | 7          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
-        3     | 8          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
-        1     | 4096       || [ '2' ]           | [ '3' ]
-        2     | 4096       || [ '3', '4' ]      | [ '5', '6' ]
-        3     | 4096       || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        windowSize | bufferSize || expectedLines     | expectedLines2
+        1          | 2          || [ '2' ]           | [ '3' ]
+        2          | 3          || [ '3', '4' ]      | [ '5', '6' ]
+        3          | 4          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3          | 5          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3          | 6          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3          | 7          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        3          | 8          || [ '4', '5', '6' ] | [ '7', '8', '9' ]
+        1          | 4096       || [ '2' ]           | [ '3' ]
+        2          | 4096       || [ '3', '4' ]      | [ '5', '6' ]
+        3          | 4096       || [ '4', '5', '6' ] | [ '7', '8', '9' ]
 
     }
 
     @Unroll
     def "Refresh at top should cause the previously read lines to be read again"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new FileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 3, 8 )
 
         and: 'A file with 10 lines is created'
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
-        when: 'the reader refreshes 3 lines'
-        def lines = reader.refresh( 3 )
+        when: 'the reader refreshes'
+        def lines = reader.refresh()
 
         then: 'The top 3 lines are read'
         lines.isPresent()
         lines.get() == [ '000', '111', '222' ]
 
-        when: 'the reader refreshes 3 lines'
-        lines = reader.refresh( 3 )
+        when: 'the reader refreshes again'
+        lines = reader.refresh()
 
         then: 'The top 3 lines are read'
         lines.isPresent()
         lines.get() == [ '000', '111', '222' ]
-
-        when: 'the reader refreshes 4 lines'
-        lines = reader.refresh( 4 )
-
-        then: 'The top 4 lines are read'
-        lines.isPresent()
-        lines.get() == [ '000', '111', '222', '333' ]
-
-        when: 'the reader refreshes 5 lines'
-        lines = reader.refresh( 5 )
-
-        then: 'The top 5 lines are read'
-        lines.isPresent()
-        lines.get() == [ '000', '111', '222', '333', '444' ]
-
-        when: 'the reader refreshes 2 lines'
-        lines = reader.refresh( 2 )
-
-        then: 'The top 2 lines are read'
-        lines.isPresent()
-        lines.get() == [ '000', '111' ]
 
     }
 
-    @Unroll
     def "Refresh at tail should cause the previously read lines to be read again"() {
         given: 'a file reader with a short byte buffer'
-        FileContentReader reader = new FileReader( file, 8 )
+        FileContentReader reader = new FileReader( file, 3, 8 )
 
         and: 'A file with 10 lines is created'
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
-        when: 'The reader moves to the 3 tail lines'
-        def lines = reader.toTail( 3 )
+        when: 'The reader moves to the tail'
+        def lines = reader.tail()
 
         then: 'The last 3 lines of the file are returned'
         lines.isPresent()
         lines.get() == [ '777', '888', '999' ]
 
-        when: 'the reader refreshes 3 lines'
-        lines = reader.refresh( 3 )
+        when: 'the reader refreshes'
+        lines = reader.refresh()
 
         then: 'The tail 3 lines are read'
         lines.isPresent()
         lines.get() == [ '777', '888', '999' ]
 
-        when: 'the reader refreshes 3 lines'
-        lines = reader.refresh( 3 )
+        when: 'the reader refreshes again'
+        lines = reader.refresh()
 
         then: 'The tail 3 lines are read'
         lines.isPresent()
         lines.get() == [ '777', '888', '999' ]
+    }
 
-        when: 'the reader refreshes 2 lines'
-        lines = reader.refresh( 2 )
+    def "Moving up after file boundaries does not cause errors"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, 5, 8 )
 
-        then: 'The 2 lines at the top of the previous read are read'
-        lines.isPresent()
-        lines.get() == [ '777', '888' ]
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
-        when: 'the reader refreshes 5 lines'
-        lines = reader.refresh( 5 )
+        when: 'The file reader moves to the tail'
+        def lastLine = reader.tail()
 
-        then: 'The 5 lines ending at the place where the previous read stopped are read'
-        lines.isPresent()
-        lines.get() == [ '444', '555', '666', '777', '888' ]
+        then: 'The last lines are returned'
+        lastLine.isPresent()
+        lastLine.get() == [ '555', '666', '777', '888', '999' ]
 
+        when: 'The reader moves up nonsensical amounts'
+        def lines3 = reader.moveUp( 3 )
+        def lines2 = reader.moveUp( 2 )
+        def lines10 = reader.moveUp( 10 )
+        def lines200 = reader.moveUp( 200 )
+        def lines1 = reader.moveUp( 1 )
+
+        then: 'The previous lines are always returned, if any'
+        lines3.isPresent()
+        lines3.get() == [ '222', '333', '444' ]
+
+        lines2.isPresent()
+        lines2.get() == [ '000', '111' ]
+
+        lines10.isPresent()
+        lines10.get() == [ ]
+
+        lines200.isPresent()
+        lines200.get() == [ ]
+
+        lines1.isPresent()
+        lines1.get() == [ ]
+    }
+
+    def "Moving down after file boundaries does not cause errors"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, 5, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The reader moves to the top line'
+        def topLine = reader.top()
+
+        then: 'The top lines are returned'
+        topLine.isPresent()
+        topLine.get() == [ '000', '111', '222', '333', '444' ]
+
+        when: 'The reader moves down nonsensical amounts'
+        def lines3 = reader.moveDown( 3 )
+        def lines2 = reader.moveDown( 2 )
+        def lines10 = reader.moveDown( 10 )
+        def lines200 = reader.moveDown( 200 )
+        def lines1 = reader.moveDown( 1 )
+
+        then: 'The lower lines are always returned'
+        lines3.isPresent()
+        lines3.get() == [ '555', '666', '777' ]
+
+        lines2.isPresent()
+        lines2.get() == [ '888', '999' ]
+
+        lines10.isPresent()
+        lines10.get() == [ ]
+
+        lines200.isPresent()
+        lines200.get() == [ ]
+
+        lines1.isPresent()
+        lines1.get() == [ ]
     }
 
 }

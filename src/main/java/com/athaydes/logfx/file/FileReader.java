@@ -18,8 +18,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static com.athaydes.logfx.file.FileReader.Direction.DOWN;
-import static com.athaydes.logfx.file.FileReader.Direction.UP;
+import static com.athaydes.logfx.file.FileReader.LoadMode.MOVE;
+import static com.athaydes.logfx.file.FileReader.LoadMode.REFRESH;
 
 /**
  * Standard implementation of {@link FileContentReader}.
@@ -28,31 +28,29 @@ public class FileReader implements FileContentReader {
 
     private static final Logger log = LoggerFactory.getLogger( FileReader.class );
 
-    enum Direction {
-        UP, DOWN
+    enum LoadMode {
+        MOVE, REFRESH
     }
 
     private final File file;
     private final AtomicBoolean closed = new AtomicBoolean( false );
+    private final int fileWindowSize;
     private final int bufferSize;
     private final Thread watcherThread;
-    private volatile Runnable onChange;
-    private Direction lastReadDirection = UP;
+    private final FileLineStarts lineStarts;
 
-    /**
-     * The current position we should start reading in the file.
-     * This should be invalidated when the file changes.
-     */
-    private long position = 0L;
-
-    public FileReader( File file ) {
-        this( file, 4096 );
+    public FileReader( File file, int fileWindowSize ) {
+        this( file, fileWindowSize, 4096 );
     }
 
-    FileReader( File file, int bufferSize ) {
+    FileReader( File file, int fileWindowSize, int bufferSize ) {
         this.file = file;
+        this.fileWindowSize = fileWindowSize;
         this.bufferSize = bufferSize;
-        watcherThread = watchFile( file.toPath() );
+        this.watcherThread = watchFile( file.toPath() );
+
+        // 1 extra line is needed because we need to know the boundaries between lines
+        this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
     }
 
     private Thread watchFile( Path path ) {
@@ -69,7 +67,7 @@ public class FileReader implements FileContentReader {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
-                            onChange.run();
+                            // TODO onChange()
                         }
                     }
                     // reset the key
@@ -99,41 +97,38 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<? extends List<String>> moveUp( int lines ) {
-        return loadFromBottom( lines );
+        return loadFromBottom( lineStarts.getFirst() - 1L, lines, MOVE );
     }
 
     @Override
     public Optional<? extends List<String>> moveDown( int lines ) {
-        return loadFromTop( lines );
+        return loadFromTop( lineStarts.getLast(), lines, MOVE );
     }
 
     @Override
-    public Optional<? extends List<String>> toTop( int lines ) {
-        position = 0L;
-        return loadFromTop( lines );
+    public Optional<? extends List<String>> top() {
+        return loadFromTop( 0L, fileWindowSize, REFRESH );
     }
 
     @Override
-    public Optional<? extends List<String>> toTail( int lines ) {
-        position = file.length();
-        return loadFromBottom( lines );
+    public Optional<? extends List<String>> tail() {
+        return loadFromBottom( file.length(), fileWindowSize, REFRESH );
     }
 
     @Override
-    public Optional<? extends List<String>> refresh( int lines ) {
-        switch ( lastReadDirection ) {
-            case UP:
-                return loadFromTop( lines );
-            case DOWN:
-                return loadFromBottom( lines );
-            default:
-                throw new IllegalArgumentException();
+    public Optional<? extends List<String>> refresh() {
+        long initialLine = lineStarts.getFirst();
+        Optional<LinkedList<String>> fromTop = loadFromTop( initialLine, fileWindowSize, REFRESH );
+        if ( fromTop.isPresent() ) {
+            LinkedList<String> topList = fromTop.get();
+
+            if ( topList.size() < fileWindowSize ) {
+                log.debug( "Trying to get more lines after a refresh from the top did not give enough lines" );
+                loadFromBottom( initialLine - 1L, fileWindowSize - topList.size(), MOVE )
+                        .ifPresent( extraLines -> topList.addAll( 0, extraLines ) );
+            }
         }
-    }
-
-    @Override
-    public void setChangeListener( Runnable onChange ) {
-        this.onChange = onChange;
+        return fromTop;
     }
 
     @Override
@@ -141,39 +136,58 @@ public class FileReader implements FileContentReader {
         return file;
     }
 
-    private Optional<LinkedList<String>> loadFromTop( int lines ) {
+    private Optional<LinkedList<String>> loadFromTop( Long firstLineStartIndex,
+                                                      final int lines,
+                                                      final LoadMode mode ) {
         if ( !file.isFile() ) {
             return Optional.empty();
         }
 
-        log.trace( "Loading {} lines from the top of chunk, file: {}", lines, file );
-        lastReadDirection = DOWN;
+        log.trace( "Loading {} lines from the top, file: {}", lines, file );
+
+        if ( firstLineStartIndex >= file.length() - 1 ) {
+            log.trace( "Already at the top of the file, nothing to return" );
+            return Optional.of( new LinkedList<>() );
+        }
 
         byte[] buffer = new byte[ bufferSize ];
         LinkedList<String> result = new LinkedList<>();
         byte[] topBytes = new byte[ 0 ];
 
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
-            // in the last read, we stopped at a new line, so move after that
-            moveToNextLineStart( reader );
+            if ( mode == LoadMode.REFRESH ) {
+                lineStarts.clear();
+                firstLineStartIndex = seekLineStartBefore( firstLineStartIndex, reader );
+            }
+
+            lineStarts.addLast( firstLineStartIndex );
+
+            log.debug( "Seeking position {}", firstLineStartIndex );
+            reader.seek( firstLineStartIndex );
 
             readerMainLoop:
             while ( true ) {
-                log.debug( "Seeking position {}", position );
-                reader.seek( position );
-
                 final long startIndex = reader.getFilePointer();
+                final long lastIndex = reader.length() - 1;
+                long fileIndex = startIndex;
 
-                log.trace( "Reading chunk {}:{}",
+                log.debug( "Reading chunk {}..{}",
                         startIndex, startIndex + bufferSize );
 
                 final int bytesRead = reader.read( buffer );
                 int lineStartIndex = 0;
 
+                if ( log.isDebugEnabled() && bytesRead > 0 && bytesRead < bufferSize ) {
+                    log.debug( "Did not read full buffer, chunk that got read is {}..{}", startIndex, startIndex + bytesRead );
+                }
+
                 for ( int i = 0; i < bytesRead; i++ ) {
                     byte b = buffer[ i ];
                     boolean isNewLine = ( b == '\n' );
-                    if ( isNewLine || i + 1 == bytesRead ) {
+                    boolean isLastByte = ( fileIndex == lastIndex );
+
+                    if ( isNewLine || isLastByte ) {
+                        lineStarts.addLast( startIndex + i + 1 );
 
                         // if the byte is a new line, don't include it in the result
                         int lineEndIndex = isNewLine ? i - 1 : i;
@@ -188,25 +202,19 @@ public class FileReader implements FileContentReader {
                         log.debug( "Added line: {}", result.getLast() );
 
                         if ( result.size() >= lines ) {
-                            log.trace( "Got enough lines, breaking out" );
-
-                            // set the position to the index where we stopped reading
-                            position += i;
-                            log.trace( "Leaving file position at {}, i = {}", position, i );
-
+                            log.trace( "Got enough lines, breaking out of reader loop" );
                             break readerMainLoop;
                         }
 
                         topBytes = new byte[ 0 ];
                         lineStartIndex = isNewLine ? i + 1 : i;
                     }
+
+                    fileIndex++;
                 }
 
-                // read the chunk below in the next iteration
-                position += bufferSize;
-
-                if ( position >= reader.length() ) {
-                    log.trace( "Already reached file end, breaking out of loop" );
+                if ( bytesRead < 0L ) {
+                    log.trace( "Reached file end, breaking out of reader loop" );
                     break;
                 }
 
@@ -220,6 +228,7 @@ public class FileReader implements FileContentReader {
             }
 
             log.debug( "Loaded {} lines from file {}", result.size(), file );
+            log.trace( "Line starts: {}", lineStarts );
             return Optional.of( result );
         } catch ( IOException e ) {
             log.warn( "Error reading file [{}]: {}", file, e );
@@ -227,50 +236,57 @@ public class FileReader implements FileContentReader {
         }
     }
 
-    private Optional<LinkedList<String>> loadFromBottom( int lines ) {
+    private Optional<LinkedList<String>> loadFromBottom( final Long firstLineStartIndex,
+                                                         final int lines,
+                                                         final LoadMode mode ) {
         if ( !file.isFile() ) {
             return Optional.empty();
         }
 
         log.trace( "Loading {} lines from the bottom of chunk, file: {}", lines, file );
-        lastReadDirection = UP;
+
+        if ( firstLineStartIndex <= 0L ) {
+            log.trace( "Already at the bottom of the file, nothing to return" );
+            return Optional.of( new LinkedList<>() );
+        }
 
         byte[] buffer = new byte[ bufferSize ];
         LinkedList<String> result = new LinkedList<>();
         byte[] tailBytes = new byte[ 0 ];
-        final long startPosition = position;
+        long bufferStartIndex = firstLineStartIndex;
 
         try ( RandomAccessFile reader = new RandomAccessFile( file, "r" ) ) {
-            // in the last read, we stopped at a new line, so move before that
-            moveToPreviousLineEnd( reader );
-
-            // start reading from the bottom section of the file above the previous position that fits into the buffer
-            position = Math.max( 0, position - bufferSize );
-            long previousStartIndex = -1;
+            if ( mode == LoadMode.REFRESH ) {
+                lineStarts.clear();
+                bufferStartIndex = seekLineStartBefore( firstLineStartIndex, reader );
+                lineStarts.addLast( Math.max( 0L, bufferStartIndex - 1L ) );
+            }
 
             readerMainLoop:
             while ( true ) {
-                log.debug( "Seeking position {}", position );
-                reader.seek( position );
+                long previousStartIndex = bufferStartIndex;
 
-                final long startIndex = reader.getFilePointer();
+                // start reading from the bottom section of the file above the previous position that fits into the buffer
+                bufferStartIndex = Math.max( 0, bufferStartIndex - bufferSize );
+
+                log.debug( "Seeking position {}", bufferStartIndex );
+                reader.seek( bufferStartIndex );
 
                 log.trace( "Reading chunk {}:{}, previous start: {}",
-                        startIndex, startIndex + bufferSize, previousStartIndex );
+                        bufferStartIndex, bufferStartIndex + bufferSize, previousStartIndex );
 
-                final int bytesRead = startIndex == 0L && previousStartIndex >= 0 ?
+                final int bytesRead = bufferStartIndex == 0L && previousStartIndex > 0 ?
                         reader.read( buffer, 0, ( int ) previousStartIndex ) :
                         reader.read( buffer );
 
                 int lastByteIndex = bytesRead - 1;
-                log.trace( "Last byte index: {}", lastByteIndex );
 
                 for ( int i = lastByteIndex; i >= 0; i-- ) {
                     byte b = buffer[ i ];
                     boolean isNewLine = ( b == '\n' );
-                    if ( isNewLine ||
-                            // is this the beginning of the file
-                            ( startIndex == 0 && i == 0 ) ) {
+                    boolean firstFileByte = ( bufferStartIndex == 0 && i == 0 );
+
+                    if ( isNewLine || firstFileByte ) {
 
                         // if the byte is a new line, don't include it in the result
                         int lineStartIndex = isNewLine ? i + 1 : i;
@@ -285,30 +301,26 @@ public class FileReader implements FileContentReader {
 
                         tailBytes = new byte[ 0 ];
 
+                        if ( isNewLine ) {
+                            lineStarts.addFirst( bufferStartIndex + i + 1 );
+                        } else { // this must be the first file byte, remember it
+                            lineStarts.addFirst( 0 );
+                        }
+
                         if ( result.size() >= lines ) {
-                            log.trace( "Got enough lines, breaking out" );
-
-                            // set the position to the index where we stopped reading
-                            position += i;
-                            log.trace( "Leaving file position at {}", position );
-
+                            log.trace( "Got enough lines, breaking out of the reader loop" );
                             break readerMainLoop;
                         }
+
                         lastByteIndex = i - 1;
                         log.trace( "Last byte index is now {}", lastByteIndex );
                     }
                 }
 
-                if ( startIndex == 0 ) {
-                    log.trace( "Already reached file start, breaking out of loop" );
+                if ( bufferStartIndex == 0 ) {
+                    log.trace( "Reached file start, breaking out of the reader loop" );
                     break;
                 }
-
-                // remember the previous chunk start so that we can avoid re-reading it
-                previousStartIndex = position;
-
-                // read the above chunk in the next iteration
-                position = Math.max( 0, position - bufferSize );
 
                 // remember the current buffer bytes as the next tail bytes
                 byte[] newTail = new byte[ tailBytes.length + lastByteIndex + 1 ];
@@ -318,19 +330,8 @@ public class FileReader implements FileContentReader {
                 tailBytes = newTail;
             }
 
-            if ( position == 0 && result.size() < lines && startPosition < reader.length() ) {
-                // try to read more lines below the start position
-                log.debug( "Unable to get enough lines reading up, trying to get more lines reading down, current position = {}", position );
-                position = startPosition;
-                Optional<LinkedList<String>> extraLines = loadFromTop( lines - result.size() );
-                result.addAll( extraLines.orElse( new LinkedList<>() ) );
-
-                // re-establish final state
-                position = 0;
-                lastReadDirection = UP;
-            }
-
             log.debug( "Loaded {} lines from file {}", result.size(), file );
+            log.trace( "Line starts: {}", lineStarts );
             return Optional.of( result );
         } catch ( IOException e ) {
             log.warn( "Error reading file [{}]: {}", file, e );
@@ -338,67 +339,29 @@ public class FileReader implements FileContentReader {
         }
     }
 
-    private void moveToNextLineStart( RandomAccessFile reader )
+    private long seekLineStartBefore( Long firstLineStartIndex, RandomAccessFile reader )
             throws IOException {
-        if ( position == 0 ) {
-            return;
+        log.debug( "Seeking line start before or at {}", firstLineStartIndex );
+        if ( firstLineStartIndex == 0L ) {
+            return 0L;
         }
 
-        log.trace( "Moving to next line start, starting at position {}", position );
-        reader.seek( position );
-
-        boolean done = false;
-
-        while ( !done ) {
-            int b = reader.read();
-            if ( b < 0 ) {
-                return;
-            }
-
-            if ( b == '\n' ) {
-                done = true;
-            }
-
-            position++;
-            log.trace( "Forward to position {}", position );
-        }
-    }
-
-    private void moveToPreviousLineEnd( RandomAccessFile reader )
-            throws IOException {
-        if ( position == 0 ) {
-            return;
+        if ( firstLineStartIndex >= reader.length() ) {
+            log.debug( "Line start found at EOF, file length = {}", reader.length() );
+            return reader.length();
         }
 
-        if ( position >= reader.length() - 1 ) {
-            position = reader.length();
-            log.trace( "File pointer at end of file, position {}", position );
-            return;
-        }
+        long index = Math.min( firstLineStartIndex - 1, reader.length() - 1 );
+        do {
+            reader.seek( index );
+            index--;
+        } while ( reader.read() != '\n' && index > 0 );
 
-        log.trace( "Moving to previous line end, starting at position {}", position );
-        reader.seek( position );
+        long result = index == 0L ? 0L : index + 2L;
 
-        boolean done = false;
+        log.debug( "Line start before {} found at {}", firstLineStartIndex, result );
 
-        while ( !done ) {
-            int b = reader.read();
-            if ( b < 0 ) {
-                return;
-            }
-            if ( position == 0 ) {
-                return;
-            }
-
-            if ( b == '\n' ) {
-                log.trace( "Found newline" );
-                done = true;
-            } else {
-                position--;
-                log.trace( "Rewinded to position {}", position );
-                reader.seek( position );
-            }
-        }
+        return result;
     }
 
 }
