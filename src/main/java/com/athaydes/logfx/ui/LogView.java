@@ -186,11 +186,11 @@ public class LogView extends VBox {
         return ( LogLine ) getChildren().get( index );
     }
 
-    public File getFile() {
+    File getFile() {
         return file;
     }
 
-    public void closeFileReader() {
+    void closeFileReader() {
         fileReaderExecutor.execute( fileContentReader::close );
         fileReaderExecutor.shutdown();
     }

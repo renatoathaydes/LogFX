@@ -345,4 +345,89 @@ class FileContentReaderSpec extends Specification {
         lines1.get() == [ ]
     }
 
+    def "It is possible to refresh from the tail after a file change"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, 5, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The file reader moves to the tail'
+        def lastLine = reader.tail()
+
+        then: 'The last lines are returned'
+        lastLine.isPresent()
+        lastLine.get() == [ '555', '666', '777', '888', '999' ]
+
+        when: 'The file gets more 2 lines written to it'
+        file << '\na new line\nlast line'
+
+        and: 'The reader refreshes'
+        def lines = reader.refresh()
+
+        then: 'The previously read lines are returned again '
+        lines.isPresent()
+        lines.get() == [ '555', '666', '777', '888', '999' ]
+
+        when: 'The reader moves down 3 lines'
+        lines = reader.moveDown( 3 )
+
+        then: 'The 2 new lines are returned'
+        lines.isPresent()
+        lines.get() == [ 'a new line', 'last line' ]
+
+        when: 'The reader moves down another few lines'
+        lines = reader.moveDown( 6 )
+
+        then: 'No more lines are available'
+        lines.isPresent()
+        lines.get() == [ ]
+
+        when: 'The reader moves up 2 lines'
+        lines = reader.moveUp( 2 )
+
+        then: 'The 2 lines immediately before the current file window are returned'
+        lines.isPresent()
+        lines.get() == [ '555', '666' ]
+    }
+
+    def "It is possible to refresh from the top after a file change"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, 5, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The file reader moves to the top'
+        def topLines = reader.top()
+
+        then: 'The first lines are returned'
+        topLines.isPresent()
+        topLines.get() == [ '000', '111', '222', '333', '444' ]
+
+        when: 'The file gets more 2 lines written to it at the top'
+        file.write( 'top-line\nsecond-line\n' + file.text )
+
+        and: 'The reader refreshes'
+        def lines = reader.refresh()
+
+        then: 'The new top lines are returned'
+        lines.isPresent()
+        lines.get() == [ 'top-line', 'second-line', '000', '111', '222' ]
+
+        when: 'The reader moves down 3 lines'
+        lines = reader.moveDown( 3 )
+
+        then: 'The 3 next lines are returned'
+        lines.isPresent()
+        lines.get() == [ '333', '444', '555' ]
+
+        when: 'The reader moves up 6 lines'
+        lines = reader.moveUp( 6 )
+
+        then: 'The top 3 lines are returned again'
+        lines.isPresent()
+        lines.get() == [ 'top-line', 'second-line', '000' ]
+    }
+
 }
