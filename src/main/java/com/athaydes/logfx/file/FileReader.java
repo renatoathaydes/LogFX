@@ -196,8 +196,8 @@ public class FileReader implements FileContentReader {
                         byte[] lineBytes = new byte[ lineLength + topBytes.length ];
                         log.trace( "Found line, copying [{}:{}] bytes from buffer + {} from top",
                                 lineStartIndex, lineLength, topBytes.length );
-                        System.arraycopy( buffer, lineStartIndex, lineBytes, 0, lineLength );
-                        System.arraycopy( topBytes, 0, lineBytes, lineLength, topBytes.length );
+                        System.arraycopy( topBytes, 0, lineBytes, 0, topBytes.length );
+                        System.arraycopy( buffer, lineStartIndex, lineBytes, topBytes.length, lineLength );
                         result.addLast( new String( lineBytes, StandardCharsets.UTF_8 ) );
                         log.debug( "Added line: {}", result.getLast() );
 
