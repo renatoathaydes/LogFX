@@ -9,7 +9,9 @@ import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
+import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import javafx.application.Application;
+import javafx.application.Platform;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
@@ -49,6 +51,7 @@ public class LogFX extends Application {
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
 
+    @MustCallOnJavaFXThread
     public LogFX() {
         String userHome = System.getProperty( "user.home" );
         if ( userHome == null ) {
@@ -64,6 +67,7 @@ public class LogFX extends Application {
     }
 
     @Override
+    @MustCallOnJavaFXThread
     public void start( Stage primaryStage ) throws Exception {
         this.stage = primaryStage;
         setPrimaryStage( primaryStage );
@@ -90,6 +94,7 @@ public class LogFX extends Application {
         } );
     }
 
+    @MustCallOnJavaFXThread
     private Menu fileMenu() {
         Menu menu = new Menu( "_File" );
         menu.setMnemonicParsing( true );
@@ -115,12 +120,14 @@ public class LogFX extends Application {
         return menu;
     }
 
+    @MustCallOnJavaFXThread
     private void openFilesFromConfig() {
         for ( File file : config.getObservableFiles() ) {
-            openViewFor( file );
+            Platform.runLater( () -> openViewFor( file ) );
         }
     }
 
+    @MustCallOnJavaFXThread
     private void open( File file ) {
         if ( config.getObservableFiles().contains( file ) ) {
             log.debug( "Tried to open file that is already opened, will focus on it" );
@@ -131,6 +138,7 @@ public class LogFX extends Application {
         }
     }
 
+    @MustCallOnJavaFXThread
     private void openViewFor( File file ) {
         log.debug( "Creating file reader and view for file {}", file );
 
@@ -140,6 +148,7 @@ public class LogFX extends Application {
         logsPane.add( view, () -> config.getObservableFiles().remove( file ) );
     }
 
+    @MustCallOnJavaFXThread
     private Menu viewMenu() {
         Menu menu = new Menu( "_View" );
         menu.setMnemonicParsing( true );
@@ -158,6 +167,7 @@ public class LogFX extends Application {
         return menu;
     }
 
+    @MustCallOnJavaFXThread
     private static void bindMenuItemToDialog( CheckMenuItem menuItem, Callable<Dialog> dialogCreator ) {
         AtomicReference<Dialog> dialogRef = new AtomicReference<>();
 
