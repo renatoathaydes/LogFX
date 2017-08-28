@@ -196,6 +196,7 @@ public class LogFX extends Application {
     }
 
     public static void main( String[] args ) {
+        Font.loadFont( LogFX.class.getResource( "/fonts/fontawesome-webfont.ttf" ).toExternalForm(), 12 );
         Application.launch( LogFX.class );
     }
 

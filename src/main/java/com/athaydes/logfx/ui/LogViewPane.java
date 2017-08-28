@@ -187,7 +187,7 @@ public final class LogViewPane {
                 fileNameLabel.setText( fileNameLabel.getText() + " " + fileSizeText );
             }
 
-            Button closeButton = new Button( "Close" );
+            Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setOnAction( event -> onClose.run() );
 
             rightAlignedBox.getChildren().add( closeButton );
