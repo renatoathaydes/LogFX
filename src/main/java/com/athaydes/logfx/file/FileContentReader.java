@@ -71,8 +71,4 @@ public interface FileContentReader {
      */
     File getFile();
 
-    /**
-     * Close this instance.
-     */
-    void close();
 }

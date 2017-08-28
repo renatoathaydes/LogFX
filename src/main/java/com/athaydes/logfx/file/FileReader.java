@@ -7,16 +7,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static com.athaydes.logfx.file.FileReader.LoadMode.MOVE;
 import static com.athaydes.logfx.file.FileReader.LoadMode.REFRESH;
@@ -33,10 +26,8 @@ public class FileReader implements FileContentReader {
     }
 
     private final File file;
-    private final AtomicBoolean closed = new AtomicBoolean( false );
     private final int fileWindowSize;
     private final int bufferSize;
-    private final Thread watcherThread;
     private final FileLineStarts lineStarts;
 
     public FileReader( File file, int fileWindowSize ) {
@@ -47,52 +38,9 @@ public class FileReader implements FileContentReader {
         this.file = file;
         this.fileWindowSize = fileWindowSize;
         this.bufferSize = bufferSize;
-        this.watcherThread = watchFile( file.toPath() );
 
         // 1 extra line is needed because we need to know the boundaries between lines
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
-    }
-
-    private Thread watchFile( Path path ) {
-        return new Thread( () -> {
-            WatchKey watchKey = null;
-            try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
-                watchKey = path.getParent().register( watchService, StandardWatchEventKinds.ENTRY_MODIFY );
-
-                log.debug( "Watching path " + path.getFileName() );
-
-                while ( !closed.get() ) {
-                    WatchKey wk = watchService.take();
-                    for ( WatchEvent<?> event : wk.pollEvents() ) {
-                        //we only register "ENTRY_MODIFY" so the context is always a Path.
-                        Path changed = ( Path ) event.context();
-                        if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
-                            // TODO onChange()
-                        }
-                    }
-                    // reset the key
-                    boolean valid = wk.reset();
-                    if ( !valid ) {
-                        log.warn( "Key has been unregistered!!!!" );
-                    }
-                }
-            } catch ( InterruptedException e ) {
-                log.info( "Interrupted watching file {}", file );
-            } catch ( IOException e ) {
-                log.warn( "Problem with file watcher [{}]: {}", file, e );
-            } finally {
-                if ( watchKey != null ) {
-                    watchKey.cancel();
-                }
-            }
-        } );
-    }
-
-    @Override
-    public void close() {
-        log.debug( "Closing file reader for file {}", file );
-        closed.set( true );
-        watcherThread.interrupt();
     }
 
     @Override
@@ -123,7 +71,7 @@ public class FileReader implements FileContentReader {
             LinkedList<String> topList = fromTop.get();
 
             if ( topList.size() < fileWindowSize ) {
-                log.debug( "Trying to get more lines after a refresh from the top did not give enough lines" );
+                log.trace( "Trying to get more lines after a refresh from the top did not give enough lines" );
                 loadFromBottom( initialLine - 1L, fileWindowSize - topList.size(), MOVE )
                         .ifPresent( extraLines -> topList.addAll( 0, extraLines ) );
             }
@@ -162,7 +110,7 @@ public class FileReader implements FileContentReader {
 
             lineStarts.addLast( firstLineStartIndex );
 
-            log.debug( "Seeking position {}", firstLineStartIndex );
+            log.trace( "Seeking position {}", firstLineStartIndex );
             reader.seek( firstLineStartIndex );
 
             readerMainLoop:
@@ -171,14 +119,14 @@ public class FileReader implements FileContentReader {
                 final long lastIndex = reader.length() - 1;
                 long fileIndex = startIndex;
 
-                log.debug( "Reading chunk {}..{}",
+                log.trace( "Reading chunk {}..{}",
                         startIndex, startIndex + bufferSize );
 
                 final int bytesRead = reader.read( buffer );
                 int lineStartIndex = 0;
 
-                if ( log.isDebugEnabled() && bytesRead > 0 && bytesRead < bufferSize ) {
-                    log.debug( "Did not read full buffer, chunk that got read is {}..{}", startIndex, startIndex + bytesRead );
+                if ( log.isTraceEnabled() && bytesRead > 0 && bytesRead < bufferSize ) {
+                    log.trace( "Did not read full buffer, chunk that got read is {}..{}", startIndex, startIndex + bytesRead );
                 }
 
                 for ( int i = 0; i < bytesRead; i++ ) {
@@ -199,7 +147,7 @@ public class FileReader implements FileContentReader {
                         System.arraycopy( topBytes, 0, lineBytes, 0, topBytes.length );
                         System.arraycopy( buffer, lineStartIndex, lineBytes, topBytes.length, lineLength );
                         result.addLast( new String( lineBytes, StandardCharsets.UTF_8 ) );
-                        log.debug( "Added line: {}", result.getLast() );
+                        log.trace( "Added line: {}", result.getLast() );
 
                         if ( result.size() >= lines ) {
                             log.trace( "Got enough lines, breaking out of reader loop" );
@@ -269,7 +217,7 @@ public class FileReader implements FileContentReader {
                 // start reading from the bottom section of the file above the previous position that fits into the buffer
                 bufferStartIndex = Math.max( 0, bufferStartIndex - bufferSize );
 
-                log.debug( "Seeking position {}", bufferStartIndex );
+                log.trace( "Seeking position {}", bufferStartIndex );
                 reader.seek( bufferStartIndex );
 
                 log.trace( "Reading chunk {}:{}, previous start: {}",
@@ -297,7 +245,7 @@ public class FileReader implements FileContentReader {
                         System.arraycopy( buffer, lineStartIndex, lineBytes, 0, bufferBytesToAdd );
                         System.arraycopy( tailBytes, 0, lineBytes, bufferBytesToAdd, tailBytes.length );
                         result.addFirst( new String( lineBytes, StandardCharsets.UTF_8 ) );
-                        log.debug( "Added line: {}", result.getFirst() );
+                        log.trace( "Added line: {}", result.getFirst() );
 
                         tailBytes = new byte[ 0 ];
 
@@ -341,13 +289,13 @@ public class FileReader implements FileContentReader {
 
     private long seekLineStartBefore( Long firstLineStartIndex, RandomAccessFile reader )
             throws IOException {
-        log.debug( "Seeking line start before or at {}", firstLineStartIndex );
+        log.trace( "Seeking line start before or at {}", firstLineStartIndex );
         if ( firstLineStartIndex == 0L ) {
             return 0L;
         }
 
         if ( firstLineStartIndex >= reader.length() ) {
-            log.debug( "Line start found at EOF, file length = {}", reader.length() );
+            log.trace( "Line start found at EOF, file length = {}", reader.length() );
             return reader.length();
         }
 
@@ -359,7 +307,7 @@ public class FileReader implements FileContentReader {
 
         long result = index == 0L ? 0L : index + 2L;
 
-        log.debug( "Line start before {} found at {}", firstLineStartIndex, result );
+        log.trace( "Line start before {} found at {}", firstLineStartIndex, result );
 
         return result;
     }
