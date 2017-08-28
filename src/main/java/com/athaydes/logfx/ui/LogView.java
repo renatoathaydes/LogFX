@@ -1,6 +1,8 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.binding.BindableValue;
+import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
@@ -38,16 +40,21 @@ public class LogView extends VBox {
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final FileContentReader fileContentReader;
     private final File file;
+    private final FileChangeWatcher fileChangeWatcher;
     private final Supplier<LogLine> logLineFactory;
+    private final TaskRunner taskRunner;
 
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
                     ReadOnlyDoubleProperty widthProperty,
                     HighlightOptions highlightOptions,
-                    FileContentReader fileContentReader ) {
+                    FileContentReader fileContentReader,
+                    TaskRunner taskRunner ) {
         this.highlightOptions = highlightOptions;
         this.fileContentReader = fileContentReader;
+        this.taskRunner = taskRunner;
         this.file = fileContentReader.getFile();
+        this.fileChangeWatcher = new FileChangeWatcher( file );
 
         final HighlightExpression expression = highlightOptions.expressionFor( "" );
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
@@ -66,6 +73,8 @@ public class LogView extends VBox {
         } );
 
         immediateOnFileChange();
+
+        fileChangeWatcher.setOnChange( this::onFileChange );
     }
 
     void move( double deltaY ) {
@@ -127,7 +136,7 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
-        FxUtils.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
+        taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
     }
 
     private void immediateOnFileChange() {
@@ -191,7 +200,7 @@ public class LogView extends VBox {
     }
 
     void closeFileReader() {
-        fileReaderExecutor.execute( fileContentReader::close );
+        fileChangeWatcher.close();
         fileReaderExecutor.shutdown();
     }
 }

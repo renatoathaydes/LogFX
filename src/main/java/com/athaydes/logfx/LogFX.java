@@ -1,11 +1,11 @@
 package com.athaydes.logfx;
 
 import com.athaydes.logfx.binding.BindableValue;
+import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.ui.Dialog;
-import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
@@ -51,14 +51,17 @@ public class LogFX extends Application {
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
 
+    private final TaskRunner taskRunner = new TaskRunner();
+
     @MustCallOnJavaFXThread
     public LogFX() {
         String userHome = System.getProperty( "user.home" );
         if ( userHome == null ) {
             throw new IllegalStateException( "Cannot start LogFX, user.home property is not defined" );
         }
+
         Path configFile = Paths.get( userHome, ".logfx" );
-        this.config = new Config( configFile );
+        this.config = new Config( configFile, taskRunner );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
         this.logsPane = new LogViewPane();
@@ -90,7 +93,7 @@ public class LogFX extends Application {
 
         primaryStage.setOnHidden( event -> {
             logsPane.close();
-            FxUtils.shutdown();
+            taskRunner.shutdown();
         } );
     }
 
@@ -143,7 +146,8 @@ public class LogFX extends Application {
         log.debug( "Creating file reader and view for file {}", file );
 
         FileContentReader fileReader = new FileReader( file, LogView.MAX_LINES );
-        LogView view = new LogView( fontValue, root.widthProperty(), highlightOptions, fileReader );
+        LogView view = new LogView( fontValue, root.widthProperty(),
+                highlightOptions, fileReader, taskRunner );
 
         logsPane.add( view, () -> config.getObservableFiles().remove( file ) );
     }

@@ -1,8 +1,8 @@
 package com.athaydes.logfx.config;
 
+import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
-import com.athaydes.logfx.ui.FxUtils;
 import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -28,7 +28,7 @@ public class Config {
     private final ObservableList<HighlightExpression> observableExpressions;
     private final ObservableSet<File> observableFiles;
 
-    public Config( Path path ) {
+    public Config( Path path, TaskRunner taskRunner ) {
         this.path = path;
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
@@ -48,7 +48,7 @@ public class Config {
         log.debug( "Listening to changes on observable Lists" );
 
         InvalidationListener listener = ( event ) ->
-                FxUtils.runWithMaxFrequency( updateConfigFile, 2000L );
+                taskRunner.runWithMaxFrequency( updateConfigFile, 2000L );
 
         observableExpressions.addListener( listener );
         observableFiles.addListener( listener );
