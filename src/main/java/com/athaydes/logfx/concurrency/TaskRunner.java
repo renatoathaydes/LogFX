@@ -76,7 +76,7 @@ public class TaskRunner {
             log.trace( "Running task immediately: {}", runnable );
             executor.execute( () -> {
                 try {
-                    log.trace( "Running {}", runnable );
+                    log.debug( "Running {}", runnable );
                     runnable.run();
                 } catch ( Exception e ) {
                     log.warn( "Error running runnable", e );

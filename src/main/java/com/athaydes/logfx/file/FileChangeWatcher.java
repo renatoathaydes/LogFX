@@ -1,5 +1,6 @@
 package com.athaydes.logfx.file;
 
+import com.sun.nio.file.SensitivityWatchEventModifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,11 +41,12 @@ public class FileChangeWatcher {
         return new Thread( () -> {
             WatchKey watchKey = null;
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
-                watchKey = path.getParent().register( watchService,
+                watchKey = path.getParent().register( watchService, new WatchEvent.Kind[]{
                         StandardWatchEventKinds.ENTRY_MODIFY,
                         StandardWatchEventKinds.ENTRY_CREATE,
                         StandardWatchEventKinds.OVERFLOW,
-                        StandardWatchEventKinds.ENTRY_DELETE );
+                        StandardWatchEventKinds.ENTRY_DELETE
+                }, SensitivityWatchEventModifier.HIGH );
 
                 log.info( "Watching file " + path );
                 watching.set( true );
