@@ -30,6 +30,13 @@ public class FileReader implements FileContentReader {
     private final int bufferSize;
     private final FileLineStarts lineStarts;
 
+    // state to avoid reading a file when it is not required...
+    // e.g. moving down when the last moveDown returned no lines and:
+    //   the file has not been refreshed and
+    //   we did not move up
+    private boolean noLinesUp = true;
+    private boolean noLinesDown = true;
+
     public FileReader( File file, int fileWindowSize ) {
         this( file, fileWindowSize, 4096 );
     }
@@ -45,26 +52,57 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<? extends List<String>> moveUp( int lines ) {
-        return loadFromBottom( lineStarts.getFirst() - 1L, lines, MOVE );
+        noLinesDown = false;
+
+        if ( noLinesUp ) {
+            return Optional.of( new LinkedList<>() );
+        }
+
+        Optional<LinkedList<String>> result = loadFromBottom( lineStarts.getFirst() - 1L, lines, MOVE );
+
+        if ( result.isPresent() && result.get().isEmpty() ) {
+            noLinesUp = true;
+        }
+
+        return result;
     }
 
     @Override
     public Optional<? extends List<String>> moveDown( int lines ) {
-        return loadFromTop( lineStarts.getLast(), lines, MOVE );
+        noLinesUp = false;
+
+        if ( noLinesDown ) {
+            return Optional.of( new LinkedList<>() );
+        }
+
+        Optional<LinkedList<String>> result = loadFromTop( lineStarts.getLast(), lines, MOVE );
+
+        if ( result.isPresent() && result.get().isEmpty() ) {
+            noLinesDown = true;
+        }
+
+        return result;
     }
 
     @Override
     public Optional<? extends List<String>> top() {
+        noLinesDown = false;
+        noLinesUp = true;
         return loadFromTop( 0L, fileWindowSize, REFRESH );
     }
 
     @Override
     public Optional<? extends List<String>> tail() {
+        noLinesDown = true;
+        noLinesUp = false;
         return loadFromBottom( file.length(), fileWindowSize, REFRESH );
     }
 
     @Override
     public Optional<? extends List<String>> refresh() {
+        noLinesDown = false;
+        noLinesUp = false;
+
         long initialLine = lineStarts.getFirst();
         Optional<LinkedList<String>> fromTop = loadFromTop( initialLine, fileWindowSize, REFRESH );
         if ( fromTop.isPresent() ) {
