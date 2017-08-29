@@ -36,11 +36,9 @@ public interface FileContentReader {
     Optional<? extends List<String>> moveDown( int lines );
 
     /**
-     * Request the top file window.
-     *
-     * @return the top file window, or nothing if the file does not exist
+     * Move the file window to the top of the file.
      */
-    Optional<? extends List<String>> top();
+    void top();
 
     /**
      * Move the file window to the tail of the file.

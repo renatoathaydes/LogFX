@@ -127,7 +127,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file top can be read'
-        def top = reader.top()
+        reader.top()
+        def top = reader.refresh()
         top.isPresent()
         top.get() == expectedLines
 
@@ -191,7 +192,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file top can be read'
-        def top = reader.top()
+        reader.top()
+        def top = reader.refresh()
         top.isPresent()
 
         when: 'we move down a certain number of lines'
@@ -323,11 +325,12 @@ class FileContentReaderSpec extends Specification {
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
         when: 'The reader moves to the top line'
-        def topLine = reader.top()
+        reader.top()
+        def top = reader.refresh()
 
         then: 'The top lines are returned'
-        topLine.isPresent()
-        topLine.get() == [ '000', '111', '222', '333', '444' ]
+        top.isPresent()
+        top.get() == [ '000', '111', '222', '333', '444' ]
 
         when: 'The reader moves down nonsensical amounts'
         def lines3 = reader.moveDown( 3 )
@@ -408,11 +411,12 @@ class FileContentReaderSpec extends Specification {
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
         when: 'The file reader moves to the top'
-        def topLines = reader.top()
+        reader.top()
+        def top = reader.refresh()
 
         then: 'The first lines are returned'
-        topLines.isPresent()
-        topLines.get() == [ '000', '111', '222', '333', '444' ]
+        top.isPresent()
+        top.get() == [ '000', '111', '222', '333', '444' ]
 
         when: 'The file gets more 2 lines written to it at the top'
         file.write( 'top-line\nsecond-line\n' + file.text )

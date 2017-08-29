@@ -85,10 +85,11 @@ public class FileReader implements FileContentReader {
     }
 
     @Override
-    public Optional<? extends List<String>> top() {
+    public void top() {
         noLinesDown = false;
         noLinesUp = true;
-        return loadFromTop( 0L, fileWindowSize, REFRESH );
+        lineStarts.clear();
+        lineStarts.addFirst( 0L );
     }
 
     @Override
