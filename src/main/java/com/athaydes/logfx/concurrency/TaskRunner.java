@@ -3,10 +3,12 @@ package com.athaydes.logfx.concurrency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -106,6 +108,13 @@ public class TaskRunner {
         } else {
             log.trace( "Task was already scheduled to check if it needs to run, request to run ignored" );
         }
+    }
+
+    public Cancellable scheduleRepeatingTask( Runnable task, Duration period ) {
+        ScheduledFuture<?> future = executor.scheduleAtFixedRate(
+                task, 0L, period.toMillis(), TimeUnit.MILLISECONDS );
+
+        return () -> future.cancel( false );
     }
 
     public void shutdown() {

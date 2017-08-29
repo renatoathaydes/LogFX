@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ToggleButton;
 
 /**
  * Mapping of unicode characters to AwesomeIcons.
@@ -13,6 +14,16 @@ public class AwesomeIcons {
 
     private AwesomeIcons() {
         // hide it
+    }
+
+    public static ToggleButton createToggleButton( String iconName ) {
+        return createToggleButton( iconName, 16 );
+    }
+
+    public static ToggleButton createToggleButton( String iconName, int iconSize ) {
+        Label icon = createIconLabel( iconName );
+        icon.setStyle( "-fx-font-size: " + iconSize + "px;" );
+        return new ToggleButton( "", icon );
     }
 
     public static Button createIconButton( String iconName ) {
@@ -50,6 +61,7 @@ public class AwesomeIcons {
         return label;
     }
 
-    public static String CLOSE = "\uf2d4";
+    public static final String CLOSE = "\uf2d4";
+    public static final String ARROW_DOWN = "\uf063";
 
 }

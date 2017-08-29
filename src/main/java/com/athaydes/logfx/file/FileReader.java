@@ -92,10 +92,11 @@ public class FileReader implements FileContentReader {
     }
 
     @Override
-    public Optional<? extends List<String>> tail() {
+    public void tail() {
         noLinesDown = true;
         noLinesUp = false;
-        return loadFromBottom( file.length(), fileWindowSize, REFRESH );
+        lineStarts.clear();
+        lineStarts.addFirst( file.length() + 1 );
     }
 
     @Override

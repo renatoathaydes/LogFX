@@ -38,6 +38,7 @@ public class LogView extends VBox {
 
     private final HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
+    private final Tailer tailer = new Tailer();
     private final FileContentReader fileContentReader;
     private final File file;
     private final FileChangeWatcher fileChangeWatcher;
@@ -96,6 +97,10 @@ public class LogView extends VBox {
         } );
     }
 
+    void tail() {
+        tailer.tail();
+    }
+
     private void addTopLines( List<String> topLines ) {
         Platform.runLater( () -> {
             ObservableList<Node> children = getChildren();
@@ -136,6 +141,7 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
+        tailer.fileUpdated();
         taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
     }
 
@@ -202,5 +208,30 @@ public class LogView extends VBox {
     void closeFileReader() {
         fileChangeWatcher.close();
         fileReaderExecutor.shutdown();
+    }
+
+    private class Tailer {
+
+        private long lastFileUpdate = -1L;
+        private long lastTailCall = -2L;
+
+        void fileUpdated() {
+            fileReaderExecutor.execute( () -> {
+                lastFileUpdate = System.currentTimeMillis();
+            } );
+        }
+
+        void tail() {
+            fileReaderExecutor.execute( () -> {
+                if ( lastTailCall < lastFileUpdate ) {
+                    log.trace( "Tailer: updating file window to new tail" );
+                    fileContentReader.tail();
+                } else {
+                    log.trace( "Tailer: No need to update the tail file window" );
+                }
+
+                lastTailCall = System.currentTimeMillis();
+            } );
+        }
     }
 }

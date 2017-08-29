@@ -1,6 +1,8 @@
 package com.athaydes.logfx.ui;
 
-import javafx.application.Platform;
+import com.athaydes.logfx.concurrency.Cancellable;
+import com.athaydes.logfx.concurrency.TaskRunner;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -8,13 +10,18 @@ import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
+import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -23,8 +30,11 @@ import java.util.function.Consumer;
 public final class LogViewPane {
 
     private final SplitPane pane = new SplitPane();
+    private final TaskRunner taskRunner;
 
-    public LogViewPane() {
+    public LogViewPane( TaskRunner taskRunner ) {
+        this.taskRunner = taskRunner;
+
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( LogViewScrollPane::closeView ) );
@@ -58,7 +68,7 @@ public final class LogViewPane {
     }
 
     public void add( LogView logView, Runnable onCloseFile ) {
-        pane.getItems().add( new LogViewWrapper( logView, ( wrapper ) -> {
+        pane.getItems().add( new LogViewWrapper( logView, taskRunner, ( wrapper ) -> {
             pane.getItems().remove( wrapper );
             onCloseFile.run();
         } ) );
@@ -106,6 +116,12 @@ public final class LogViewPane {
 
             setOnScroll( event -> {
                 double deltaY = event.getDeltaY();
+                if ( deltaY > 0.0 ) {
+                    wrapper.stopTailingFile(); // stop tailing when user scrolls up
+                } else if ( wrapper.isTailingFile() ) {
+                    return; // no need to scroll down when tailing file
+                }
+
                 switch ( event.getTextDeltaYUnits() ) {
                     case NONE:
                         // no change
@@ -128,25 +144,67 @@ public final class LogViewPane {
 
     private static class LogViewWrapper extends VBox {
 
+        private static final Logger log = LoggerFactory.getLogger( LogViewWrapper.class );
+
         private final LogView logView;
         private final Consumer<LogViewWrapper> onClose;
+        private final TaskRunner taskRunner;
+        private final AtomicReference<Cancellable> cancelTailingFile = new AtomicReference<>();
+        private final LogViewHeader header;
 
+        @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
+                        TaskRunner taskRunner,
                         Consumer<LogViewWrapper> onClose ) {
             super( 2.0 );
 
             this.logView = logView;
+            this.taskRunner = taskRunner;
             this.onClose = onClose;
 
-            getChildren().addAll(
-                    new LogViewHeader( logView.getFile(), () -> onClose.accept( this ) ),
-                    new LogViewScrollPane( this ) );
+            this.header = new LogViewHeader( logView.getFile(),
+                    () -> onClose.accept( this ) );
 
-            Platform.runLater( () -> {
-                // TODO read file
+            getChildren().addAll( header, new LogViewScrollPane( this ) );
+
+            header.tailFileProperty().addListener( ( observable, wasSelected, isSelected ) -> {
+                if ( isSelected ) {
+                    startTailingFile();
+                } else {
+                    stopTailingFile();
+                }
             } );
         }
 
+        @MustCallOnJavaFXThread
+        private void startTailingFile() {
+            log.debug( "Starting tailing file" );
+            header.tailFileProperty().setValue( true );
+            Cancellable previousCancellable = cancelTailingFile.getAndSet(
+                    taskRunner.scheduleRepeatingTask( logView::tail, Duration.ofSeconds( 1L ) ) );
+
+            if ( previousCancellable != null ) {
+                previousCancellable.cancel();
+            }
+        }
+
+        @MustCallOnJavaFXThread
+        private void stopTailingFile() {
+            log.debug( "Stopping tailing file" );
+            header.tailFileProperty().setValue( false );
+            Cancellable previousCancellable = cancelTailingFile.get();
+
+            if ( previousCancellable != null ) {
+                previousCancellable.cancel();
+            }
+        }
+
+        @MustCallOnJavaFXThread
+        boolean isTailingFile() {
+            return header.tailFileProperty().get();
+        }
+
+        @MustCallOnJavaFXThread
         void closeView() {
             try {
                 logView.closeFileReader();
@@ -155,6 +213,7 @@ public final class LogViewPane {
             }
         }
 
+        @MustCallOnJavaFXThread
         void stop() {
             // do not call onClose as this is not closing the view, just stopping the app
             logView.closeFileReader();
@@ -162,6 +221,8 @@ public final class LogViewPane {
     }
 
     private static class LogViewHeader extends BorderPane {
+
+        private final BooleanProperty tailFile;
 
         LogViewHeader( File file, Runnable onClose ) {
             setMinWidth( 10.0 );
@@ -187,13 +248,21 @@ public final class LogViewPane {
                 fileNameLabel.setText( fileNameLabel.getText() + " " + fileSizeText );
             }
 
+            ToggleButton tailFileButton = AwesomeIcons.createToggleButton( AwesomeIcons.ARROW_DOWN );
+
+            this.tailFile = tailFileButton.selectedProperty();
+
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setOnAction( event -> onClose.run() );
 
-            rightAlignedBox.getChildren().add( closeButton );
+            rightAlignedBox.getChildren().addAll( tailFileButton, closeButton );
 
             setLeft( leftAlignedBox );
             setRight( rightAlignedBox );
+        }
+
+        BooleanProperty tailFileProperty() {
+            return tailFile;
         }
     }
 

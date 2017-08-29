@@ -24,7 +24,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 'Z' * 100 )
 
         then: 'The file tail can be read'
-        def tail = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
         tail.isPresent()
         tail.get() == [ 'Z' * 100 ]
 
@@ -38,7 +39,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 'Z' * 100 ) << '\n' << 'abc' << '\n\n' << ( 'X' * 10 ) << '\n'
 
         then: 'The file tail can be read'
-        def tail = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
         tail.isPresent()
         tail.get() == [ 'Z' * 100, 'abc', '', ( 'X' * 10 ), '' ]
 
@@ -53,7 +55,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 1..10 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
         tail.isPresent()
         tail.get() == expectedLines
 
@@ -76,7 +79,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 1..10 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
         tail.isPresent()
         tail.get() == expectedLines
 
@@ -99,7 +103,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
         tail.isPresent()
         tail.get() == expectedLines
 
@@ -145,7 +150,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 1..100_000 ).join( '\n' )
 
         then: 'The file tail can be read'
-        def tail = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
         tail.isPresent()
 
         when: 'we move up a certain number of lines'
@@ -248,7 +254,8 @@ class FileContentReaderSpec extends Specification {
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
         when: 'The reader moves to the tail'
-        def lines = reader.tail()
+        reader.tail()
+        def lines = reader.refresh()
 
         then: 'The last 3 lines of the file are returned'
         lines.isPresent()
@@ -277,11 +284,12 @@ class FileContentReaderSpec extends Specification {
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
         when: 'The file reader moves to the tail'
-        def lastLine = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
 
         then: 'The last lines are returned'
-        lastLine.isPresent()
-        lastLine.get() == [ '555', '666', '777', '888', '999' ]
+        tail.isPresent()
+        tail.get() == [ '555', '666', '777', '888', '999' ]
 
         when: 'The reader moves up nonsensical amounts'
         def lines3 = reader.moveUp( 3 )
@@ -353,11 +361,12 @@ class FileContentReaderSpec extends Specification {
         file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
 
         when: 'The file reader moves to the tail'
-        def lastLine = reader.tail()
+        reader.tail()
+        def tail = reader.refresh()
 
         then: 'The last lines are returned'
-        lastLine.isPresent()
-        lastLine.get() == [ '555', '666', '777', '888', '999' ]
+        tail.isPresent()
+        tail.get() == [ '555', '666', '777', '888', '999' ]
 
         when: 'The file gets more 2 lines written to it'
         file << '\na new line\nlast line'

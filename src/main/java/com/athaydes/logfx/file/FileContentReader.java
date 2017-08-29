@@ -43,11 +43,9 @@ public interface FileContentReader {
     Optional<? extends List<String>> top();
 
     /**
-     * Request the tail file window.
-     *
-     * @return the tail file window, or nothing if the file does not exist
+     * Move the file window to the tail of the file.
      */
-    Optional<? extends List<String>> tail();
+    void tail();
 
     /**
      * Refresh the current file window.
