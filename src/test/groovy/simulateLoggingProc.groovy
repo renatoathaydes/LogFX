@@ -24,6 +24,11 @@ write 'Logging 10x padLeft(n, n.toString)'
 
 10.times { it -> write( it.toString().padLeft( it, it.toString() ) ) }
 
+200.times {
+    write UUID.randomUUID().toString()
+    sleep 100
+}
+
 write 'Sleeping 5 seconds'
 sleep 5_000
 
