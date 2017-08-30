@@ -4,9 +4,11 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
+import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,11 +29,13 @@ public class Config {
     private final Path path;
     private final ObservableList<HighlightExpression> observableExpressions;
     private final ObservableSet<File> observableFiles;
+    private final SimpleObjectProperty<Orientation> panesOrientation;
 
     public Config( Path path, TaskRunner taskRunner ) {
         this.path = path;
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
+        panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
 
         if ( path.toFile().exists() ) {
             readConfigFile( path );
@@ -52,6 +56,7 @@ public class Config {
 
         observableExpressions.addListener( listener );
         observableFiles.addListener( listener );
+        panesOrientation.addListener( listener );
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
@@ -60,6 +65,10 @@ public class Config {
 
     public ObservableSet<File> getObservableFiles() {
         return observableFiles;
+    }
+
+    public SimpleObjectProperty<Orientation> panesOrientationProperty() {
+        return panesOrientation;
     }
 
     private void readConfigFile( Path path ) {
@@ -87,6 +96,8 @@ public class Config {
                 parseExpressions( lines );
             case "files:":
                 parseFiles( lines );
+            case "gui:":
+                parseGuiSection( lines );
         }
     }
 
@@ -94,7 +105,11 @@ public class Config {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                observableExpressions.add( parseHighlightExpression( line.trim() ) );
+                try {
+                    observableExpressions.add( parseHighlightExpression( line.trim() ) );
+                } catch ( IllegalArgumentException e ) {
+                    logInvalidProperty( "expressions", "highlight", e.getMessage() );
+                }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
@@ -114,6 +129,35 @@ public class Config {
         }
     }
 
+    private void parseGuiSection( Iterator<String> lines ) {
+        while ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                String[] parts = line.trim().split( "\\s+" );
+                if ( parts.length == 2 ) {
+                    switch ( parts[ 0 ] ) {
+                        case "orientation":
+                            try {
+                                panesOrientation.set( Orientation.valueOf( parts[ 1 ] ) );
+                            } catch ( IllegalArgumentException e ) {
+                                logInvalidProperty( "gui", "orientation", parts[ 1 ] );
+                            }
+                    }
+                } else {
+                    log.warn( "Ignoring line with invalid format in gui section: '{}'", line );
+                }
+            } else if ( !line.trim().isEmpty() ) {
+                parseConfigFile( line, lines );
+                break;
+            }
+        }
+    }
+
+    private static void logInvalidProperty( String section, String name, String invalidValue ) {
+        log.warn( "Invalid value for {} in section {}: '{}'",
+                name, section, invalidValue );
+    }
+
     private void dumpConfigToFile() {
         log.debug( "Writing config to " + path );
         try ( FileWriter writer = new FileWriter( path.toFile() ) ) {
@@ -130,6 +174,9 @@ public class Config {
                 writer.write( "  " + file.getAbsolutePath() );
                 writer.write( "\n" );
             }
+
+            writer.write( "gui:\n" );
+            writer.write( "  orientation " + panesOrientation.get().name() );
 
             writer.write( "\n" );
         } catch ( IOException e ) {

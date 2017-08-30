@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -54,17 +55,16 @@ public final class LogViewPane {
         pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem ) );
     }
 
-    @MustCallOnJavaFXThread
-    public void setOrientation( Orientation orientation ) {
-        pane.setOrientation( orientation );
+    public ObjectProperty<Orientation> orientationProperty() {
+        return pane.orientationProperty();
     }
 
     @MustCallOnJavaFXThread
     public void switchOrientation() {
         if ( pane.getOrientation().equals( Orientation.VERTICAL ) ) {
-            setOrientation( Orientation.HORIZONTAL );
+            pane.setOrientation( Orientation.HORIZONTAL );
         } else {
-            setOrientation( Orientation.VERTICAL );
+            pane.setOrientation( Orientation.VERTICAL );
         }
     }
 

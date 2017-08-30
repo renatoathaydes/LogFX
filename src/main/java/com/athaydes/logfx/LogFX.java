@@ -65,6 +65,7 @@ public class LogFX extends Application {
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
         this.logsPane = new LogViewPane();
+        logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
 
         openFilesFromConfig();
     }
