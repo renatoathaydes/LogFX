@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.toList;
@@ -38,7 +39,7 @@ public class LogView extends VBox {
 
     private final HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
-    private final Tailer tailer = new Tailer();
+    private final AtomicBoolean tailing = new AtomicBoolean( false );
     private final FileContentReader fileContentReader;
     private final File file;
     private final FileChangeWatcher fileChangeWatcher;
@@ -97,8 +98,17 @@ public class LogView extends VBox {
         } );
     }
 
-    void tail() {
-        tailer.tail();
+    void startTailingFile() {
+        tailing.set( true );
+        onFileChange();
+    }
+
+    void stopTailingFile() {
+        tailing.set( false );
+    }
+
+    boolean isTailingFile() {
+        return tailing.get();
     }
 
     private void addTopLines( List<String> topLines ) {
@@ -141,12 +151,14 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
-        tailer.fileUpdated();
         taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
     }
 
     private void immediateOnFileChange() {
         fileReaderExecutor.execute( () -> {
+            if ( tailing.get() ) {
+                fileContentReader.tail();
+            }
             Optional<? extends List<String>> lines = fileContentReader.refresh();
             if ( lines.isPresent() ) {
                 updateWith( lines.get().iterator() );
@@ -210,28 +222,4 @@ public class LogView extends VBox {
         fileReaderExecutor.shutdown();
     }
 
-    private class Tailer {
-
-        private long lastFileUpdate = -1L;
-        private long lastTailCall = -2L;
-
-        void fileUpdated() {
-            fileReaderExecutor.execute( () -> {
-                lastFileUpdate = System.currentTimeMillis();
-            } );
-        }
-
-        void tail() {
-            fileReaderExecutor.execute( () -> {
-                if ( lastTailCall < lastFileUpdate ) {
-                    log.trace( "Tailer: updating file window to new tail" );
-                    fileContentReader.tail();
-                } else {
-                    log.trace( "Tailer: No need to update the tail file window" );
-                }
-
-                lastTailCall = System.currentTimeMillis();
-            } );
-        }
-    }
 }

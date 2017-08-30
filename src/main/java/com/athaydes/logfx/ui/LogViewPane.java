@@ -1,7 +1,5 @@
 package com.athaydes.logfx.ui;
 
-import com.athaydes.logfx.concurrency.Cancellable;
-import com.athaydes.logfx.concurrency.TaskRunner;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.scene.Node;
@@ -19,9 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.time.Duration;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 /**
@@ -30,11 +26,8 @@ import java.util.function.Consumer;
 public final class LogViewPane {
 
     private final SplitPane pane = new SplitPane();
-    private final TaskRunner taskRunner;
 
-    public LogViewPane( TaskRunner taskRunner ) {
-        this.taskRunner = taskRunner;
-
+    public LogViewPane() {
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( LogViewScrollPane::closeView ) );
@@ -68,7 +61,7 @@ public final class LogViewPane {
     }
 
     public void add( LogView logView, Runnable onCloseFile ) {
-        pane.getItems().add( new LogViewWrapper( logView, taskRunner, ( wrapper ) -> {
+        pane.getItems().add( new LogViewWrapper( logView, ( wrapper ) -> {
             pane.getItems().remove( wrapper );
             onCloseFile.run();
         } ) );
@@ -148,24 +141,23 @@ public final class LogViewPane {
 
         private final LogView logView;
         private final Consumer<LogViewWrapper> onClose;
-        private final TaskRunner taskRunner;
-        private final AtomicReference<Cancellable> cancelTailingFile = new AtomicReference<>();
         private final LogViewHeader header;
+        private final LogViewScrollPane scrollPane;
 
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
-                        TaskRunner taskRunner,
                         Consumer<LogViewWrapper> onClose ) {
             super( 2.0 );
 
             this.logView = logView;
-            this.taskRunner = taskRunner;
             this.onClose = onClose;
 
             this.header = new LogViewHeader( logView.getFile(),
                     () -> onClose.accept( this ) );
 
-            getChildren().addAll( header, new LogViewScrollPane( this ) );
+            this.scrollPane = new LogViewScrollPane( this );
+
+            getChildren().addAll( header, scrollPane );
 
             header.tailFileProperty().addListener( ( observable, wasSelected, isSelected ) -> {
                 if ( isSelected ) {
@@ -178,24 +170,20 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         private void startTailingFile() {
-            log.debug( "Starting tailing file" );
-            header.tailFileProperty().setValue( true );
-            Cancellable previousCancellable = cancelTailingFile.getAndSet(
-                    taskRunner.scheduleRepeatingTask( logView::tail, Duration.ofSeconds( 1L ) ) );
-
-            if ( previousCancellable != null ) {
-                previousCancellable.cancel();
+            if ( !logView.isTailingFile() ) {
+                log.debug( "Starting tailing file" );
+                header.tailFileProperty().setValue( true );
+                logView.startTailingFile();
+                scrollPane.setVvalue( 1.0 );
             }
         }
 
         @MustCallOnJavaFXThread
         private void stopTailingFile() {
-            log.debug( "Stopping tailing file" );
-            header.tailFileProperty().setValue( false );
-            Cancellable previousCancellable = cancelTailingFile.get();
-
-            if ( previousCancellable != null ) {
-                previousCancellable.cancel();
+            if ( logView.isTailingFile() ) {
+                log.debug( "Stopping tailing file" );
+                header.tailFileProperty().setValue( false );
+                logView.stopTailingFile();
             }
         }
 
