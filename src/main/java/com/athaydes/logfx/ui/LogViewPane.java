@@ -237,10 +237,11 @@ public final class LogViewPane {
             }
 
             ToggleButton tailFileButton = AwesomeIcons.createToggleButton( AwesomeIcons.ARROW_DOWN );
-
+            tailFileButton.setTooltip( new Tooltip( "Tail file" ) );
             this.tailFile = tailFileButton.selectedProperty();
 
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
+            closeButton.setTooltip( new Tooltip( "Close file" ) );
             closeButton.setOnAction( event -> onClose.run() );
 
             rightAlignedBox.getChildren().addAll( tailFileButton, closeButton );
