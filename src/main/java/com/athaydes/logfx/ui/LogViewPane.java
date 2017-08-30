@@ -12,6 +12,9 @@ import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -32,10 +35,13 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public LogViewPane() {
         MenuItem closeMenuItem = new MenuItem( "Close" );
+        closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.META_DOWN ) );
         closeMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( LogViewScrollPane::closeView ) );
 
         MenuItem hideMenuItem = new MenuItem( "Hide" );
+        hideMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H,
+                KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
         hideMenuItem.setOnAction( event -> {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't hide anything if there isn't more than 1 pane
@@ -52,7 +58,12 @@ public final class LogViewPane {
             } );
         } );
 
-        pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem ) );
+        MenuItem tailMenuItem = new MenuItem( "Tail file (on/off)" );
+        tailMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T, KeyCombination.META_DOWN ) );
+        tailMenuItem.setOnAction( event -> getFocusedView().ifPresent( scrollPane ->
+                scrollPane.wrapper.switchTailFile() ) );
+
+        pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem, tailMenuItem ) );
     }
 
     public ObjectProperty<Orientation> orientationProperty() {
@@ -228,6 +239,14 @@ public final class LogViewPane {
         void stop() {
             // do not call onClose as this is not closing the view, just stopping the app
             logView.closeFileReader();
+        }
+
+        void switchTailFile() {
+            if ( isTailingFile() ) {
+                stopTailingFile();
+            } else {
+                startTailingFile();
+            }
         }
     }
 

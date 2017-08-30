@@ -17,6 +17,9 @@ import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -104,6 +107,7 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         MenuItem open = new MenuItem( "_Open File" );
+        open.setAccelerator( new KeyCodeCombination( KeyCode.O, KeyCombination.META_DOWN ) );
         open.setMnemonicParsing( true );
         open.setOnAction( ( event ) -> {
             log.debug( "Opening file" );
@@ -117,6 +121,8 @@ public class LogFX extends Application {
         } );
 
         MenuItem close = new MenuItem( "E_xit" );
+        close.setAccelerator( new KeyCodeCombination( KeyCode.W,
+                KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
         close.setMnemonicParsing( true );
         close.setOnAction( ( event ) -> stage.close() );
         menu.getItems().addAll( open, close );
@@ -159,14 +165,19 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         CheckMenuItem highlight = new CheckMenuItem( "_Highlight Options" );
+        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.META_DOWN ) );
         highlight.setMnemonicParsing( true );
         bindMenuItemToDialog( highlight, () ->
                 showHighlightOptionsDialog( highlightOptions ) );
 
         MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
+        orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
+                KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
         orientation.setOnAction( event -> logsPane.switchOrientation() );
 
         CheckMenuItem font = new CheckMenuItem( "Fon_t" );
+        font.setAccelerator( new KeyCodeCombination( KeyCode.F,
+                KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
         font.setMnemonicParsing( true );
         bindMenuItemToDialog( font, () ->
                 showFontPicker( fontValue.getValue(), fontValue::setValue ) );
