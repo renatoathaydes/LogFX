@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
+import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
@@ -27,6 +28,7 @@ public final class LogViewPane {
 
     private final SplitPane pane = new SplitPane();
 
+    @MustCallOnJavaFXThread
     public LogViewPane() {
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setOnAction( ( event ) ->
@@ -52,14 +54,31 @@ public final class LogViewPane {
         pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem ) );
     }
 
+    @MustCallOnJavaFXThread
+    public void setOrientation( Orientation orientation ) {
+        pane.setOrientation( orientation );
+    }
+
+    @MustCallOnJavaFXThread
+    public void switchOrientation() {
+        if ( pane.getOrientation().equals( Orientation.VERTICAL ) ) {
+            setOrientation( Orientation.HORIZONTAL );
+        } else {
+            setOrientation( Orientation.VERTICAL );
+        }
+    }
+
+    @MustCallOnJavaFXThread
     public DoubleProperty prefHeightProperty() {
         return pane.prefHeightProperty();
     }
 
+    @MustCallOnJavaFXThread
     public Node getNode() {
         return pane;
     }
 
+    @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile ) {
         pane.getItems().add( new LogViewWrapper( logView, ( wrapper ) -> {
             pane.getItems().remove( wrapper );
@@ -67,6 +86,7 @@ public final class LogViewPane {
         } ) );
     }
 
+    @MustCallOnJavaFXThread
     private Optional<LogViewScrollPane> getFocusedView() {
         Node focusedNode = pane.getScene().focusOwnerProperty().get();
         if ( focusedNode instanceof LogViewScrollPane ) {
@@ -76,12 +96,14 @@ public final class LogViewPane {
         }
     }
 
+    @MustCallOnJavaFXThread
     private void hide() {
         if ( pane.getItems().size() > 1 ) {
             pane.setDividerPosition( 0, 0.0 );
         }
     }
 
+    @MustCallOnJavaFXThread
     public void close() {
         for ( int i = 0; i < pane.getItems().size(); i++ ) {
             LogViewWrapper wrapper = ( LogViewWrapper ) pane.getItems().get( i );
@@ -89,6 +111,7 @@ public final class LogViewPane {
         }
     }
 
+    @MustCallOnJavaFXThread
     public void focusOn( File file ) {
         for ( Node item : pane.getItems() ) {
             if ( item instanceof LogViewWrapper ) {

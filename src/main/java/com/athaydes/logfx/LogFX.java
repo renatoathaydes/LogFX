@@ -162,12 +162,15 @@ public class LogFX extends Application {
         bindMenuItemToDialog( highlight, () ->
                 showHighlightOptionsDialog( highlightOptions ) );
 
+        MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
+        orientation.setOnAction( event -> logsPane.switchOrientation() );
+
         CheckMenuItem font = new CheckMenuItem( "Fon_t" );
         font.setMnemonicParsing( true );
         bindMenuItemToDialog( font, () ->
                 showFontPicker( fontValue.getValue(), fontValue::setValue ) );
 
-        menu.getItems().addAll( highlight, font );
+        menu.getItems().addAll( highlight, orientation, font );
         return menu;
     }
 
