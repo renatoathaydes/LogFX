@@ -99,6 +99,13 @@ public class LogFX extends Application {
             logsPane.close();
             taskRunner.shutdown();
         } );
+
+        Platform.runLater( () -> {
+            log.debug( "Setting divider positions to {}", config.getPaneDividerPositions() );
+            logsPane.setDividerPositions( config.getPaneDividerPositions() );
+            logsPane.panesDividersProperty().addListener( observable ->
+                    config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() ) );
+        } );
     }
 
     @MustCallOnJavaFXThread
@@ -130,7 +137,6 @@ public class LogFX extends Application {
         return menu;
     }
 
-    @MustCallOnJavaFXThread
     private void openFilesFromConfig() {
         for ( File file : config.getObservableFiles() ) {
             Platform.runLater( () -> openViewFor( file ) );

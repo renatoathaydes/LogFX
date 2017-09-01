@@ -18,9 +18,15 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Stream;
+
+import static java.util.stream.Collectors.joining;
+import static java.util.stream.Collectors.toList;
 
 public class Config {
 
@@ -30,12 +36,14 @@ public class Config {
     private final ObservableList<HighlightExpression> observableExpressions;
     private final ObservableSet<File> observableFiles;
     private final SimpleObjectProperty<Orientation> panesOrientation;
+    private final ObservableList<Double> paneDividerPositions;
 
     public Config( Path path, TaskRunner taskRunner ) {
         this.path = path;
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
+        paneDividerPositions = FXCollections.observableArrayList();
 
         if ( path.toFile().exists() ) {
             readConfigFile( path );
@@ -57,6 +65,7 @@ public class Config {
         observableExpressions.addListener( listener );
         observableFiles.addListener( listener );
         panesOrientation.addListener( listener );
+        paneDividerPositions.addListener( listener );
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
@@ -69,6 +78,10 @@ public class Config {
 
     public SimpleObjectProperty<Orientation> panesOrientationProperty() {
         return panesOrientation;
+    }
+
+    public ObservableList<Double> getPaneDividerPositions() {
+        return paneDividerPositions;
     }
 
     private void readConfigFile( Path path ) {
@@ -134,23 +147,42 @@ public class Config {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
                 String[] parts = line.trim().split( "\\s+" );
-                if ( parts.length == 2 ) {
-                    switch ( parts[ 0 ] ) {
-                        case "orientation":
-                            try {
-                                panesOrientation.set( Orientation.valueOf( parts[ 1 ] ) );
-                            } catch ( IllegalArgumentException e ) {
-                                logInvalidProperty( "gui", "orientation", parts[ 1 ] );
-                            }
-                    }
-                } else {
-                    log.warn( "Ignoring line with invalid format in gui section: '{}'", line );
+                if ( parts.length == 0 ) {
+                    logInvalidProperty( "gui", "?", "empty line" );
+                } else switch ( parts[ 0 ] ) {
+                    case "orientation":
+                        if ( parts.length != 2 ) {
+                            logInvalidProperty( "gui", "orientation", line );
+                        } else try {
+                            panesOrientation.set( Orientation.valueOf( parts[ 1 ] ) );
+                        } catch ( IllegalArgumentException e ) {
+                            logInvalidProperty( "gui", "orientation", parts[ 1 ] );
+                        }
+                        break;
+                    case "pane-dividers":
+                        if ( parts.length != 2 ) {
+                            logInvalidProperty( "gui", "pane-dividers", line );
+                        } else try {
+                            String[] separators = parts[ 1 ].split( "," );
+                            System.out.println( "THE SEPARATORS ARE: " + Arrays.toString( separators ) );
+                            paneDividerPositions.addAll( toDoubles( separators ) );
+                        } catch ( IllegalArgumentException e ) {
+                            logInvalidProperty( "gui", "pane-dividers", parts[ 0 ] );
+                        }
+                        break;
                 }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
             }
         }
+    }
+
+    private static List<Double> toDoubles( String[] numbers ) {
+        return Stream.of( numbers )
+                .map( String::trim )
+                .map( Double::parseDouble )
+                .collect( toList() );
     }
 
     private static void logInvalidProperty( String section, String name, String invalidValue ) {
@@ -177,6 +209,12 @@ public class Config {
 
             writer.write( "gui:\n" );
             writer.write( "  orientation " + panesOrientation.get().name() );
+            if ( !paneDividerPositions.isEmpty() ) {
+                writer.write( "\n  pane-dividers " );
+                writer.write( paneDividerPositions.stream()
+                        .map( n -> Double.toString( n ) )
+                        .collect( joining( "," ) ) );
+            }
 
             writer.write( "\n" );
         } catch ( IOException e ) {

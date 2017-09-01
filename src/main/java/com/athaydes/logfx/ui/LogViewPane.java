@@ -1,8 +1,12 @@
 package com.athaydes.logfx.ui;
 
+import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
+import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -22,8 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 
 /**
  * A container of {@link LogView}s.
@@ -31,6 +38,10 @@ import java.util.function.Consumer;
 public final class LogViewPane {
 
     private final SplitPane pane = new SplitPane();
+
+    // a simple observable that changes state every time a change occurs in a pane divider
+    // (changes in number of dividers as well as in their positions)
+    private final ObjectProperty<Boolean> panesDividersObservable = new SimpleObjectProperty<>( false );
 
     @MustCallOnJavaFXThread
     public LogViewPane() {
@@ -64,6 +75,23 @@ public final class LogViewPane {
                 scrollPane.wrapper.switchTailFile() ) );
 
         pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem, tailMenuItem ) );
+
+        // aggregate any change in the position of number of dividers into a single listener
+        InvalidationListener dividersListener = ( event ) ->
+                panesDividersObservable.setValue( !panesDividersObservable.getValue() );
+
+        pane.getDividers().addListener( dividersListener );
+        pane.getDividers().addListener( ( ListChangeListener<? super SplitPane.Divider> ) change -> {
+            if ( change.next() ) {
+                if ( change.wasAdded() ) {
+                    change.getAddedSubList().forEach( divider ->
+                            divider.positionProperty().addListener( dividersListener ) );
+                } else if ( change.wasRemoved() ) {
+                    change.getRemoved().forEach( divider ->
+                            divider.positionProperty().removeListener( dividersListener ) );
+                }
+            }
+        } );
     }
 
     public ObjectProperty<Orientation> orientationProperty() {
@@ -132,6 +160,31 @@ public final class LogViewPane {
                 }
             }
         }
+    }
+
+    public ObjectProperty<?> panesDividersProperty() {
+        return panesDividersObservable;
+    }
+
+    @MustCallOnJavaFXThread
+    public void setDividerPositions( List<Double> separators ) {
+        double[] positions = separators.stream().mapToDouble( i -> i ).toArray();
+
+        // set divider positions from last to first, then first to last, to try to honour all of them
+        for ( int i = positions.length - 1; i >= 0; i-- ) {
+            pane.setDividerPosition( i, positions[ i ] );
+        }
+        Platform.runLater( () -> {
+            for ( int i = 0; i < positions.length; i++ ) {
+                pane.setDividerPosition( i, positions[ i ] );
+            }
+        } );
+    }
+
+    @MustCallOnJavaFXThread
+    public List<Double> getSeparatorsPositions() {
+        return DoubleStream.of( pane.getDividerPositions() )
+                .boxed().collect( Collectors.toList() );
     }
 
     private static class LogViewScrollPane extends ScrollPane {
