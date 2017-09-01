@@ -18,7 +18,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -164,7 +163,6 @@ public class Config {
                             logInvalidProperty( "gui", "pane-dividers", line );
                         } else try {
                             String[] separators = parts[ 1 ].split( "," );
-                            System.out.println( "THE SEPARATORS ARE: " + Arrays.toString( separators ) );
                             paneDividerPositions.addAll( toDoubles( separators ) );
                         } catch ( IllegalArgumentException e ) {
                             logInvalidProperty( "gui", "pane-dividers", parts[ 0 ] );

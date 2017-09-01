@@ -19,9 +19,12 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,7 +51,7 @@ public final class LogViewPane {
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.META_DOWN ) );
         closeMenuItem.setOnAction( ( event ) ->
-                getFocusedView().ifPresent( LogViewScrollPane::closeView ) );
+                getFocusedView().ifPresent( LogViewWrapper::closeView ) );
 
         MenuItem hideMenuItem = new MenuItem( "Hide" );
         hideMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H,
@@ -57,8 +60,8 @@ public final class LogViewPane {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't hide anything if there isn't more than 1 pane
             }
-            getFocusedView().ifPresent( scrollPane -> {
-                int index = pane.getItems().indexOf( scrollPane.wrapper );
+            getFocusedView().ifPresent( wrapper -> {
+                int index = pane.getItems().indexOf( wrapper );
                 if ( index == pane.getItems().size() - 1 ) {
                     // last pane, so we can only hide by opening up the previous one
                     pane.setDividerPosition( index - 1, 1.0 );
@@ -71,8 +74,8 @@ public final class LogViewPane {
 
         MenuItem tailMenuItem = new MenuItem( "Tail file (on/off)" );
         tailMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T, KeyCombination.META_DOWN ) );
-        tailMenuItem.setOnAction( event -> getFocusedView().ifPresent( scrollPane ->
-                scrollPane.wrapper.switchTailFile() ) );
+        tailMenuItem.setOnAction( event -> getFocusedView()
+                .ifPresent( LogViewWrapper::switchTailFile ) );
 
         pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem, tailMenuItem ) );
 
@@ -126,10 +129,16 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
-    private Optional<LogViewScrollPane> getFocusedView() {
-        Node focusedNode = pane.getScene().focusOwnerProperty().get();
-        if ( focusedNode instanceof LogViewScrollPane ) {
-            return Optional.of( ( LogViewScrollPane ) focusedNode );
+    private Optional<LogViewWrapper> getFocusedView() {
+        Node node = pane.getScene().focusOwnerProperty().get();
+
+        // go up in the hierarchy until we find a wrapper, or just hit null
+        while ( node != null && !( node instanceof LogViewWrapper ) ) {
+            node = node.getParent();
+        }
+
+        if ( node != null ) {
+            return Optional.of( ( LogViewWrapper ) node );
         } else {
             return Optional.empty();
         }
@@ -192,6 +201,8 @@ public final class LogViewPane {
 
         LogViewScrollPane( LogViewWrapper wrapper ) {
             super( wrapper.logView );
+            setFocusTraversable( true );
+
             this.wrapper = wrapper;
 
             setOnScroll( event -> {
@@ -217,9 +228,6 @@ public final class LogViewPane {
             } );
         }
 
-        void closeView() {
-            wrapper.closeView();
-        }
     }
 
     private static class LogViewWrapper extends VBox {
@@ -244,7 +252,7 @@ public final class LogViewPane {
 
             this.scrollPane = new LogViewScrollPane( this );
 
-            getChildren().addAll( header, scrollPane );
+            getChildren().setAll( header, scrollPane );
 
             header.tailFileProperty().addListener( ( observable, wasSelected, isSelected ) -> {
                 if ( isSelected ) {
@@ -253,6 +261,26 @@ public final class LogViewPane {
                     stopTailingFile();
                 }
             } );
+
+            logView.setOnFileExists( ( fileExists ) -> {
+                if ( fileExists ) {
+                    if ( !isShowingFileContents() ) {
+                        log.debug( "Showing FileContents pane for file: {}", logView.getFile() );
+                        Platform.runLater( () -> getChildren().setAll( header, scrollPane ) );
+                    }
+                } else {
+                    if ( isShowingFileContents() ) {
+                        log.debug( "Showing FileDoesNotExist pane for file: {}", logView.getFile() );
+                        Platform.runLater( () -> getChildren().setAll( header, new FileDoesNotExistPane() ) );
+                    }
+                }
+            } );
+
+            logView.loadFileContents();
+        }
+
+        private boolean isShowingFileContents() {
+            return getChildren().size() > 1 && getChildren().get( 1 ) instanceof LogViewScrollPane;
         }
 
         @MustCallOnJavaFXThread
@@ -348,6 +376,32 @@ public final class LogViewPane {
         BooleanProperty tailFileProperty() {
             return tailFile;
         }
+    }
+
+    private static class FileDoesNotExistPane extends StackPane {
+
+        FileDoesNotExistPane() {
+            setPrefSize( 800, 200 );
+            setMinSize( 10.0, 10.0 );
+            setFocusTraversable( true );
+
+            Text text = new Text( "File does not exist" );
+            text.getStyleClass().add( "large-background-text" );
+            getChildren().add( text );
+
+            addEventHandler( MouseEvent.MOUSE_CLICKED, event -> {
+                requestFocus();
+            } );
+
+            focusedProperty().addListener( observable -> {
+                if ( isFocused() ) {
+                    getStyleClass().add( "selected-pane" );
+                } else {
+                    getStyleClass().remove( "selected-pane" );
+                }
+            } );
+        }
+
     }
 
 }

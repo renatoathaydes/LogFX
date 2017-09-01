@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.toList;
@@ -45,6 +46,8 @@ public class LogView extends VBox {
     private final FileChangeWatcher fileChangeWatcher;
     private final Supplier<LogLine> logLineFactory;
     private final TaskRunner taskRunner;
+    private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
+    };
 
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
@@ -74,9 +77,15 @@ public class LogView extends VBox {
             }
         } );
 
-        immediateOnFileChange();
-
         fileChangeWatcher.setOnChange( this::onFileChange );
+    }
+
+    void loadFileContents() {
+        immediateOnFileChange();
+    }
+
+    void setOnFileExists( Consumer<Boolean> onFileExists ) {
+        this.onFileExists = onFileExists;
     }
 
     void move( double deltaY ) {
@@ -92,9 +101,7 @@ public class LogView extends VBox {
                 result = fileContentReader.moveDown( -lines );
                 result.ifPresent( this::addBottomLines );
             }
-            if ( !result.isPresent() ) {
-                Platform.runLater( this::fileDoesNotExist );
-            }
+            onFileExists.accept( result.isPresent() );
         } );
     }
 
@@ -160,11 +167,8 @@ public class LogView extends VBox {
                 fileContentReader.tail();
             }
             Optional<? extends List<String>> lines = fileContentReader.refresh();
-            if ( lines.isPresent() ) {
-                updateWith( lines.get().iterator() );
-            } else {
-                Platform.runLater( this::fileDoesNotExist );
-            }
+            lines.ifPresent( list -> updateWith( list.iterator() ) );
+            onFileExists.accept( lines.isPresent() );
         } );
     }
 
@@ -189,11 +193,6 @@ public class LogView extends VBox {
                 updateLine( line, "" );
             } );
         }
-    }
-
-    @MustCallOnJavaFXThread
-    private void fileDoesNotExist() {
-        // TODO show special tab
     }
 
     @MustCallOnJavaFXThread
