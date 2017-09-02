@@ -64,7 +64,7 @@ public class LogFX extends Application {
         }
 
         Path configFile = Paths.get( userHome, ".logfx" );
-        this.config = new Config( configFile, taskRunner );
+        this.config = new Config( configFile, taskRunner, fontValue );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
         this.logsPane = new LogViewPane();

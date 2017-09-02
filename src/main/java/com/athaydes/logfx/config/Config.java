@@ -1,5 +1,6 @@
 package com.athaydes.logfx.config;
 
+import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
@@ -10,6 +11,7 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
+import javafx.scene.text.Font;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +20,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,9 +39,11 @@ public class Config {
     private final ObservableSet<File> observableFiles;
     private final SimpleObjectProperty<Orientation> panesOrientation;
     private final ObservableList<Double> paneDividerPositions;
+    private final BindableValue<Font> font;
 
-    public Config( Path path, TaskRunner taskRunner ) {
+    public Config( Path path, TaskRunner taskRunner, BindableValue<Font> fontValue ) {
         this.path = path;
+        this.font = fontValue;
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
@@ -65,6 +70,7 @@ public class Config {
         observableFiles.addListener( listener );
         panesOrientation.addListener( listener );
         paneDividerPositions.addListener( listener );
+        font.addListener( listener );
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
@@ -120,7 +126,7 @@ public class Config {
                 try {
                     observableExpressions.add( parseHighlightExpression( line.trim() ) );
                 } catch ( IllegalArgumentException e ) {
-                    logInvalidProperty( "expressions", "highlight", e.getMessage() );
+                    logInvalidProperty( "expressions", "highlight", line, e.toString() );
                 }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
@@ -147,25 +153,52 @@ public class Config {
             if ( line.startsWith( " " ) ) {
                 String[] parts = line.trim().split( "\\s+" );
                 if ( parts.length == 0 ) {
-                    logInvalidProperty( "gui", "?", "empty line" );
+                    logInvalidProperty( "gui", "?", "empty line", null );
                 } else switch ( parts[ 0 ] ) {
                     case "orientation":
                         if ( parts.length != 2 ) {
-                            logInvalidProperty( "gui", "orientation", line );
+                            logInvalidProperty( "gui", "orientation", line,
+                                    "Expected 2 parts, got " + parts.length );
                         } else try {
                             panesOrientation.set( Orientation.valueOf( parts[ 1 ] ) );
                         } catch ( IllegalArgumentException e ) {
-                            logInvalidProperty( "gui", "orientation", parts[ 1 ] );
+                            logInvalidProperty( "gui", "orientation", parts[ 1 ],
+                                    "Invalid value for Orientation: " + e );
                         }
                         break;
                     case "pane-dividers":
                         if ( parts.length != 2 ) {
-                            logInvalidProperty( "gui", "pane-dividers", line );
+                            logInvalidProperty( "gui", "pane-dividers", line,
+                                    "Expected 2 parts, got " + parts.length );
                         } else try {
                             String[] separators = parts[ 1 ].split( "," );
                             paneDividerPositions.addAll( toDoubles( separators ) );
                         } catch ( IllegalArgumentException e ) {
-                            logInvalidProperty( "gui", "pane-dividers", parts[ 0 ] );
+                            logInvalidProperty( "gui", "pane-dividers", parts[ 1 ],
+                                    e.toString() );
+                        }
+                        break;
+                    case "font":
+                        if ( parts.length < 3 ) {
+                            logInvalidProperty( "gui", "font", line,
+                                    "Expected 3 or more parts, got " + parts.length );
+                        } else {
+                            double size = 12.0;
+                            try {
+                                size = Double.parseDouble( parts[ 1 ] );
+                            } catch ( NumberFormatException e ) {
+                                logInvalidProperty( "gui", "font", parts[ 1 ],
+                                        "Font size is invalid: " + parts[ 1 ] );
+                            }
+
+                            String[] fontNameParts = Arrays.copyOfRange( parts, 2, parts.length );
+                            String fontName = String.join( " ", fontNameParts );
+                            try {
+                                font.setValue( Font.font( fontName, size ) );
+                            } catch ( IllegalArgumentException e ) {
+                                logInvalidProperty( "gui", "font", parts[ 0 ],
+                                        "Invalid font name: " + fontName );
+                            }
                         }
                         break;
                 }
@@ -183,9 +216,13 @@ public class Config {
                 .collect( toList() );
     }
 
-    private static void logInvalidProperty( String section, String name, String invalidValue ) {
+    private static void logInvalidProperty( String section, String name,
+                                            String invalidValue, String error ) {
         log.warn( "Invalid value for {} in section {}: '{}'",
                 name, section, invalidValue );
+        if ( error != null ) {
+            log.warn( "Error: {}", error );
+        }
     }
 
     private void dumpConfigToFile() {
@@ -213,6 +250,8 @@ public class Config {
                         .map( n -> Double.toString( n ) )
                         .collect( joining( "," ) ) );
             }
+            writer.write( "\n  font " + font.getValue().getSize() );
+            writer.write( " " + font.getValue().getFamily() );
 
             writer.write( "\n" );
         } catch ( IOException e ) {
