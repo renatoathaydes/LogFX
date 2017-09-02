@@ -12,6 +12,7 @@ import javafx.beans.binding.NumberBinding;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
+import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Font;
 import org.slf4j.Logger;
@@ -80,6 +81,10 @@ public class LogView extends VBox {
         } );
 
         fileChangeWatcher.setOnChange( this::onFileChange );
+    }
+
+    Optional<ClipboardContent> getSelection() {
+        return selectionHandler.getSelection();
     }
 
     void loadFileContents() {

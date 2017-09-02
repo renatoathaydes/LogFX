@@ -6,14 +6,13 @@ import javafx.collections.ObservableSet;
 import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.input.ClipboardContent;
-import javafx.scene.input.DataFormat;
 import javafx.scene.input.MouseButton;
 import javafx.scene.input.MouseEvent;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -96,6 +95,10 @@ class SelectionHandler {
         }
     }
 
+    Optional<ClipboardContent> getSelection() {
+        return selectionManager.getContent();
+    }
+
     ObservableSet<SelectableNode> getSelectedItems() {
         return selectionManager.getSelectedItems();
     }
@@ -172,12 +175,16 @@ class SelectionHandler {
             }
         }
 
-        Map<DataFormat, Object> getContent() {
+        Optional<ClipboardContent> getContent() {
+            if ( selectedItems.isEmpty() ) {
+                return Optional.empty();
+            }
+
             ClipboardContent content = new ClipboardContent();
             content.putString( getSelectedItems().stream()
                     .map( SelectableNode::getText )
                     .collect( Collectors.joining( System.lineSeparator() ) ) );
-            return content;
+            return Optional.of( content );
         }
 
     }

@@ -13,9 +13,11 @@ import javafx.scene.control.Button;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SeparatorMenuItem;
 import javafx.scene.control.SplitPane;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.control.Tooltip;
+import javafx.scene.input.Clipboard;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -48,6 +50,15 @@ public final class LogViewPane {
 
     @MustCallOnJavaFXThread
     public LogViewPane() {
+        MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
+        copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.META_DOWN ) );
+        copyMenuItem.setOnAction( event -> {
+            getFocusedView().ifPresent( wrapper ->
+                    wrapper.logView.getSelection().ifPresent( content -> {
+                        Clipboard.getSystemClipboard().setContent( content );
+                    } ) );
+        } );
+
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.META_DOWN ) );
         closeMenuItem.setOnAction( ( event ) ->
@@ -77,7 +88,11 @@ public final class LogViewPane {
         tailMenuItem.setOnAction( event -> getFocusedView()
                 .ifPresent( LogViewWrapper::switchTailFile ) );
 
-        pane.setContextMenu( new ContextMenu( closeMenuItem, hideMenuItem, tailMenuItem ) );
+        MenuItem separator = new SeparatorMenuItem();
+
+        pane.setContextMenu( new ContextMenu(
+                copyMenuItem, separator,
+                closeMenuItem, hideMenuItem, tailMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
