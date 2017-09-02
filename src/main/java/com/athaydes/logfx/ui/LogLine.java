@@ -34,11 +34,11 @@ class LogLine extends Label implements SelectionHandler.SelectableNode {
 
     @Override
     public void setSelect( boolean select ) {
-        System.out.println( "Selected line? " + select + ": " + getText() );
         if ( select ) {
             getStyleClass().add( "selected" );
         } else {
             getStyleClass().remove( "selected" );
         }
     }
+
 }

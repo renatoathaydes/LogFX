@@ -23,4 +23,5 @@ dependencies {
         transitive = false
     }
     testCompile group: 'junit', name: 'junit', version: '4.12'
+    testCompile group: 'cglib', name: 'cglib-nodep', version: '3.2.5'
 }
