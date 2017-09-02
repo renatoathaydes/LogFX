@@ -46,6 +46,7 @@ public class LogView extends VBox {
     private final FileChangeWatcher fileChangeWatcher;
     private final Supplier<LogLine> logLineFactory;
     private final TaskRunner taskRunner;
+    private final SelectionHandler selectionHandler;
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
     };
 
@@ -58,6 +59,7 @@ public class LogView extends VBox {
         this.highlightOptions = highlightOptions;
         this.fileContentReader = fileContentReader;
         this.taskRunner = taskRunner;
+        this.selectionHandler = new SelectionHandler( this );
         this.file = fileContentReader.getFile();
         this.fileChangeWatcher = new FileChangeWatcher( file );
 

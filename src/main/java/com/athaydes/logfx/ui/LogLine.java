@@ -2,65 +2,29 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.binding.BindableValue;
 import javafx.beans.binding.NumberBinding;
-import javafx.event.EventHandler;
-import javafx.geometry.Insets;
 import javafx.scene.control.Label;
-import javafx.scene.input.MouseEvent;
-import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 
 
 /**
- *
+ * Node holding a single log line in a {@link LogView}.
  */
-public class LogLine extends Label {
+class LogLine extends Label implements SelectionHandler.SelectableNode {
 
-    private static Insets padding = new Insets( 2, 5, 2, 5 );
-
-    private static LogLine selected = null;
-
-    private static final EventHandler<MouseEvent> clickHandler = new EventHandler<MouseEvent>() {
-        final Paint selectedBkgColor = Color.DARKBLUE;
-        final Paint selectedFillColor = Color.WHITE;
-
-        @Override
-        public void handle( MouseEvent event ) {
-            boolean unselect = event.getSource() == selected;
-            if ( selected != null ) {
-                selected.setColors( selected.bkgColor, selected.fillColor );
-            }
-            if ( unselect ) {
-                selected = null;
-            } else {
-                LogLine newSelection = ( LogLine ) event.getSource();
-                selected = newSelection;
-                newSelection.setColors( selectedBkgColor, selectedFillColor );
-            }
-        }
-    };
-
-    private Paint bkgColor;
-    private Paint fillColor;
-
-    public LogLine( BindableValue<Font> fontValue,
-                    NumberBinding widthProperty,
-                    Paint bkgColor, Paint fillColor ) {
+    LogLine( BindableValue<Font> fontValue,
+             NumberBinding widthProperty,
+             Paint bkgColor, Paint fillColor ) {
         setBackground( FxUtils.simpleBackground( bkgColor ) );
         setTextFill( fillColor );
         fontProperty().bind( fontValue );
         minWidthProperty().bind( widthProperty );
-        setPadding( padding );
-        setOnMouseReleased( clickHandler );
+        getStyleClass().add( "log-line" );
     }
 
-    public void setText( String text, Paint bkgColor, Paint fillColor ) {
+    void setText( String text, Paint bkgColor, Paint fillColor ) {
         super.setText( text );
-        this.bkgColor = bkgColor;
-        this.fillColor = fillColor;
-        if ( this != selected ) {
-            setColors( bkgColor, fillColor );
-        }
+        setColors( bkgColor, fillColor );
     }
 
     private void setColors( Paint bkgColor, Paint fillColor ) {
@@ -68,4 +32,13 @@ public class LogLine extends Label {
         setTextFill( fillColor );
     }
 
+    @Override
+    public void setSelect( boolean select ) {
+        System.out.println( "Selected line? " + select + ": " + getText() );
+        if ( select ) {
+            getStyleClass().add( "selected" );
+        } else {
+            getStyleClass().remove( "selected" );
+        }
+    }
 }
