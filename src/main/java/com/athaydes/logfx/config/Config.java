@@ -4,6 +4,7 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
@@ -20,10 +21,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
@@ -225,11 +230,49 @@ public class Config {
         }
     }
 
+    /**
+     * The properties are all set in the JavaFX Thread, therefore we need to make copies of everything
+     * in the JavaFX Thread before being able to safely use them in another Thread,
+     * where we write the config file.
+     */
     private void dumpConfigToFile() {
-        log.debug( "Writing config to " + path );
-        try ( FileWriter writer = new FileWriter( path.toFile() ) ) {
+        CompletableFuture<List<HighlightExpression>> expressionsFuture = new CompletableFuture<>();
+        Platform.runLater( () -> expressionsFuture.complete( new ArrayList<>(
+                observableExpressions.subList( 0, observableExpressions.size() - 1 ) ) ) );
+
+        CompletableFuture<Set<File>> filesFuture = new CompletableFuture<>();
+        Platform.runLater( () -> filesFuture.complete( new HashSet<>( observableFiles ) ) );
+
+        CompletableFuture<Orientation> panesOrientationFuture = new CompletableFuture<>();
+        Platform.runLater( () -> panesOrientationFuture.complete( panesOrientation.get() ) );
+
+        CompletableFuture<List<Double>> paneDividersFuture = new CompletableFuture<>();
+        Platform.runLater( () -> paneDividersFuture.complete( new ArrayList<>( paneDividerPositions ) ) );
+
+        CompletableFuture<Font> fontFuture = new CompletableFuture<>();
+        Platform.runLater( () -> fontFuture.complete( font.getValue() ) );
+
+        expressionsFuture.thenAccept( expressions ->
+                filesFuture.thenAccept( files ->
+                        panesOrientationFuture.thenAccept( orientation ->
+                                paneDividersFuture.thenAccept( dividers ->
+                                        fontFuture.thenAccept( font ->
+                                                dumpConfigToFile(
+                                                        expressions, files, orientation,
+                                                        dividers, font, path.toFile() ) ) ) ) ) );
+    }
+
+    private static void dumpConfigToFile( List<HighlightExpression> highlightExpressions,
+                                          Set<File> files,
+                                          Orientation orientation,
+                                          List<Double> dividerPositions,
+                                          Font font,
+                                          File path ) {
+        log.debug( "Writing config to {}", path );
+
+        try ( FileWriter writer = new FileWriter( path ) ) {
             writer.write( "expressions:\n" );
-            for ( HighlightExpression expression : observableExpressions.subList( 0, observableExpressions.size() - 1 ) ) {
+            for ( HighlightExpression expression : highlightExpressions ) {
                 writer.write( "  " + expression.getBkgColor() );
                 writer.write( " " + expression.getFillColor() );
                 writer.write( " " + expression.getPattern().pattern() );
@@ -237,28 +280,27 @@ public class Config {
             }
 
             writer.write( "files:\n" );
-            for ( File file : observableFiles ) {
+            for ( File file : files ) {
                 writer.write( "  " + file.getAbsolutePath() );
                 writer.write( "\n" );
             }
 
             writer.write( "gui:\n" );
-            writer.write( "  orientation " + panesOrientation.get().name() );
-            if ( !paneDividerPositions.isEmpty() ) {
+            writer.write( "  orientation " + orientation.name() );
+            if ( !dividerPositions.isEmpty() ) {
                 writer.write( "\n  pane-dividers " );
-                writer.write( paneDividerPositions.stream()
+                writer.write( dividerPositions.stream()
                         .map( n -> Double.toString( n ) )
                         .collect( joining( "," ) ) );
             }
-            writer.write( "\n  font " + font.getValue().getSize() );
-            writer.write( " " + font.getValue().getFamily() );
+            writer.write( "\n  font " + font.getSize() );
+            writer.write( " " + font.getFamily() );
 
             writer.write( "\n" );
         } catch ( IOException e ) {
             Dialog.showConfirmDialog( "Could not write config file: " + path +
                     "\n\n" + e );
         }
-
     }
 
     protected static HighlightExpression parseHighlightExpression( String line )

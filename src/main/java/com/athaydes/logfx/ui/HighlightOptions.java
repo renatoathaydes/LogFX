@@ -158,7 +158,7 @@ public class HighlightOptions extends VBox {
         HighlightExpression expression = row.expression;
         return ( event ) -> {
             int childIndex = getChildren().indexOf( row );
-            if ( childIndex > 1 ) { // 0th child is a label, 1st child cannot be moved up
+            if ( childIndex > 1 ) { // 0th child is the header, 1st child cannot be moved up
                 int expressionIndex = observableExpressions.indexOf( expression );
 
                 Row previousChild = ( Row ) getChildren().remove( childIndex - 1 );
