@@ -32,10 +32,12 @@ public class HighlightExpression {
     }
 
     public boolean matches( String text ) {
-        if ( text == null || text.equals( "" ) ) {
-            text = ".*";
+        if ( text == null ) {
+            text = "";
         }
-        return expression.matcher( text ).matches();
+
+        // the find method does not anchor the String by default, unlike matches()
+        return expression.matcher( text ).find();
     }
 
     @Override

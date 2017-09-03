@@ -1,0 +1,27 @@
+body {
+    background-color: #1d1d1d;
+    color: lightgray;
+    font-family: "Lucida Grande", serif;
+    font-size: 12px;
+}
+
+h2 {
+    color: cornflowerblue;
+    font-size: 16px;
+}
+
+a:link {
+    color: cornflowerblue;
+}
+
+/* visited link */
+a:visited {
+    color: blue;
+}
+
+code {
+    padding: 2px;
+    background-color: silver;
+    color: royalblue;
+    border-radius: 2px;
+}

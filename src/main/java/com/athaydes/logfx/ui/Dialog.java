@@ -11,14 +11,19 @@ import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
- *
+ * A dialog window to display other nodes vertically.
  */
 public class Dialog {
+
+    private static final Logger log = LoggerFactory.getLogger( Dialog.class );
 
     private static Window primaryStage = null;
 
@@ -27,6 +32,7 @@ public class Dialog {
     }
 
     private final Stage dialogStage = new Stage();
+    private boolean hasBeenShown = false;
 
     public Dialog( Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
@@ -66,6 +72,7 @@ public class Dialog {
     public void show() {
         dialogStage.centerOnScreen();
         dialogStage.show();
+        hasBeenShown = true;
     }
 
     public void hide() {
@@ -74,6 +81,22 @@ public class Dialog {
 
     public boolean isVisible() {
         return dialogStage.isShowing();
+    }
+
+    public void setOwner( Window owner ) {
+        if ( !hasBeenShown ) {
+            dialogStage.initOwner( owner );
+        } else {
+            log.debug( "Ignoring new owner as dialog has already been shown and cannot accept new owner" );
+        }
+    }
+
+    public void setStyle( StageStyle style ) {
+        if ( !hasBeenShown ) {
+            dialogStage.initStyle( style );
+        } else {
+            log.debug( "Ignoring new StageStyle as dialog has already been shown and cannot change" );
+        }
     }
 
     public static void showConfirmDialog( String text ) {

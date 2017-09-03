@@ -5,28 +5,39 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
+import javafx.scene.web.WebEngine;
+import javafx.scene.web.WebView;
+import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.regex.PatternSyntaxException;
 
 import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
+import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 /**
- *
+ * The highlight options screen.
  */
 public class HighlightOptions extends VBox {
 
@@ -38,15 +49,20 @@ public class HighlightOptions extends VBox {
         this.observableExpressions = observableExpressions;
         setSpacing( 5 );
         setPadding( new Insets( 5 ) );
-        Label label = new Label( "Enter highlight expressions:" );
-        label.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
+        Label headerLabel = new Label( "Enter highlight expressions:" );
+        headerLabel.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
+
+        Node helpIcon = createHelpIcon();
+
+        HBox headerRow = new HBox( 10 );
+        headerRow.getChildren().addAll( headerLabel, helpIcon );
 
         Button newRow = new Button( "Add rule" );
         newRow.setOnAction( this::addRow );
         Button removeRow = new Button( "Remove rule" );
         removeRow.setOnAction( this::removeRow );
 
-        getChildren().add( label );
+        getChildren().add( headerRow );
         getChildren().addAll(
                 observableExpressions.subList( 0, observableExpressions.size() - 1 ).stream()
                         .map( Row::new )
@@ -54,6 +70,43 @@ public class HighlightOptions extends VBox {
         getChildren().addAll(
                 new CatchAllRow( observableExpressions.get( observableExpressions.size() - 1 ) ),
                 new HBox( 5, newRow, removeRow ) );
+    }
+
+    private Node createHelpIcon() {
+        WebView htmlContent = new WebView();
+        WebEngine webEngine = htmlContent.getEngine();
+
+        String htmlText;
+        try {
+            htmlText = new BufferedReader( new InputStreamReader(
+                    getClass().getResourceAsStream( "/html/highlight-options-help.html" ),
+                    StandardCharsets.UTF_8 )
+            ).lines().collect( joining( "\n" ) );
+
+            webEngine.setUserStyleSheetLocation( getClass().getResource( "/css/web-view.css" ).toString() );
+        } catch ( Exception e ) {
+            log.warn( "Error loading HTML resources", e );
+            htmlText = "<div>Could not open the help file</div>";
+        }
+
+        Label help = AwesomeIcons.createIconLabel( HELP );
+        Dialog helpDialog = new Dialog( htmlContent );
+        helpDialog.setTitle( "Highlight Options Help" );
+        helpDialog.setStyle( StageStyle.UTILITY );
+        helpDialog.setResizable( false );
+
+        final String html = htmlText;
+
+        help.setOnMouseClicked( event -> {
+            helpDialog.setOwner( getScene().getWindow() );
+            webEngine.loadContent( html );
+            helpDialog.show();
+        } );
+
+        help.setOnMouseEntered( event -> getScene().setCursor( Cursor.HAND ) );
+        help.setOnMouseExited( event -> getScene().setCursor( Cursor.DEFAULT ) );
+
+        return help;
     }
 
 
@@ -65,7 +118,7 @@ public class HighlightOptions extends VBox {
             }
             index++;
         }
-        HighlightExpression expression = new HighlightExpression( ".*text.*", nextColor(), nextColor() );
+        HighlightExpression expression = new HighlightExpression( "", nextColor(), nextColor() );
         getChildren().add( index, new Row( expression ) );
         observableExpressions.add( observableExpressions.size() - 1, expression );
     }
@@ -165,13 +218,16 @@ public class HighlightOptions extends VBox {
             expressionField = new TextField( expression.getPattern().pattern() );
             expressionField.setEditable( editable );
             expressionField.setMinWidth( 300 );
+            expressionField.setTooltip( new Tooltip( "Enter a regular expression." ) );
             expressionField.textProperty().addListener( event -> updateExpression() );
 
             bkgColorRectangle = new Rectangle( 20, 20 );
             fillColorRectangle = new Rectangle( 20, 20 );
 
-            bkgColorField = fieldFor( bkgColorRectangle, expression.getBkgColor().toString() );
-            fillColorField = fieldFor( fillColorRectangle, expression.getFillColor().toString() );
+            bkgColorField = fieldFor( bkgColorRectangle,
+                    expression.getBkgColor().toString(), "Enter the background color." );
+            fillColorField = fieldFor( fillColorRectangle,
+                    expression.getFillColor().toString(), "Enter the text color." );
 
             setMinWidth( 500 );
             getChildren().addAll( expressionField,
@@ -191,16 +247,23 @@ public class HighlightOptions extends VBox {
         }
 
         private void updateExpression() {
-            HighlightExpression newExpression = new HighlightExpression(
-                    expressionField.getText(), bkgColorRectangle.getFill(), fillColorRectangle.getFill()
-            );
-            int index = observableExpressions.indexOf( this.expression );
-            observableExpressions.set( index, newExpression );
-            this.expression = newExpression;
+            try {
+                HighlightExpression newExpression = new HighlightExpression(
+                        expressionField.getText(), bkgColorRectangle.getFill(), fillColorRectangle.getFill()
+                );
+                int index = observableExpressions.indexOf( this.expression );
+                observableExpressions.set( index, newExpression );
+                this.expression = newExpression;
+            } catch ( PatternSyntaxException e ) {
+                log.warn( "Invalid regular expression: {}", e.toString() );
+            }
         }
 
-        private TextField fieldFor( Rectangle colorRectangle, String initialColor ) {
+        private TextField fieldFor( Rectangle colorRectangle,
+                                    String initialColor,
+                                    String toolTipText ) {
             TextField field = new TextField( initialColor );
+            field.setTooltip( new Tooltip( toolTipText ) );
             colorRectangle.setFill( Color.valueOf( field.getText() ) );
             field.setMinWidth( 30 );
             field.textProperty().addListener( ( ignore, oldValue, newValue ) -> {
@@ -221,7 +284,7 @@ public class HighlightOptions extends VBox {
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         Dialog dialog = new Dialog( new ScrollPane( highlightOptions ) );
         dialog.setTitle( "Highlight Options" );
-        dialog.setAlwaysOnTop( true );
+        dialog.setResizable( false );
         dialog.show();
         return dialog;
     }

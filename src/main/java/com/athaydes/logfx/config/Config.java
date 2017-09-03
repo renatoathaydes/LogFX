@@ -52,11 +52,11 @@ public class Config {
         if ( path.toFile().exists() ) {
             readConfigFile( path );
         } else {
-            observableExpressions.add( new HighlightExpression( ".*WARN.*", Color.YELLOW, Color.RED ) );
+            observableExpressions.add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED ) );
         }
 
         // the last item must always be the 'catch-all' item
-        observableExpressions.add( new HighlightExpression( ".*", Color.BLACK, Color.LIGHTGREY ) );
+        observableExpressions.add( new HighlightExpression( "", Color.BLACK, Color.LIGHTGREY ) );
 
         // make this a singleton object so that it can be remembered when we try to run it many times below
         final Runnable updateConfigFile = this::dumpConfigToFile;
