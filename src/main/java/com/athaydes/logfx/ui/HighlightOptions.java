@@ -33,6 +33,7 @@ import java.util.regex.PatternSyntaxException;
 import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
+import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
@@ -59,8 +60,6 @@ public class HighlightOptions extends VBox {
 
         Button newRow = new Button( "Add rule" );
         newRow.setOnAction( this::addRow );
-        Button removeRow = new Button( "Remove rule" );
-        removeRow.setOnAction( this::removeRow );
 
         getChildren().add( headerRow );
         getChildren().addAll(
@@ -69,7 +68,7 @@ public class HighlightOptions extends VBox {
                         .collect( toList() ) );
         getChildren().addAll(
                 new CatchAllRow( observableExpressions.get( observableExpressions.size() - 1 ) ),
-                new HBox( 5, newRow, removeRow ) );
+                new HBox( 5, newRow ) );
     }
 
     private Node createHelpIcon() {
@@ -121,20 +120,6 @@ public class HighlightOptions extends VBox {
         HighlightExpression expression = new HighlightExpression( "", nextColor(), nextColor() );
         getChildren().add( index, new Row( expression ) );
         observableExpressions.add( observableExpressions.size() - 1, expression );
-    }
-
-    private void removeRow( Object ignore ) {
-        int index = 0;
-        for ( Node child : getChildren() ) {
-            if ( child instanceof CatchAllRow ) {
-                break;
-            }
-            index++;
-        }
-        if ( index > 1 ) {
-            Row row = ( Row ) getChildren().remove( index - 1 );
-            observableExpressions.remove( row.expression );
-        }
     }
 
     private static Color nextColor() {
@@ -197,6 +182,11 @@ public class HighlightOptions extends VBox {
         protected Optional<Node> upDownButtons() {
             return Optional.empty();
         }
+
+        @Override
+        protected Optional<Node> removeButton() {
+            return Optional.empty();
+        }
     }
 
     private class Row extends HBox {
@@ -236,6 +226,9 @@ public class HighlightOptions extends VBox {
 
             Optional<Node> upDown = upDownButtons();
             upDown.ifPresent( getChildren()::add );
+
+            Optional<Node> remove = removeButton();
+            remove.ifPresent( getChildren()::add );
         }
 
         protected Optional<Node> upDownButtons() {
@@ -244,6 +237,18 @@ public class HighlightOptions extends VBox {
                     Arrow.arrowButton( UP, moveUpEventHandler( this ) ),
                     Arrow.arrowButton( DOWN, moveDownEventHandler( this ) ) );
             return Optional.of( upDownArrows );
+        }
+
+        protected Optional<Node> removeButton() {
+            Label removeButton = AwesomeIcons.createIconLabel( TRASH );
+            removeButton.setTooltip( new Tooltip( "Remove rule" ) );
+            removeButton.setOnMouseClicked( event -> {
+                observableExpressions.remove( expression );
+                HighlightOptions.this.getChildren().remove( this );
+            } );
+            removeButton.setOnMouseEntered( event -> getScene().setCursor( Cursor.HAND ) );
+            removeButton.setOnMouseExited( event -> getScene().setCursor( Cursor.DEFAULT ) );
+            return Optional.of( removeButton );
         }
 
         private void updateExpression() {
