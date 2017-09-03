@@ -38,6 +38,7 @@ public class LogView extends VBox {
     private static final Logger log = LoggerFactory.getLogger( LogView.class );
 
     public static final int MAX_LINES = 100;
+    private static final double DELTA_FACTOR = 10.0;
 
     private final HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
@@ -95,8 +96,16 @@ public class LogView extends VBox {
         this.onFileExists = onFileExists;
     }
 
+    void pageUp() {
+        move( MAX_LINES * DELTA_FACTOR );
+    }
+
+    void pageDown() {
+        move( -MAX_LINES * DELTA_FACTOR );
+    }
+
     void move( double deltaY ) {
-        int lines = Double.valueOf( deltaY / 10.0 ).intValue();
+        int lines = Double.valueOf( deltaY / DELTA_FACTOR ).intValue();
         log.trace( "Moving by deltaY={}, lines={}", deltaY, lines );
 
         fileReaderExecutor.execute( () -> {
@@ -123,6 +132,13 @@ public class LogView extends VBox {
 
     boolean isTailingFile() {
         return tailing.get();
+    }
+
+    void toTop() {
+        fileReaderExecutor.execute( () -> {
+            fileContentReader.top();
+            onFileChange();
+        } );
     }
 
     private void addTopLines( List<String> topLines ) {
@@ -227,5 +243,4 @@ public class LogView extends VBox {
         fileChangeWatcher.close();
         fileReaderExecutor.shutdown();
     }
-
 }

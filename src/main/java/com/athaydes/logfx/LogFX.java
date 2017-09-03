@@ -188,7 +188,11 @@ public class LogFX extends Application {
         bindMenuItemToDialog( font, () ->
                 showFontPicker( fontValue.getValue(), fontValue::setValue ) );
 
-        menu.getItems().addAll( highlight, orientation, font );
+        MenuItem showContextMenu = new MenuItem( "Show Context Menu" );
+        showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.META_DOWN ) );
+        showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
+
+        menu.getItems().addAll( highlight, orientation, font, showContextMenu );
         return menu;
     }
 

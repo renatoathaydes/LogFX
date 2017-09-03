@@ -83,16 +83,28 @@ public final class LogViewPane {
             } );
         } );
 
+        MenuItem toTopMenuItem = new MenuItem( "To top of file" );
+        toTopMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T,
+                KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
+        toTopMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::toTop ) );
+
+        MenuItem pageUpMenuItem = new MenuItem( "Page Up" );
+        pageUpMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.U, KeyCombination.META_DOWN ) );
+        pageUpMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::pageUp ) );
+
+        MenuItem pageDownMenuItem = new MenuItem( "Page Down" );
+        pageDownMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.D, KeyCombination.META_DOWN ) );
+        pageDownMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::pageDown ) );
+
         MenuItem tailMenuItem = new MenuItem( "Tail file (on/off)" );
         tailMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T, KeyCombination.META_DOWN ) );
         tailMenuItem.setOnAction( event -> getFocusedView()
                 .ifPresent( LogViewWrapper::switchTailFile ) );
 
-        MenuItem separator = new SeparatorMenuItem();
-
         pane.setContextMenu( new ContextMenu(
-                copyMenuItem, separator,
-                closeMenuItem, hideMenuItem, tailMenuItem ) );
+                copyMenuItem, new SeparatorMenuItem(),
+                closeMenuItem, hideMenuItem, new SeparatorMenuItem(),
+                toTopMenuItem, pageUpMenuItem, pageDownMenuItem, tailMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
@@ -114,6 +126,11 @@ public final class LogViewPane {
 
     public ObjectProperty<Orientation> orientationProperty() {
         return pane.orientationProperty();
+    }
+
+    public void showContextMenu() {
+        Optional.ofNullable( pane.getContextMenu() )
+                .ifPresent( menu -> menu.show( pane.getScene().getWindow() ) );
     }
 
     @MustCallOnJavaFXThread
@@ -296,6 +313,26 @@ public final class LogViewPane {
 
         private boolean isShowingFileContents() {
             return getChildren().size() > 1 && getChildren().get( 1 ) instanceof LogViewScrollPane;
+        }
+
+        @MustCallOnJavaFXThread
+        void toTop() {
+            stopTailingFile();
+            logView.toTop();
+            scrollPane.setVvalue( 0.0 );
+        }
+
+        @MustCallOnJavaFXThread
+        void pageUp() {
+            stopTailingFile();
+            logView.pageUp();
+        }
+
+        @MustCallOnJavaFXThread
+        void pageDown() {
+            if ( !isTailingFile() ) {
+                logView.pageDown();
+            }
         }
 
         @MustCallOnJavaFXThread
