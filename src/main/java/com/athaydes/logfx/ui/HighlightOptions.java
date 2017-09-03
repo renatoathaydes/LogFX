@@ -234,8 +234,8 @@ public class HighlightOptions extends VBox {
         protected Optional<Node> upDownButtons() {
             VBox upDownArrows = new VBox( 2 );
             upDownArrows.getChildren().addAll(
-                    Arrow.arrowButton( UP, moveUpEventHandler( this ) ),
-                    Arrow.arrowButton( DOWN, moveDownEventHandler( this ) ) );
+                    Arrow.arrowButton( UP, moveUpEventHandler( this ), "Move rule up" ),
+                    Arrow.arrowButton( DOWN, moveDownEventHandler( this ), "Move rule down" ) );
             return Optional.of( upDownArrows );
         }
 

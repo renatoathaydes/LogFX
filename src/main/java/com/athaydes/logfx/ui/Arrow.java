@@ -5,6 +5,7 @@ import javafx.event.EventHandler;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.control.Button;
+import javafx.scene.control.Tooltip;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
@@ -37,11 +38,14 @@ public class Arrow extends Canvas {
     }
 
     public static Button arrowButton( Direction direction,
-                                      EventHandler<ActionEvent> eventEventHandler ) {
+                                      EventHandler<ActionEvent> eventEventHandler,
+                                      String toolTipText ) {
         Button button = new Button( "", new Arrow( direction ) );
         button.setFont( Font.font( 4.0 ) );
         button.setMinWidth( 16 );
         button.setMinHeight( 8 );
+        button.setTooltip( new Tooltip( toolTipText ) );
+        button.getTooltip().setFont( Font.font( 12.0 ) );
         button.setOnAction( eventEventHandler );
         return button;
     }
