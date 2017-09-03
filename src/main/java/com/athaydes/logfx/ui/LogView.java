@@ -9,7 +9,9 @@ import javafx.application.Platform;
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.input.ClipboardContent;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
@@ -42,7 +43,7 @@ public class LogView extends VBox {
 
     private final HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
-    private final AtomicBoolean tailing = new AtomicBoolean( false );
+    private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
     private final FileContentReader fileContentReader;
     private final File file;
     private final FileChangeWatcher fileChangeWatcher;
@@ -82,6 +83,12 @@ public class LogView extends VBox {
         } );
 
         fileChangeWatcher.setOnChange( this::onFileChange );
+
+        tailingFile.addListener( event -> {
+            if ( tailingFile.get() ) {
+                onFileChange();
+            }
+        } );
     }
 
     Optional<ClipboardContent> getSelection() {
@@ -121,17 +128,8 @@ public class LogView extends VBox {
         } );
     }
 
-    void startTailingFile() {
-        tailing.set( true );
-        onFileChange();
-    }
-
-    void stopTailingFile() {
-        tailing.set( false );
-    }
-
-    boolean isTailingFile() {
-        return tailing.get();
+    BooleanProperty tailingFileProperty() {
+        return tailingFile;
     }
 
     void toTop() {
@@ -186,7 +184,7 @@ public class LogView extends VBox {
 
     private void immediateOnFileChange() {
         fileReaderExecutor.execute( () -> {
-            if ( tailing.get() ) {
+            if ( tailingFileProperty().get() ) {
                 fileContentReader.tail();
             }
             Optional<? extends List<String>> lines = fileContentReader.refresh();

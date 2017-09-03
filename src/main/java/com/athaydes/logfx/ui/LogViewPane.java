@@ -229,13 +229,16 @@ public final class LogViewPane {
     }
 
     private static class LogViewScrollPane extends ScrollPane {
-        private final LogViewWrapper wrapper;
 
         LogViewScrollPane( LogViewWrapper wrapper ) {
             super( wrapper.logView );
             setFocusTraversable( true );
 
-            this.wrapper = wrapper;
+            wrapper.header.tailFileProperty().addListener( observable -> {
+                if ( wrapper.header.tailFileProperty().get() ) {
+                    setVvalue( 1.0 );
+                }
+            } );
 
             setOnScroll( event -> {
                 double deltaY = event.getDeltaY();
@@ -286,13 +289,7 @@ public final class LogViewPane {
 
             getChildren().setAll( header, scrollPane );
 
-            header.tailFileProperty().addListener( ( observable, wasSelected, isSelected ) -> {
-                if ( isSelected ) {
-                    startTailingFile();
-                } else {
-                    stopTailingFile();
-                }
-            } );
+            header.tailFileProperty().bindBidirectional( logView.tailingFileProperty() );
 
             logView.setOnFileExists( ( fileExists ) -> {
                 if ( fileExists ) {
@@ -337,20 +334,17 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         private void startTailingFile() {
-            if ( !logView.isTailingFile() ) {
+            if ( !isTailingFile() ) {
                 log.debug( "Starting tailing file" );
                 header.tailFileProperty().setValue( true );
-                logView.startTailingFile();
-                scrollPane.setVvalue( 1.0 );
             }
         }
 
         @MustCallOnJavaFXThread
         private void stopTailingFile() {
-            if ( logView.isTailingFile() ) {
+            if ( isTailingFile() ) {
                 log.debug( "Stopping tailing file" );
                 header.tailFileProperty().setValue( false );
-                logView.stopTailingFile();
             }
         }
 
