@@ -7,9 +7,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 import static com.athaydes.logfx.file.FileReader.LoadMode.MOVE;
 import static com.athaydes.logfx.file.FileReader.LoadMode.REFRESH;
@@ -23,6 +26,10 @@ public class FileReader implements FileContentReader {
 
     enum LoadMode {
         MOVE, REFRESH
+    }
+
+    private enum SearchDirection {
+        UP, DOWN, ANY
     }
 
     private final File file;
@@ -82,6 +89,90 @@ public class FileReader implements FileContentReader {
         }
 
         return result;
+    }
+
+    @Override
+    public boolean moveTo( LocalDateTime dateTime,
+                           Function<String, Optional<LocalDateTime>> dateExtractor ) {
+        Optional<? extends List<String>> maybeLines = refresh();
+        if ( maybeLines.isPresent() ) {
+            return moveTo( dateTime, dateExtractor, maybeLines.get(), SearchDirection.ANY );
+        } else {
+            log.debug( "No lines found in file, cannot move to given date: {}", dateTime );
+            return false;
+        }
+    }
+
+    private boolean moveTo( LocalDateTime dateTime,
+                            Function<String, Optional<LocalDateTime>> dateExtractor,
+                            List<String> lines,
+                            SearchDirection searchDirection ) {
+
+        if ( lines.size() < 2 ) {
+            return true; // don't waste time on small file
+        }
+
+        ComparableLine[] linesArray = lines.stream()
+                .map( line -> new ComparableLine( line, dateExtractor, dateTime ) )
+                .toArray( ComparableLine[]::new );
+
+        int index = Arrays.binarySearch( linesArray, new ComparableLine( dateTime ) );
+        log.debug( "Binary search on file window resulted in line index: {}", index );
+
+        if ( index >= 0 ) {
+            log.debug( "Found location of file window for date: {}", dateTime );
+            if ( index != 0 ) {
+                moveDown( index );
+            }
+            return true;
+        } else if ( index == -1 ) {
+            // continue looking up if possible
+            switch ( searchDirection ) {
+                case UP:
+                case ANY:
+                    break;
+                case DOWN:
+                    log.debug( "Stopping search for date as the target would be up, but the search was going down" );
+                    moveUp( 1 );
+                    return true;
+            }
+
+            Optional<? extends List<String>> nextLines = moveUp( fileWindowSize );
+            if ( nextLines.isPresent() && !nextLines.get().isEmpty() ) {
+                return moveTo( dateTime, dateExtractor, nextLines.get(), SearchDirection.UP );
+            } else {
+                // no more lines
+                return true;
+            }
+        } else {
+            int insertionPoint = -index;
+            if ( insertionPoint > linesArray.length ) {
+                // continue looking down if possible
+                switch ( searchDirection ) {
+                    case DOWN:
+                    case ANY:
+                        break;
+                    case UP:
+                        log.debug( "Stopping search for date as the target would be down, but the search was going up" );
+                        moveDown( fileWindowSize - 1 );
+                        return true;
+                }
+
+                Optional<? extends List<String>> nextLines = moveDown( fileWindowSize );
+                if ( nextLines.isPresent() && !nextLines.get().isEmpty() ) {
+                    return moveTo( dateTime, dateExtractor, nextLines.get(), SearchDirection.DOWN );
+                } else {
+                    // no more lines
+                    return true;
+                }
+            } else {
+                log.debug( "Found date threshold, moving file window down by {} lines", insertionPoint - 2 );
+                if ( insertionPoint > 2 ) {
+                    moveDown( insertionPoint - 2 );
+                }
+                return true;
+            }
+        }
     }
 
     @Override
@@ -352,4 +443,38 @@ public class FileReader implements FileContentReader {
         return result;
     }
 
+
+    private static class ComparableLine implements Comparable<ComparableLine> {
+        private final String line;
+        private final LocalDateTime defaultDateTime;
+        private LocalDateTime lineDate = null;
+        private Function<String, Optional<LocalDateTime>> dateExtractor;
+
+        ComparableLine( String line,
+                        Function<String, Optional<LocalDateTime>> dateExtractor,
+                        LocalDateTime defaultDateTime ) {
+            this.line = line;
+            this.dateExtractor = dateExtractor;
+            this.defaultDateTime = defaultDateTime;
+        }
+
+        ComparableLine( LocalDateTime lineDate ) {
+            this.line = "";
+            this.lineDate = lineDate;
+            this.defaultDateTime = null;
+        }
+
+        private LocalDateTime getLineDate() {
+            if ( lineDate == null ) {
+                lineDate = dateExtractor.apply( line ).orElse( defaultDateTime );
+            }
+            return lineDate;
+        }
+
+        @Override
+        public int compareTo( ComparableLine other ) {
+            return getLineDate().compareTo( other.getLineDate() );
+        }
+
+    }
 }

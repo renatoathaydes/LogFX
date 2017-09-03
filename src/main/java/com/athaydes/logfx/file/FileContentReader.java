@@ -1,8 +1,10 @@
 package com.athaydes.logfx.file;
 
 import java.io.File;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Function;
 
 /**
  * API for the {@link com.athaydes.logfx.ui.LogView} to request file contents.
@@ -36,6 +38,24 @@ public interface FileContentReader {
     Optional<? extends List<String>> moveDown( int lines );
 
     /**
+     * Moves the file window so that the first line is the first line immediately at or before
+     * the given dateTime, so that the next line must be after the given dateTime.
+     * <p>
+     * This method will only work if the date in the log file can be identified
+     * using the given function.
+     * <p>
+     * The return value indicates whether it was possible to find dates in the file.
+     *
+     * @param dateTime      to move the file window to
+     * @param dateExtractor function from a log line to the date the log line contains
+     * @return true if the dates in the log file could be found, false otherwise.
+     * Returning true implies that the file window was successfully moved. If this method
+     * returns false, the file window is left intact.
+     */
+    boolean moveTo( LocalDateTime dateTime,
+                    Function<String, Optional<LocalDateTime>> dateExtractor );
+
+    /**
      * Move the file window to the top of the file.
      */
     void top();
@@ -66,5 +86,4 @@ public interface FileContentReader {
      * @return the file associated with this instance.
      */
     File getFile();
-
 }
