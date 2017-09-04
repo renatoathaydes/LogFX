@@ -405,6 +405,12 @@ public final class LogViewPane {
                 fileNameLabel.setText( fileNameLabel.getText() + " " + fileSizeText );
             }
 
+            Button goToDateButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOCK );
+            goToDateButton.setTooltip( new Tooltip( "Go to date" ) );
+            goToDateButton.setOnAction( event -> {
+                new GoToDateView().show();
+            } );
+
             ToggleButton tailFileButton = AwesomeIcons.createToggleButton( AwesomeIcons.ARROW_DOWN );
             tailFileButton.setTooltip( new Tooltip( "Tail file" ) );
             this.tailFile = tailFileButton.selectedProperty();
@@ -413,7 +419,7 @@ public final class LogViewPane {
             closeButton.setTooltip( new Tooltip( "Close file" ) );
             closeButton.setOnAction( event -> onClose.run() );
 
-            rightAlignedBox.getChildren().addAll( tailFileButton, closeButton );
+            rightAlignedBox.getChildren().addAll( goToDateButton, tailFileButton, closeButton );
 
             setLeft( leftAlignedBox );
             setRight( rightAlignedBox );

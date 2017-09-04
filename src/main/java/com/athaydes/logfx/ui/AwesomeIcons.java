@@ -65,5 +65,6 @@ public class AwesomeIcons {
     public static final String ARROW_DOWN = "\uf063";
     public static final String HELP = "\uf059";
     public static final String TRASH = "\uf1f8";
+    public static final String CLOCK = "\uf017";
 
 }
