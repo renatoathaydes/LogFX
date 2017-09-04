@@ -447,7 +447,7 @@ class FileContentReaderSpec extends Specification {
     }
 
     @Unroll
-    def "FileReader can move to a specific time in a log file"() {
+    def "FileReader can move to a specific time in a log file starting from the top"() {
         given: 'a file reader with a default buffer and a small file window of #fileWindowSize'
         FileContentReader reader = new FileReader( file, fileWindowSize )
 
@@ -489,6 +489,7 @@ class FileContentReaderSpec extends Specification {
 
         where:
         time                     | fileWindowSize || expectedLogLines
+        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]
         '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]
         '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]
         '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]
@@ -500,6 +501,67 @@ class FileContentReaderSpec extends Specification {
         '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ]
         '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ]
         '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ]
+        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ]
+
+    }
+
+    @Unroll
+    def "FileReader can move to a specific time in a log file starting from the bottom"() {
+        given: 'a file reader with a default buffer and a small file window of #fileWindowSize'
+        FileContentReader reader = new FileReader( file, fileWindowSize )
+
+        and: 'a file with most log lines having a date in a recognizable format'
+        file.write( '''|INFO Fri Sep 01 22:02:53 CEST 2017 - 0
+            |INFO Fri Sep 01 22:02:54 CEST 2017 - 1
+            |INFO Fri Sep 01 22:02:55 CEST 2017 - 22
+            |INFO Fri Sep 01 22:02:56 CEST 2017 - 333
+            |INFO Fri Sep 01 22:02:57 CEST 2017 - 4444
+            |INFO Fri Sep 01 22:02:58 CEST 2017 - 55555
+            |INFO Fri Sep 01 22:02:59 CEST 2017 - 666666
+            |INFO Fri Sep 01 22:03:00 CEST 2017 - 7777777
+            |INFO Fri Sep 01 22:03:01 CEST 2017 - 88888888
+            |INFO Fri Sep 01 22:03:02 CEST 2017 - 999999999'''.stripMargin() )
+
+        and: 'A function that correctly extracts date-times from log lines'
+        def pattern = Pattern.compile( 'INFO ([A-za-z0-9: ]+)-.*' )
+        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy' )
+        def dateExtractor = { String line ->
+            def matcher = pattern.matcher( line )
+            if ( matcher.matches() ) {
+                return Optional.of( LocalDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) )
+            } else {
+                return Optional.empty()
+            }
+        }
+
+        when: 'we try to move to a certain time (#time) in the log (after going to the tail)'
+        reader.tail()
+        def result = reader.moveTo( LocalDateTime.parse( time ), dateExtractor )
+        def lines = reader.refresh()
+
+        then: 'the file reader should be able to move the file window'
+        //noinspection GroovyPointlessBoolean
+        result == true
+
+        then: 'the reader moves to the expected lines in the file'
+        lines.isPresent()
+        lines.get().collect { it.split( ' ' ).last() } == expectedLogLines
+
+        where:
+        time                     | fileWindowSize || expectedLogLines
+        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]
+        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]
+        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]
+        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]
+        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]
+        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]
+
+        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]
+        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]
+        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ]
+        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ]
+        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ]
+        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ]
 
     }
 
