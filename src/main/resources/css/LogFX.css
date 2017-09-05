@@ -7,6 +7,10 @@
     -fx-padding: 0 0 0 1;
 }
 
+.text-input.error {
+    -fx-border-color: palevioletred;
+}
+
 .icons {
     -fx-font-family: FontAwesome;
     -fx-font-size: 16px;

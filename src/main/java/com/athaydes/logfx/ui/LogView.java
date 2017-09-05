@@ -21,6 +21,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +31,8 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
 
@@ -136,6 +141,32 @@ public class LogView extends VBox {
         fileReaderExecutor.execute( () -> {
             fileContentReader.top();
             onFileChange();
+        } );
+    }
+
+    void goTo( LocalDateTime dateTime ) {
+        // FIXME find the pattern in the files or ask user for a pattern
+        Pattern pattern = Pattern.compile( "INFO ([A-za-z0-9: ]+)-.*" );
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern( "EEE MMM dd HH:mm:ss z yyyy" );
+
+        fileReaderExecutor.execute( () -> {
+            boolean success = fileContentReader.moveTo( dateTime, ( line ) -> {
+                Matcher matcher = pattern.matcher( line );
+                if ( matcher.matches() ) {
+                    try {
+                        return Optional.of( LocalDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) );
+                    } catch ( DateTimeParseException e ) {
+                        log.warn( "Error parsing date: {}", e.toString() );
+                    }
+                }
+                return Optional.empty();
+            } );
+            if ( success ) {
+                log.debug( "Successfully went to date: {}", dateTime );
+                onFileChange();
+            } else {
+                log.warn( "Failed to open date-time in log, could not recognize dates in the log" );
+            }
         } );
     }
 

@@ -34,8 +34,10 @@ import java.io.File;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
+import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
+
+import static java.util.stream.Collectors.toList;
 
 /**
  * A container of {@link LogView}s.
@@ -83,6 +85,17 @@ public final class LogViewPane {
             } );
         } );
 
+        MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
+        goToDateMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.META_DOWN ) );
+        goToDateMenuItem.setOnAction( event -> {
+            Optional<LogViewWrapper> wrapper = getFocusedView();
+            if ( wrapper.isPresent() ) {
+                wrapper.get().toDateTime();
+            } else {
+                new GoToDateView( null, this::getAllLogViews ).show();
+            }
+        } );
+
         MenuItem toTopMenuItem = new MenuItem( "To top of file" );
         toTopMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T,
                 KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
@@ -104,7 +117,7 @@ public final class LogViewPane {
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem, new SeparatorMenuItem(),
                 closeMenuItem, hideMenuItem, new SeparatorMenuItem(),
-                toTopMenuItem, pageUpMenuItem, pageDownMenuItem, tailMenuItem ) );
+                toTopMenuItem, goToDateMenuItem, pageUpMenuItem, pageDownMenuItem, tailMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
@@ -154,10 +167,19 @@ public final class LogViewPane {
 
     @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile ) {
-        pane.getItems().add( new LogViewWrapper( logView, ( wrapper ) -> {
+        pane.getItems().add( new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
             pane.getItems().remove( wrapper );
             onCloseFile.run();
         } ) );
+    }
+
+    @MustCallOnJavaFXThread
+    private List<LogView> getAllLogViews() {
+        return pane.getItems().stream()
+                .filter( it -> it instanceof LogViewWrapper )
+                .map( LogViewWrapper.class::cast )
+                .map( it -> it.logView )
+                .collect( toList() );
     }
 
     @MustCallOnJavaFXThread
@@ -225,7 +247,7 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public List<Double> getSeparatorsPositions() {
         return DoubleStream.of( pane.getDividerPositions() )
-                .boxed().collect( Collectors.toList() );
+                .boxed().collect( toList() );
     }
 
     private static class LogViewScrollPane extends ScrollPane {
@@ -273,17 +295,20 @@ public final class LogViewPane {
         private final Consumer<LogViewWrapper> onClose;
         private final LogViewHeader header;
         private final LogViewScrollPane scrollPane;
+        private final Supplier<List<LogView>> logViewsGetter;
 
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
+                        Supplier<List<LogView>> logViewsGetter,
                         Consumer<LogViewWrapper> onClose ) {
             super( 2.0 );
 
             this.logView = logView;
             this.onClose = onClose;
+            this.logViewsGetter = logViewsGetter;
 
-            this.header = new LogViewHeader( logView.getFile(),
-                    () -> onClose.accept( this ) );
+            this.header = new LogViewHeader( logView,
+                    () -> onClose.accept( this ), this::toDateTime );
 
             this.scrollPane = new LogViewScrollPane( this );
 
@@ -310,6 +335,13 @@ public final class LogViewPane {
 
         private boolean isShowingFileContents() {
             return getChildren().size() > 1 && getChildren().get( 1 ) instanceof LogViewScrollPane;
+        }
+
+        @MustCallOnJavaFXThread
+        void toDateTime() {
+            stopTailingFile();
+            GoToDateView goToView = new GoToDateView( logView, logViewsGetter );
+            goToView.show();
         }
 
         @MustCallOnJavaFXThread
@@ -381,8 +413,10 @@ public final class LogViewPane {
 
         private final BooleanProperty tailFile;
 
-        LogViewHeader( File file, Runnable onClose ) {
+        LogViewHeader( LogView logView, Runnable onClose, Runnable goToDateTime ) {
             setMinWidth( 10.0 );
+
+            File file = logView.getFile();
 
             HBox leftAlignedBox = new HBox( 2.0 );
             HBox rightAlignedBox = new HBox( 2.0 );
@@ -406,10 +440,8 @@ public final class LogViewPane {
             }
 
             Button goToDateButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOCK );
-            goToDateButton.setTooltip( new Tooltip( "Go to date" ) );
-            goToDateButton.setOnAction( event -> {
-                new GoToDateView().show();
-            } );
+            goToDateButton.setTooltip( new Tooltip( "Go to date-time" ) );
+            goToDateButton.setOnAction( event -> goToDateTime.run() );
 
             ToggleButton tailFileButton = AwesomeIcons.createToggleButton( AwesomeIcons.ARROW_DOWN );
             tailFileButton.setTooltip( new Tooltip( "Tail file" ) );
