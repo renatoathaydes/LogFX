@@ -135,8 +135,6 @@ public class FileReader implements FileContentReader {
             Iterator<String> nextLinesIter = nextLines.iterator();
             Optional<LocalDateTime> lineDateTime = Optional.empty();
 
-            boolean firstLineinFileWindow = true;
-
             inspectFileWindow:
             while ( nextLinesIter.hasNext() ) {
 
@@ -157,7 +155,7 @@ public class FileReader implements FileContentReader {
                         switch ( direction ) {
                             case ANY:
                             case UP:
-                                if ( firstLineinFileWindow ) {
+                                if ( lineNumber == 1 ) {
                                     log.debug( "Date seems to be before the current file window, moving up" );
                                     direction = SearchDirection.UP;
                                     break inspectFileWindow;
@@ -165,7 +163,8 @@ public class FileReader implements FileContentReader {
                                 // fall-through
                             case DOWN:
                                 log.debug( "Found line {}, the date is the same or after date {}", dateTime );
-                                return adjustFileWindowToStartAt( lineNumber );
+                                return adjustFileWindowToStartAt( nextLines.size(),
+                                        ( comparison == 0 ) ? lineNumber : lineNumber - 1 );
                         }
                     }
                 }
@@ -175,8 +174,6 @@ public class FileReader implements FileContentReader {
                             getFile(), dateTime );
                     break mainLoop;
                 }
-
-                firstLineinFileWindow = false;
             }
 
             switch ( direction ) {
@@ -195,9 +192,25 @@ public class FileReader implements FileContentReader {
         return UnsuccessfulQueryResult.INSTANCE;
     }
 
-    FileQueryResult adjustFileWindowToStartAt( int lineNumber ) {
-        if ( lineNumber < 2 ) {
-            return new SuccessfulQueryResult( lineNumber );
+    FileQueryResult adjustFileWindowToStartAt( int nextLinesSize,
+                                               int lineNumber ) {
+        boolean isOnFileEdge = nextLinesSize < fileWindowSize;
+
+        if ( lineNumber == 0 ) {
+            if ( isOnFileEdge ) {
+                return new SuccessfulQueryResult( fileWindowSize - nextLinesSize );
+            } else {
+                moveUp( 1 );
+                return new SuccessfulQueryResult( 1 );
+            }
+        }
+
+        if ( lineNumber == 1 ) {
+            if ( isOnFileEdge ) {
+                return new SuccessfulQueryResult( 1 + fileWindowSize - nextLinesSize );
+            } else {
+                return new SuccessfulQueryResult( 1 );
+            }
         }
 
         Optional<? extends List<String>> nextLines = moveDown( lineNumber - 1 );
