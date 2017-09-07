@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Optional;
@@ -59,6 +59,10 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<? extends List<String>> moveUp( int lines ) {
+        if ( lines < 1 ) {
+            return Optional.of( new LinkedList<>() );
+        }
+
         noLinesDown = false;
 
         if ( noLinesUp ) {
@@ -76,6 +80,10 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<? extends List<String>> moveDown( int lines ) {
+        if ( lines < 1 ) {
+            return Optional.of( new LinkedList<>() );
+        }
+
         noLinesUp = false;
 
         if ( noLinesDown ) {
@@ -91,87 +99,113 @@ public class FileReader implements FileContentReader {
         return result;
     }
 
+    @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnusedLabel" } )
     @Override
-    public boolean moveTo( LocalDateTime dateTime,
-                           Function<String, Optional<LocalDateTime>> dateExtractor ) {
+    public FileQueryResult moveTo( LocalDateTime dateTime,
+                                   Function<String, Optional<LocalDateTime>> dateExtractor ) {
         Optional<? extends List<String>> maybeLines = refresh();
-        if ( maybeLines.isPresent() ) {
-            return moveTo( dateTime, dateExtractor, maybeLines.get(), SearchDirection.ANY );
-        } else {
+        SearchDirection direction = SearchDirection.ANY;
+        final int maxLineParseFailuresAllowed = Math.min( 10, fileWindowSize );
+
+        if ( !maybeLines.isPresent() || maybeLines.get().isEmpty() ) {
             log.debug( "No lines found in file, cannot move to given date: {}", dateTime );
-            return false;
         }
+
+        mainLoop:
+        while ( maybeLines.isPresent() ) {
+            List<String> nextLines = maybeLines.get();
+
+            if ( nextLines.isEmpty() ) {
+                // reached file end or start
+                switch ( direction ) {
+                    case UP:
+                        log.debug( "Reached the top of the file without finding date {}", dateTime );
+                        return OutsideRangeQueryResult.BEFORE;
+                    case DOWN:
+                        log.debug( "Reached the bottom of the file without finding date {}", dateTime );
+                        return OutsideRangeQueryResult.AFTER;
+                    case ANY:
+                        break mainLoop;
+                }
+            }
+
+            int failedLines = 0;
+            int lineNumber = 0;
+
+            Iterator<String> nextLinesIter = nextLines.iterator();
+            Optional<LocalDateTime> lineDateTime = Optional.empty();
+
+            boolean firstLineinFileWindow = true;
+
+            inspectFileWindow:
+            while ( nextLinesIter.hasNext() ) {
+
+                findNextValidDateTime:
+                while ( nextLinesIter.hasNext() && failedLines < maxLineParseFailuresAllowed ) {
+                    lineDateTime = dateExtractor.apply( nextLinesIter.next() );
+                    lineNumber++;
+
+                    if ( lineDateTime.isPresent() ) {
+                        break findNextValidDateTime;
+                    }
+                    failedLines++;
+                }
+
+                if ( lineDateTime.isPresent() ) {
+                    int comparison = lineDateTime.get().compareTo( dateTime );
+                    if ( comparison >= 0 ) {
+                        switch ( direction ) {
+                            case ANY:
+                            case UP:
+                                if ( firstLineinFileWindow ) {
+                                    log.debug( "Date seems to be before the current file window, moving up" );
+                                    direction = SearchDirection.UP;
+                                    break inspectFileWindow;
+                                }
+                                // fall-through
+                            case DOWN:
+                                log.debug( "Found line {}, the date is the same or after date {}", dateTime );
+                                return adjustFileWindowToStartAt( lineNumber );
+                        }
+                    }
+                }
+
+                if ( failedLines >= maxLineParseFailuresAllowed ) {
+                    log.warn( "Too many log lines do not contain a valid date in file: {}.\nCannot move to date {}",
+                            getFile(), dateTime );
+                    break mainLoop;
+                }
+
+                firstLineinFileWindow = false;
+            }
+
+            switch ( direction ) {
+                case UP:
+                    maybeLines = moveUp( fileWindowSize );
+                    break;
+                case ANY:
+                    direction = SearchDirection.DOWN; // and fall-through
+                case DOWN:
+                    maybeLines = moveDown( fileWindowSize );
+                    break;
+            }
+
+        }
+
+        return UnsuccessfulQueryResult.INSTANCE;
     }
 
-    private boolean moveTo( LocalDateTime dateTime,
-                            Function<String, Optional<LocalDateTime>> dateExtractor,
-                            List<String> lines,
-                            SearchDirection searchDirection ) {
-
-        if ( lines.size() < 2 ) {
-            return true; // don't waste time on small file
+    FileQueryResult adjustFileWindowToStartAt( int lineNumber ) {
+        if ( lineNumber < 2 ) {
+            return new SuccessfulQueryResult( lineNumber );
         }
 
-        ComparableLine[] linesArray = lines.stream()
-                .map( line -> new ComparableLine( line, dateExtractor, dateTime ) )
-                .toArray( ComparableLine[]::new );
-
-        int index = Arrays.binarySearch( linesArray, new ComparableLine( dateTime ) );
-        log.debug( "Binary search on file window resulted in line index: {}", index );
-
-        if ( index >= 0 ) {
-            log.debug( "Found location of file window for date: {}", dateTime );
-            if ( index != 0 ) {
-                moveDown( index );
-            }
-            return true;
-        } else if ( index == -1 ) {
-            // continue looking up if possible
-            switch ( searchDirection ) {
-                case UP:
-                case ANY:
-                    break;
-                case DOWN:
-                    log.debug( "Stopping search for date as the target would be up, but the search was going down" );
-                    moveUp( 1 );
-                    return true;
-            }
-
-            Optional<? extends List<String>> nextLines = moveUp( fileWindowSize );
-            if ( nextLines.isPresent() && !nextLines.get().isEmpty() ) {
-                return moveTo( dateTime, dateExtractor, nextLines.get(), SearchDirection.UP );
-            } else {
-                // no more lines
-                return true;
-            }
+        Optional<? extends List<String>> nextLines = moveDown( lineNumber - 1 );
+        if ( nextLines.isPresent() ) {
+            int toAdjust = lineNumber - nextLines.get().size();
+            return new SuccessfulQueryResult( toAdjust );
         } else {
-            int insertionPoint = -index;
-            if ( insertionPoint > linesArray.length ) {
-                // continue looking down if possible
-                switch ( searchDirection ) {
-                    case DOWN:
-                    case ANY:
-                        break;
-                    case UP:
-                        log.debug( "Stopping search for date as the target would be down, but the search was going up" );
-                        moveDown( fileWindowSize - 1 );
-                        return true;
-                }
-
-                Optional<? extends List<String>> nextLines = moveDown( fileWindowSize );
-                if ( nextLines.isPresent() && !nextLines.get().isEmpty() ) {
-                    return moveTo( dateTime, dateExtractor, nextLines.get(), SearchDirection.DOWN );
-                } else {
-                    // no more lines
-                    return true;
-                }
-            } else {
-                log.debug( "Found date threshold, moving file window down by {} lines", insertionPoint - 2 );
-                if ( insertionPoint > 2 ) {
-                    moveDown( insertionPoint - 2 );
-                }
-                return true;
-            }
+            return UnsuccessfulQueryResult.INSTANCE;
         }
     }
 
@@ -431,50 +465,21 @@ public class FileReader implements FileContentReader {
         }
 
         long index = Math.min( firstLineStartIndex - 1, reader.length() - 1 );
-        do {
+        while ( index > 0 ) {
             reader.seek( index );
-            index--;
-        } while ( reader.read() != '\n' && index > 0 );
+            int c = reader.read();
+            if ( c == '\n' ) {
+                break;
+            } else {
+                index--;
+            }
+        }
 
-        long result = index == 0L ? 0L : index + 2L;
+        long result = index == 0L ? 0L : index + 1L;
 
         log.trace( "Line start before {} found at {}", firstLineStartIndex, result );
 
         return result;
     }
 
-
-    private static class ComparableLine implements Comparable<ComparableLine> {
-        private final String line;
-        private final LocalDateTime defaultDateTime;
-        private LocalDateTime lineDate = null;
-        private Function<String, Optional<LocalDateTime>> dateExtractor;
-
-        ComparableLine( String line,
-                        Function<String, Optional<LocalDateTime>> dateExtractor,
-                        LocalDateTime defaultDateTime ) {
-            this.line = line;
-            this.dateExtractor = dateExtractor;
-            this.defaultDateTime = defaultDateTime;
-        }
-
-        ComparableLine( LocalDateTime lineDate ) {
-            this.line = "";
-            this.lineDate = lineDate;
-            this.defaultDateTime = null;
-        }
-
-        private LocalDateTime getLineDate() {
-            if ( lineDate == null ) {
-                lineDate = dateExtractor.apply( line ).orElse( defaultDateTime );
-            }
-            return lineDate;
-        }
-
-        @Override
-        public int compareTo( ComparableLine other ) {
-            return getLineDate().compareTo( other.getLineDate() );
-        }
-
-    }
 }

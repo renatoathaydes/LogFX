@@ -281,6 +281,71 @@ class FileContentReaderSpec extends Specification {
         lines.get() == [ '777', '888', '999' ]
     }
 
+    def "Moving down a small amount of lines returns the expected lines and moves the file window accordingly"() {
+        given: 'a file reader with a short byte buffer and file window'
+        FileContentReader reader = new FileReader( file, 3, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The reader moves down a small amount of lines'
+        reader.refresh()
+        def lines = reader.moveDown( linesToMove )
+
+        then: 'The expected lines are returned'
+        lines.isPresent()
+        lines.get() == expectedLines
+
+        and: 'The file window is in the expected location'
+        def fileWindow = reader.refresh()
+        fileWindow.isPresent()
+        fileWindow.get() == expectedFileWindow
+
+        where:
+        linesToMove || expectedLines           | expectedFileWindow
+        0           || [ ]                     | [ '000', '111', '222' ]
+        -1          || [ ]                     | [ '000', '111', '222' ]
+        -342        || [ ]                     | [ '000', '111', '222' ]
+
+        1           || [ '333' ]               | [ '111', '222', '333' ]
+        2           || [ '333', '444' ]        | [ '222', '333', '444' ]
+        3           || [ '333', '444', '555' ] | [ '333', '444', '555' ]
+    }
+
+    def "Moving up a small amount of lines returns the expected lines and moves the file window accordingly"() {
+        given: 'a file reader with a short byte buffer and file window'
+        FileContentReader reader = new FileReader( file, 3, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        and: 'The reader goes to the tail'
+        reader.tail()
+        reader.refresh()
+
+        when: 'The reader moves up a small amount of lines'
+        def lines = reader.moveUp( linesToMove )
+
+        then: 'The expected lines are returned'
+        lines.isPresent()
+        lines.get() == expectedLines
+
+        and: 'The file window is in the expected location'
+        def fileWindow = reader.refresh()
+        fileWindow.isPresent()
+        fileWindow.get() == expectedFileWindow
+
+        where:
+        linesToMove || expectedLines           | expectedFileWindow
+        0           || [ ]                     | [ '777', '888', '999' ]
+        -1          || [ ]                     | [ '777', '888', '999' ]
+        -342        || [ ]                     | [ '777', '888', '999' ]
+
+        1           || [ '666' ]               | [ '666', '777', '888' ]
+        2           || [ '555', '666' ]        | [ '555', '666', '777' ]
+        3           || [ '444', '555', '666' ] | [ '444', '555', '666' ]
+    }
+
     def "Moving up after file boundaries does not cause errors"() {
         given: 'a file reader with a short byte buffer'
         FileContentReader reader = new FileReader( file, 5, 8 )
@@ -357,6 +422,49 @@ class FileContentReaderSpec extends Specification {
 
         lines1.isPresent()
         lines1.get() == [ ]
+    }
+
+    def "Moving down more lines than the size of the file window is allowed and the file window moves as expected"() {
+        given: 'a file reader with a short byte buffer and file window'
+        FileContentReader reader = new FileReader( file, 3, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The reader moves down more than the file window size'
+        reader.refresh()
+        def lines = reader.moveDown( 5 )
+
+        then: 'The expected lines are returned'
+        lines.isPresent()
+        lines.get() == [ '333', '444', '555', '666', '777' ]
+
+        and: 'The file window is in the expected location'
+        def fileWindow = reader.refresh()
+        fileWindow.isPresent()
+        fileWindow.get() == [ '555', '666', '777' ]
+    }
+
+    def "Moving up more lines than the size of the file window is allowed and the file window moves as expected"() {
+        given: 'a file reader with a short byte buffer and file window'
+        FileContentReader reader = new FileReader( file, 3, 8 )
+
+        and: 'A file with 10 lines is created'
+        file << ( 0..9 ).collect { def s = it.toString(); s.padLeft( 3, s ) }.join( '\n' )
+
+        when: 'The reader moves up (from the tail) more than the file window size'
+        reader.tail()
+        reader.refresh()
+        def lines = reader.moveUp( 5 )
+
+        then: 'The expected lines are returned'
+        lines.isPresent()
+        lines.get() == [ '222', '333', '444', '555', '666' ]
+
+        and: 'The file window is in the expected location'
+        def fileWindow = reader.refresh()
+        fileWindow.isPresent()
+        fileWindow.get() == [ '222', '333', '444' ]
     }
 
     def "It is possible to refresh from the tail after a file change"() {
@@ -447,6 +555,58 @@ class FileContentReaderSpec extends Specification {
     }
 
     @Unroll
+    def "Can adjust file window to start at a specific line below current window"() {
+        given: 'a file reader with a short byte buffer'
+        FileContentReader reader = new FileReader( file, windowSize, 8 )
+
+        when: 'A file with 10 lines is created'
+        file << ( 1..10 ).join( '\n' )
+
+        and: 'We move down #linesToMoveDown lines'
+        reader.refresh()
+        reader.moveDown( linesToMoveDown )
+
+        and: 'We ask the reader to adjust the file window to start at line #lineNumber'
+        def result = reader.adjustFileWindowToStartAt( lineNumber )
+        def fileWindow = reader.refresh()
+
+        then: 'The file window is adjusted correctly'
+        fileWindow.isPresent()
+        fileWindow.get() == expectedLines
+
+        and: 'The result is at the expected line'
+        result.fileLineNumber() == expectedLineAfterAdjustment
+        !result.isBeforeRange() && !result.isAfterRange()
+
+        where:
+        windowSize | linesToMoveDown | lineNumber || expectedLines      | expectedLineAfterAdjustment
+        2          | 0               | 1          || [ '1', '2' ]       | 1
+        2          | 1               | 1          || [ '2', '3' ]       | 1
+        2          | 2               | 1          || [ '3', '4' ]       | 1
+
+        2          | 0               | 2          || [ '2', '3' ]       | 1
+        2          | 1               | 2          || [ '3', '4' ]       | 1
+        2          | 2               | 2          || [ '4', '5' ]       | 1
+
+        2          | 8               | 1          || [ '9', '10' ]      | 1
+        2          | 8               | 2          || [ '9', '10' ]      | 2
+        2          | 9               | 2          || [ '9', '10' ]      | 2
+        2          | 10              | 2          || [ '9', '10' ]      | 2
+
+        3          | 0               | 2          || [ '2', '3', '4' ]  | 1
+        3          | 1               | 2          || [ '3', '4', '5' ]  | 1
+        3          | 2               | 2          || [ '4', '5', '6' ]  | 1
+
+        3          | 7               | 1          || [ '8', '9', '10' ] | 1
+        3          | 8               | 1          || [ '8', '9', '10' ] | 1
+        3          | 8               | 2          || [ '8', '9', '10' ] | 2
+        3          | 9               | 2          || [ '8', '9', '10' ] | 2
+        3          | 10              | 2          || [ '8', '9', '10' ] | 2
+        3          | 10              | 3          || [ '8', '9', '10' ] | 3
+
+    }
+
+    @Unroll
     def "FileReader can move to a specific time in a log file starting from the top"() {
         given: 'a file reader with a default buffer and a small file window of #fileWindowSize'
         FileContentReader reader = new FileReader( file, fileWindowSize )
@@ -480,28 +640,46 @@ class FileContentReaderSpec extends Specification {
         def lines = reader.refresh()
 
         then: 'the file reader should be able to move the file window'
-        //noinspection GroovyPointlessBoolean
-        result == true
+        result.isSuccess()
 
         then: 'the reader moves to the expected lines in the file'
         lines.isPresent()
         lines.get().collect { it.split( ' ' ).last() } == expectedLogLines
 
-        where:
-        time                     | fileWindowSize || expectedLogLines
-        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]
-        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]
-        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]
-        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]
-        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]
-        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]
+        and: 'the given line number is correct'
+        result.fileLineNumber() == expectedLineNumber
 
-        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]
-        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]
-        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ]
-        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ]
-        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ]
-        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ]
+        and: 'if the query is outside of the file range, the result will reflect that'
+        if ( expectedLineNumber == -1 ) {
+            assert result.isBeforeRange()
+        } else if ( expectedLineNumber == -2 ) {
+            assert result.isAfterRange()
+        } else {
+            assert !result.isBeforeRange() && !result.isAfterRange()
+        }
+
+        where:
+        time                     | fileWindowSize || expectedLogLines                       | expectedLineNumber
+        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]                           | -1 // 0
+        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]                           | -1 // 1
+        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]                | 1 // 2
+        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]              | 1 // 3
+        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]              | 1 // 4
+        '2017-09-01T22:03:02'    | 2              || [ '88888888', '999999999' ]            | 2 // 5
+        '2017-09-01T22:03:02.40' | 2              || [ '88888888', '999999999' ]            | -2 // 6
+        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]            | -2 // 7
+        '2075-12-12T02:24:55'    | 2              || [ '88888888', '999999999' ]            | -2 // 8
+
+        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]                     | -1 // 9
+        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]    | 1 // 10
+        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ] | 1 // 11
+        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ] | 1 // 12
+        '2017-09-01T22:03:01'    | 3              || [ '7777777', '88888888', '999999999' ] | 2 // 13
+        '2017-09-01T22:03:01.30' | 3              || [ '7777777', '88888888', '999999999' ] | 2 // 14
+        '2017-09-01T22:03:02'    | 3              || [ '7777777', '88888888', '999999999' ] | 3 // 15
+        '2017-09-01T22:03:02.01' | 3              || [ '7777777', '88888888', '999999999' ] | -2 // 15
+        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ] | -2 // 16
+        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ] | -2 // 17
 
     }
 
@@ -540,28 +718,33 @@ class FileContentReaderSpec extends Specification {
         def lines = reader.refresh()
 
         then: 'the file reader should be able to move the file window'
-        //noinspection GroovyPointlessBoolean
-        result == true
+        result.isSuccess()
 
-        then: 'the reader moves to the expected lines in the file'
+        and: 'the reader moves to the expected lines in the file'
         lines.isPresent()
         lines.get().collect { it.split( ' ' ).last() } == expectedLogLines
 
-        where:
-        time                     | fileWindowSize || expectedLogLines
-        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]
-        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]
-        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]
-        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]
-        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]
-        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]
+        and: 'the given line number is correct'
+        result.fileLineNumber() == expectedLineNumber
 
-        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]
-        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]
-        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ]
-        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ]
-        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ]
-        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ]
+        where:
+        time                     | fileWindowSize || expectedLogLines                       | expectedLineNumber
+        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]                           | 1
+        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]                           | 1
+        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]                | 1
+        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]              | 1
+        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]              | 1
+        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]            | 2
+
+        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]                     | 1
+        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]    | 1
+        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ] | 1
+        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ] | 1
+        '2017-09-01T22:03:01'    | 3              || [ '7777777', '88888888', '999999999' ] | 2
+        '2017-09-01T22:03:01.30' | 3              || [ '7777777', '88888888', '999999999' ] | 2
+        '2017-09-01T22:03:02.01' | 3              || [ '7777777', '88888888', '999999999' ] | 3
+        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ] | 3
+        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ] | 3
 
     }
 

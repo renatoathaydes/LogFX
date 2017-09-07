@@ -4,6 +4,7 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
+import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
@@ -150,7 +151,7 @@ public class LogView extends VBox {
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern( "EEE MMM dd HH:mm:ss z yyyy" );
 
         fileReaderExecutor.execute( () -> {
-            boolean success = fileContentReader.moveTo( dateTime, ( line ) -> {
+            FileQueryResult result = fileContentReader.moveTo( dateTime, ( line ) -> {
                 Matcher matcher = pattern.matcher( line );
                 if ( matcher.matches() ) {
                     try {
@@ -161,7 +162,7 @@ public class LogView extends VBox {
                 }
                 return Optional.empty();
             } );
-            if ( success ) {
+            if ( result.isSuccess() ) {
                 log.debug( "Successfully went to date: {}", dateTime );
                 onFileChange();
             } else {

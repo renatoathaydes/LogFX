@@ -45,15 +45,18 @@ public interface FileContentReader {
      * using the given function.
      * <p>
      * The return value indicates whether it was possible to find dates in the file.
+     * If the date-time was not within the file first/last date-times, the result will still
+     * be successful.
      *
      * @param dateTime      to move the file window to
      * @param dateExtractor function from a log line to the date the log line contains
-     * @return true if the dates in the log file could be found, false otherwise.
-     * Returning true implies that the file window was successfully moved. If this method
-     * returns false, the file window is left intact.
+     * @return a successful result if the dates in the log file could be found,
+     * or an unsuccessful result otherwise.
+     * Returning success implies that the file window was successfully moved. If this method
+     * returns a unsuccessful result, the file window is left intact.
      */
-    boolean moveTo( LocalDateTime dateTime,
-                    Function<String, Optional<LocalDateTime>> dateExtractor );
+    FileQueryResult moveTo( LocalDateTime dateTime,
+                            Function<String, Optional<LocalDateTime>> dateExtractor );
 
     /**
      * Move the file window to the top of the file.
@@ -86,4 +89,40 @@ public interface FileContentReader {
      * @return the file associated with this instance.
      */
     File getFile();
+
+    /**
+     * Result of performing a query into the file contents.
+     */
+    interface FileQueryResult {
+
+        /**
+         * @return true if this is a successful query, false if it was not successful for any
+         * reason.
+         */
+        boolean isSuccess();
+
+        /**
+         * If this query is successful, the line number of the first match within
+         * the file window.
+         * <p>
+         * The result is between 1 and the file-window size for successful queries,
+         * and undefined for unsuccessful ones or results before or after the current range.
+         *
+         * @return the line number of the first match in the current file-window if this
+         * is a successful query.
+         */
+        int fileLineNumber();
+
+        /**
+         * @return true if the result is before the current range being looked at.
+         * If this is the case, the line number is undefined.
+         */
+        boolean isBeforeRange();
+
+        /**
+         * @return true if the result is after the current range being looked at.
+         * If this is the case, the line number is undefined.
+         */
+        boolean isAfterRange();
+    }
 }
