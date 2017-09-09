@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.ui.LogViewPane.LogViewWrapper;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -23,6 +24,8 @@ import java.util.Optional;
 import java.util.TimeZone;
 import java.util.function.Supplier;
 
+import static java.util.stream.Collectors.toList;
+
 /**
  * A view that allows the user to select a date-time to go to in an opened log file.
  */
@@ -31,7 +34,7 @@ class GoToDateView {
     private final Dialog dialog;
 
     GoToDateView( LogView selectedLogView,
-                  Supplier<List<LogView>> logViewsGetter ) {
+                  Supplier<List<LogViewWrapper>> logViewsGetter ) {
         VBox root = new VBox( 20 );
 
         dialog = new Dialog( root );
@@ -60,15 +63,18 @@ class GoToDateView {
 
         goButton.setOnAction( event -> {
             dateTimeField.getValue().ifPresent( dateTime -> {
-                List<LogView> views = new ArrayList<>( 3 );
+                List<LogViewWrapper> viewWrappers = new ArrayList<>( 3 );
                 if ( goToAll.isSelected() ) {
-                    views.addAll( logViewsGetter.get() );
+                    viewWrappers.addAll( logViewsGetter.get() );
                 } else if ( selectedLogView != null ) {
-                    views.add( selectedLogView );
+                    viewWrappers.addAll( logViewsGetter.get().stream()
+                            .filter( wrapper -> wrapper.getLogView() == selectedLogView )
+                            .collect( toList() ) );
                 }
 
-                for ( LogView logView : views ) {
-                    Platform.runLater( () -> logView.goTo( dateTime ) );
+                for ( LogViewWrapper wrapper : viewWrappers ) {
+                    Platform.runLater( () -> wrapper.getLogView()
+                            .goTo( dateTime, wrapper::scrollTo ) );
                 }
             } );
 

@@ -5,6 +5,7 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
+import com.athaydes.logfx.file.OutsideRangeQueryResult;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
@@ -17,6 +18,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -145,7 +148,7 @@ public class LogView extends VBox {
         } );
     }
 
-    void goTo( LocalDateTime dateTime ) {
+    void goTo( LocalDateTime dateTime, IntConsumer whenDoneAcceptLineNumber ) {
         // FIXME find the pattern in the files or ask user for a pattern
         Pattern pattern = Pattern.compile( "INFO ([A-za-z0-9: ]+)-.*" );
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern( "EEE MMM dd HH:mm:ss z yyyy" );
@@ -163,8 +166,21 @@ public class LogView extends VBox {
                 return Optional.empty();
             } );
             if ( result.isSuccess() ) {
-                log.debug( "Successfully went to date: {}", dateTime );
+                log.debug( "Successfully found date: {}, result: {}", dateTime, result );
                 onFileChange();
+
+                final int lineNumber = result.isAfterRange() ?
+                        MAX_LINES :
+                        ( result.isBeforeRange() ?
+                                1 :
+                                result.fileLineNumber() );
+                final boolean outOfRange = result instanceof OutsideRangeQueryResult;
+
+                Platform.runLater( () -> {
+                    LogLine line = lineAt( lineNumber - 1 );
+                    line.animate( outOfRange ? Color.RED : Color.LAWNGREEN );
+                    whenDoneAcceptLineNumber.accept( lineNumber );
+                } );
             } else {
                 log.warn( "Failed to open date-time in log, could not recognize dates in the log" );
             }

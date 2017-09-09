@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 
+import static com.athaydes.logfx.ui.LogView.MAX_LINES;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -174,11 +175,10 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
-    private List<LogView> getAllLogViews() {
+    private List<LogViewWrapper> getAllLogViews() {
         return pane.getItems().stream()
                 .filter( it -> it instanceof LogViewWrapper )
                 .map( LogViewWrapper.class::cast )
-                .map( it -> it.logView )
                 .collect( toList() );
     }
 
@@ -287,7 +287,7 @@ public final class LogViewPane {
 
     }
 
-    private static class LogViewWrapper extends VBox {
+    static class LogViewWrapper extends VBox {
 
         private static final Logger log = LoggerFactory.getLogger( LogViewWrapper.class );
 
@@ -295,11 +295,11 @@ public final class LogViewPane {
         private final Consumer<LogViewWrapper> onClose;
         private final LogViewHeader header;
         private final LogViewScrollPane scrollPane;
-        private final Supplier<List<LogView>> logViewsGetter;
+        private final Supplier<List<LogViewWrapper>> logViewsGetter;
 
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
-                        Supplier<List<LogView>> logViewsGetter,
+                        Supplier<List<LogViewWrapper>> logViewsGetter,
                         Consumer<LogViewWrapper> onClose ) {
             super( 2.0 );
 
@@ -331,6 +331,10 @@ public final class LogViewPane {
             } );
 
             logView.loadFileContents();
+        }
+
+        public LogView getLogView() {
+            return logView;
         }
 
         private boolean isShowingFileContents() {
@@ -400,6 +404,7 @@ public final class LogViewPane {
             logView.closeFileReader();
         }
 
+        @MustCallOnJavaFXThread
         void switchTailFile() {
             if ( isTailingFile() ) {
                 stopTailingFile();
@@ -407,6 +412,16 @@ public final class LogViewPane {
                 startTailingFile();
             }
         }
+
+        @MustCallOnJavaFXThread
+        void scrollTo( int lineNumber ) {
+            double frac = ( ( double ) lineNumber / MAX_LINES ) - 0.1;
+            double correctOffset = -0.4 + frac * 0.8;
+            double vvalue = frac + correctOffset;
+            log.debug( "Setting scroll to {} for line number {}", vvalue, lineNumber );
+            scrollPane.setVvalue( vvalue );
+        }
+
     }
 
     private static class LogViewHeader extends BorderPane {
