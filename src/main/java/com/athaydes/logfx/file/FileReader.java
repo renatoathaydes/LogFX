@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -32,10 +33,44 @@ public class FileReader implements FileContentReader {
         UP, DOWN, ANY
     }
 
+    private enum Comparison {
+        BEFORE, EQUAL, AFTER;
+
+        static <T> Comparison of( Comparable<T> a, T b ) {
+            int compareResult = a.compareTo( b );
+            return ( compareResult == 0 ) ? EQUAL :
+                    ( compareResult < 0 ) ? BEFORE : AFTER;
+        }
+    }
+
+    private static class EarlyExitFromFileWindow {
+        private final FileQueryResult fileQueryResult;
+        private final boolean skipWindow;
+
+        EarlyExitFromFileWindow( FileQueryResult fileQueryResult ) {
+            this.fileQueryResult = fileQueryResult;
+            this.skipWindow = false;
+        }
+
+        EarlyExitFromFileWindow( boolean skipWindow ) {
+            this.fileQueryResult = null;
+            this.skipWindow = skipWindow;
+        }
+
+        Optional<FileQueryResult> getFileQueryResult() {
+            return Optional.ofNullable( fileQueryResult );
+        }
+
+        boolean canSkipWindow() {
+            return skipWindow;
+        }
+    }
+
     private final File file;
     private final int fileWindowSize;
     private final int bufferSize;
     private final FileLineStarts lineStarts;
+    private final int maxLineParseFailuresAllowed;
 
     // state to avoid reading a file when it is not required...
     // e.g. moving down when the last moveDown returned no lines and:
@@ -52,13 +87,14 @@ public class FileReader implements FileContentReader {
         this.file = file;
         this.fileWindowSize = fileWindowSize;
         this.bufferSize = bufferSize;
+        this.maxLineParseFailuresAllowed = Math.min( 10, fileWindowSize );
 
         // 1 extra line is needed because we need to know the boundaries between lines
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
     }
 
     @Override
-    public Optional<? extends List<String>> moveUp( int lines ) {
+    public Optional<LinkedList<String>> moveUp( int lines ) {
         if ( lines < 1 ) {
             return Optional.of( new LinkedList<>() );
         }
@@ -79,7 +115,7 @@ public class FileReader implements FileContentReader {
     }
 
     @Override
-    public Optional<? extends List<String>> moveDown( int lines ) {
+    public Optional<LinkedList<String>> moveDown( int lines ) {
         if ( lines < 1 ) {
             return Optional.of( new LinkedList<>() );
         }
@@ -99,13 +135,12 @@ public class FileReader implements FileContentReader {
         return result;
     }
 
-    @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnusedLabel" } )
+    @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnusedLabel", "UnnecessaryLabelOnContinueStatement" } )
     @Override
     public FileQueryResult moveTo( LocalDateTime dateTime,
                                    Function<String, Optional<LocalDateTime>> dateExtractor ) {
-        Optional<? extends List<String>> maybeLines = refresh();
+        Optional<LinkedList<String>> maybeLines = refresh();
         SearchDirection direction = SearchDirection.ANY;
-        final int maxLineParseFailuresAllowed = Math.min( 10, fileWindowSize );
 
         if ( !maybeLines.isPresent() || maybeLines.get().isEmpty() ) {
             log.debug( "No lines found in file, cannot move to given date: {}", dateTime );
@@ -113,7 +148,7 @@ public class FileReader implements FileContentReader {
 
         mainLoop:
         while ( maybeLines.isPresent() ) {
-            List<String> nextLines = maybeLines.get();
+            LinkedList<String> nextLines = maybeLines.get();
 
             if ( nextLines.isEmpty() ) {
                 // reached file end or start
@@ -129,8 +164,19 @@ public class FileReader implements FileContentReader {
                 }
             }
 
+            if ( direction != SearchDirection.ANY ) {
+                EarlyExitFromFileWindow earlyExit = checkLastValidLine( nextLines, dateTime, dateExtractor, direction );
+                if ( earlyExit.getFileQueryResult().isPresent() ) {
+                    return earlyExit.getFileQueryResult().get();
+                } else if ( earlyExit.canSkipWindow() ) {
+                    maybeLines = moveDown( fileWindowSize );
+                    continue mainLoop;
+                }
+            }
+
             int failedLines = 0;
             int lineNumber = 0;
+            boolean isFirstLine = true;
 
             Iterator<String> nextLinesIter = nextLines.iterator();
             Optional<LocalDateTime> lineDateTime = Optional.empty();
@@ -150,30 +196,36 @@ public class FileReader implements FileContentReader {
                 }
 
                 if ( lineDateTime.isPresent() ) {
-                    int comparison = lineDateTime.get().compareTo( dateTime );
-                    if ( comparison >= 0 ) {
-                        switch ( direction ) {
-                            case ANY:
-                            case UP:
-                                if ( lineNumber == 1 ) {
-                                    log.debug( "Date seems to be before the current file window, moving up" );
-                                    direction = SearchDirection.UP;
-                                    break inspectFileWindow;
-                                }
-                                // fall-through
-                            case DOWN:
-                                log.debug( "Found line {}, the date is the same or after date {}", dateTime );
-                                return adjustFileWindowToStartAt( nextLines.size(),
-                                        ( comparison == 0 ) ? lineNumber : lineNumber - 1 );
+                    Comparison lineComparison = Comparison.of( lineDateTime.get(), dateTime );
+
+                    if ( direction == SearchDirection.ANY ) {
+                        if ( lineComparison == Comparison.BEFORE ) {
+                            direction = SearchDirection.DOWN;
+                        } else {
+                            direction = SearchDirection.UP;
                         }
                     }
+
+                    if ( isFirstLine && direction == SearchDirection.UP && lineComparison == Comparison.AFTER ) {
+                        log.trace( "Searching UP and current line is AFTER target, skipping window" );
+                        break inspectFileWindow;
+                    }
+
+                    if ( lineComparison != Comparison.BEFORE ) {
+                        log.debug( "Found line, date comparison = {}, target date = {}", lineComparison, dateTime );
+                        return adjustFileWindowToStartAt( nextLines.size(),
+                                ( lineComparison == Comparison.EQUAL ) ? lineNumber : lineNumber - 1 );
+                    }
+
                 }
 
                 if ( failedLines >= maxLineParseFailuresAllowed ) {
-                    log.warn( "Too many log lines do not contain a valid date in file: {}.\nCannot move to date {}",
+                    log.debug( "Too many log lines do not contain a valid date in file: {}.\nCannot move to date {}",
                             getFile(), dateTime );
                     break mainLoop;
                 }
+
+                isFirstLine = false;
             }
 
             switch ( direction ) {
@@ -192,16 +244,57 @@ public class FileReader implements FileContentReader {
         return UnsuccessfulQueryResult.INSTANCE;
     }
 
+    private EarlyExitFromFileWindow checkLastValidLine( List<String> nextLines,
+                                                        LocalDateTime dateTime,
+                                                        Function<String, Optional<LocalDateTime>> dateExtractor,
+                                                        SearchDirection direction ) {
+        int failedLines = 0;
+        ListIterator<String> reversedIterator = nextLines.listIterator( nextLines.size() );
+        Optional<LocalDateTime> lastLineDateTime = Optional.empty();
+
+        while ( reversedIterator.hasPrevious() && failedLines < maxLineParseFailuresAllowed ) {
+            lastLineDateTime = dateExtractor.apply( reversedIterator.previous() );
+            if ( lastLineDateTime.isPresent() ) {
+                break;
+            }
+            failedLines++;
+        }
+
+        if ( lastLineDateTime.isPresent() ) {
+            Comparison lastLineComparison = Comparison.of( lastLineDateTime.get(), dateTime );
+            if ( direction == SearchDirection.UP && lastLineComparison != Comparison.AFTER ) {
+                log.trace( "Found line in the border between windows while searching UP" );
+                return new EarlyExitFromFileWindow(
+                        adjustFileWindowToStartAt( nextLines.size(), fileWindowSize - failedLines ) );
+            }
+
+            if ( direction == SearchDirection.DOWN && lastLineComparison == Comparison.BEFORE ) {
+                log.trace( "Skipping window, last line date = {}, target date = {}", lastLineDateTime.get(), dateTime );
+                return new EarlyExitFromFileWindow( true );
+            }
+        }
+
+        return new EarlyExitFromFileWindow( false );
+    }
+
     FileQueryResult adjustFileWindowToStartAt( int nextLinesSize,
                                                int lineNumber ) {
+        log.trace( "Adjusting file window to line {}, next lines count: {}", lineNumber, nextLinesSize );
+
         boolean isOnFileEdge = nextLinesSize < fileWindowSize;
 
         if ( lineNumber == 0 ) {
             if ( isOnFileEdge ) {
                 return new SuccessfulQueryResult( fileWindowSize - nextLinesSize );
             } else {
-                moveUp( 1 );
-                return new SuccessfulQueryResult( 1 );
+                Optional<LinkedList<String>> linesUp = moveUp( 1 );
+                if ( linesUp.isPresent() && !linesUp.get().isEmpty() ) {
+                    return new SuccessfulQueryResult( 1 );
+                } else {
+                    return linesUp.isPresent() ?
+                            OutsideRangeQueryResult.BEFORE :
+                            UnsuccessfulQueryResult.INSTANCE;
+                }
             }
         }
 
@@ -239,7 +332,7 @@ public class FileReader implements FileContentReader {
     }
 
     @Override
-    public Optional<? extends List<String>> refresh() {
+    public Optional<LinkedList<String>> refresh() {
         noLinesDown = false;
         noLinesUp = false;
 

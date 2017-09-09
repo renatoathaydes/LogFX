@@ -576,11 +576,16 @@ class FileContentReaderSpec extends Specification {
 
         and: 'The result is at the expected line'
         result.fileLineNumber() == expectedLineAfterAdjustment
-        !result.isBeforeRange() && !result.isAfterRange()
+        if ( expectedLineAfterAdjustment == -1 ) {
+            assert result.isBeforeRange()
+        } else {
+            assert !result.isBeforeRange()
+        }
+        !result.isAfterRange()
 
         where:
         windowSize | linesToMoveDown | lineNumber || expectedLines      | expectedLineAfterAdjustment
-        2          | 0               | 0          || [ '1', '2' ]       | 1
+        2          | 0               | 0          || [ '1', '2' ]       | -1
         2          | 1               | 0          || [ '1', '2' ]       | 1
         2          | 2               | 0          || [ '2', '3' ]       | 1
 
@@ -597,7 +602,7 @@ class FileContentReaderSpec extends Specification {
         2          | 9               | 2          || [ '9', '10' ]      | 2
         2          | 10              | 2          || [ '9', '10' ]      | 2
 
-        3          | 0               | 0          || [ '1', '2', '3' ]  | 1
+        3          | 0               | 0          || [ '1', '2', '3' ]  | -1
         3          | 1               | 0          || [ '1', '2', '3' ]  | 1
         3          | 2               | 0          || [ '2', '3', '4' ]  | 1
         3          | 3               | 0          || [ '3', '4', '5' ]  | 1
@@ -733,8 +738,14 @@ class FileContentReaderSpec extends Specification {
         lines.isPresent()
         lines.get().collect { it.split( ' ' ).last() } == expectedLogLines
 
-        and: 'the given line number is correct'
-        result.fileLineNumber() == expectedLineNumber
+        and: 'if the query is outside of the file range, the result will reflect that'
+        if ( expectedLineNumber == -1 ) {
+            assert result.isBeforeRange()
+        } else if ( expectedLineNumber == -2 ) {
+            assert result.isAfterRange()
+        } else {
+            assert !result.isBeforeRange() && !result.isAfterRange()
+        }
 
         where:
         time                     | fileWindowSize || expectedLogLines                       | expectedLineNumber
