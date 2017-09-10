@@ -31,6 +31,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -415,13 +417,19 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         void scrollTo( int lineNumber ) {
-            double frac = ( ( double ) lineNumber / MAX_LINES ) - 0.1;
-            double correctOffset = -0.4 + frac * 0.8;
-            double vvalue = frac + correctOffset;
+            double vvalue = lineNumberToScrollVvalue( lineNumber );
+
             log.debug( "Setting scroll to {} for line number {}", vvalue, lineNumber );
             scrollPane.setVvalue( vvalue );
         }
 
+    }
+
+    static double lineNumberToScrollVvalue( double lineNumber ) {
+        double frac = ( lineNumber / MAX_LINES );
+        return BigDecimal.valueOf( frac )
+                .setScale( 1, frac < 0.5 ? RoundingMode.DOWN : RoundingMode.UP )
+                .doubleValue();
     }
 
     private static class LogViewHeader extends BorderPane {
