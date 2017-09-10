@@ -47,6 +47,9 @@ public class LogView extends VBox {
 
     private static final Logger log = LoggerFactory.getLogger( LogView.class );
 
+    private static final Runnable DO_NOTHING = () -> {
+    };
+
     public static final int MAX_LINES = 100;
     private static final double DELTA_FACTOR = 10.0;
 
@@ -167,7 +170,6 @@ public class LogView extends VBox {
             } );
             if ( result.isSuccess() ) {
                 log.debug( "Successfully found date: {}, result: {}", dateTime, result );
-                onFileChange();
 
                 final int lineNumber = result.isAfterRange() ?
                         MAX_LINES :
@@ -176,11 +178,11 @@ public class LogView extends VBox {
                                 result.fileLineNumber() );
                 final boolean outOfRange = result instanceof OutsideRangeQueryResult;
 
-                Platform.runLater( () -> {
+                onFileChange( () -> Platform.runLater( () -> {
                     LogLine line = lineAt( lineNumber - 1 );
                     line.animate( outOfRange ? Color.RED : Color.LAWNGREEN );
                     whenDoneAcceptLineNumber.accept( lineNumber );
-                } );
+                } ) );
             } else {
                 log.warn( "Failed to open date-time in log, could not recognize dates in the log" );
             }
@@ -227,17 +229,29 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
-        taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
+        onFileChange( DO_NOTHING );
+    }
+
+    private void onFileChange( Runnable andThen ) {
+        taskRunner.runWithMaxFrequency( () -> immediateOnFileChange( andThen ), 2_000 );
     }
 
     private void immediateOnFileChange() {
+        immediateOnFileChange( DO_NOTHING );
+    }
+
+    private void immediateOnFileChange( Runnable andThen ) {
         fileReaderExecutor.execute( () -> {
             if ( tailingFileProperty().get() ) {
                 fileContentReader.tail();
             }
             Optional<? extends List<String>> lines = fileContentReader.refresh();
             lines.ifPresent( list -> updateWith( list.iterator() ) );
-            onFileExists.accept( lines.isPresent() );
+            try {
+                onFileExists.accept( lines.isPresent() );
+            } finally {
+                andThen.run();
+            }
         } );
     }
 
