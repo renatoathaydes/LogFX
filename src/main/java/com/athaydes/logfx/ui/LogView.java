@@ -62,6 +62,7 @@ public class LogView extends VBox {
     private final Supplier<LogLine> logLineFactory;
     private final TaskRunner taskRunner;
     private final SelectionHandler selectionHandler;
+    private final Runnable cachedUpdateFileRunnable = () -> immediateOnFileChange( DO_NOTHING );
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
     };
 
@@ -229,7 +230,7 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
-        onFileChange( DO_NOTHING );
+        taskRunner.runWithMaxFrequency( cachedUpdateFileRunnable, 2_000 );
     }
 
     private void onFileChange( Runnable andThen ) {
