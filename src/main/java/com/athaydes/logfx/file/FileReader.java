@@ -183,10 +183,12 @@ public class FileReader implements FileContentReader {
 
             inspectFileWindow:
             while ( nextLinesIter.hasNext() ) {
+                String line = "";
 
                 findNextValidDateTime:
                 while ( nextLinesIter.hasNext() && failedLines < maxLineParseFailuresAllowed ) {
-                    lineDateTime = dateExtractor.apply( nextLinesIter.next() );
+                    line = nextLinesIter.next();
+                    lineDateTime = dateExtractor.apply( line );
                     lineNumber++;
 
                     if ( lineDateTime.isPresent() ) {
@@ -212,7 +214,8 @@ public class FileReader implements FileContentReader {
                     }
 
                     if ( lineComparison != Comparison.BEFORE ) {
-                        log.debug( "Found line, date comparison = {}, target date = {}", lineComparison, dateTime );
+                        log.debug( "Found line, date comparison = {}, target date = {}, line: {}",
+                                lineComparison, dateTime, line );
                         return adjustFileWindowToStartAt( nextLines.size(),
                                 ( lineComparison == Comparison.EQUAL ) ? lineNumber : lineNumber - 1 );
                     }
@@ -279,7 +282,7 @@ public class FileReader implements FileContentReader {
 
     FileQueryResult adjustFileWindowToStartAt( int nextLinesSize,
                                                int lineNumber ) {
-        log.trace( "Adjusting file window to line {}, next lines count: {}", lineNumber, nextLinesSize );
+        log.debug( "Adjusting file window to line {}, next lines count: {}", lineNumber, nextLinesSize );
 
         boolean isOnFileEdge = nextLinesSize < fileWindowSize;
 
@@ -298,20 +301,16 @@ public class FileReader implements FileContentReader {
             }
         }
 
-        if ( lineNumber == 1 ) {
-            if ( isOnFileEdge ) {
-                return new SuccessfulQueryResult( 1 + fileWindowSize - nextLinesSize );
-            } else {
-                return new SuccessfulQueryResult( 1 );
-            }
-        }
-
-        Optional<? extends List<String>> nextLines = moveDown( lineNumber - 1 );
-        if ( nextLines.isPresent() ) {
-            int toAdjust = lineNumber - nextLines.get().size();
-            return new SuccessfulQueryResult( toAdjust );
+        if ( isOnFileEdge ) {
+            return new SuccessfulQueryResult( lineNumber + fileWindowSize - nextLinesSize );
         } else {
-            return UnsuccessfulQueryResult.INSTANCE;
+            Optional<? extends List<String>> nextLines = moveDown( lineNumber - 1 );
+            if ( nextLines.isPresent() ) {
+                int toAdjust = lineNumber - nextLines.get().size();
+                return new SuccessfulQueryResult( toAdjust );
+            } else {
+                return UnsuccessfulQueryResult.INSTANCE;
+            }
         }
     }
 
