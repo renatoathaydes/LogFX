@@ -7,6 +7,11 @@ import org.slf4j.helpers.MessageFormatter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,6 +25,23 @@ class LogFXLogger extends MarkerIgnoringBase {
     enum LogLevel {
         TRACE, DEBUG, INFO, WARN, ERROR
     }
+
+    private static final DateTimeFormatter formatter = new DateTimeFormatterBuilder()
+            .appendValue( ChronoField.YEAR )
+            .appendLiteral( '-' )
+            .appendValue( ChronoField.MONTH_OF_YEAR )
+            .appendLiteral( '-' )
+            .appendValue( ChronoField.DAY_OF_MONTH )
+            .appendLiteral( 'T' )
+            .appendValue( ChronoField.HOUR_OF_DAY )
+            .appendLiteral( ':' )
+            .appendValue( ChronoField.MINUTE_OF_HOUR )
+            .appendLiteral( ':' )
+            .appendValue( ChronoField.SECOND_OF_MINUTE )
+            .appendLiteral( '.' )
+            .appendValue( ChronoField.MILLI_OF_SECOND )
+            .appendOffsetId()
+            .toFormatter();
 
     private final String name;
 
@@ -192,10 +214,11 @@ class LogFXLogger extends MarkerIgnoringBase {
         }
 
         StringBuilder builder = new StringBuilder( 128 );
-        builder.append( '[' ).append( Thread.currentThread().getName() ).append( ']' )
+        builder.append( formatter.format( Instant.now().atZone( ZoneId.systemDefault() ) ) )
+                .append( " [" ).append( Thread.currentThread().getName() ).append( ']' )
                 .append( ' ' ).append( logLevel.name() )
                 .append( ' ' ).append( name )
-                .append( ' ' ).append( " - " ).append( message );
+                .append( " - " ).append( message );
 
         Collection<String> messageLines;
 
