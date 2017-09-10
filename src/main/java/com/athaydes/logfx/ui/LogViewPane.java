@@ -57,12 +57,10 @@ public final class LogViewPane {
     public LogViewPane() {
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.META_DOWN ) );
-        copyMenuItem.setOnAction( event -> {
-            getFocusedView().ifPresent( wrapper ->
-                    wrapper.logView.getSelection().ifPresent( content -> {
-                        Clipboard.getSystemClipboard().setContent( content );
-                    } ) );
-        } );
+        copyMenuItem.setOnAction( event -> getFocusedView().ifPresent( wrapper ->
+                wrapper.logView.getSelection().ifPresent( content -> {
+                    Clipboard.getSystemClipboard().setContent( content );
+                } ) ) );
 
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.META_DOWN ) );
@@ -201,13 +199,6 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
-    private void hide() {
-        if ( pane.getItems().size() > 1 ) {
-            pane.setDividerPosition( 0, 0.0 );
-        }
-    }
-
-    @MustCallOnJavaFXThread
     public void close() {
         for ( int i = 0; i < pane.getItems().size(); i++ ) {
             LogViewWrapper wrapper = ( LogViewWrapper ) pane.getItems().get( i );
@@ -335,7 +326,7 @@ public final class LogViewPane {
             logView.loadFileContents();
         }
 
-        public LogView getLogView() {
+        LogView getLogView() {
             return logView;
         }
 
@@ -496,9 +487,7 @@ public final class LogViewPane {
             text.getStyleClass().add( "large-background-text" );
             getChildren().add( text );
 
-            addEventHandler( MouseEvent.MOUSE_CLICKED, event -> {
-                requestFocus();
-            } );
+            addEventHandler( MouseEvent.MOUSE_CLICKED, event -> requestFocus() );
 
             focusedProperty().addListener( observable -> {
                 if ( isFocused() ) {
