@@ -541,6 +541,11 @@ public class FileReader implements FileContentReader {
                     break;
                 }
 
+                if ( lastByteIndex < 0 ) {
+                    log.trace( "No bytes were read, skipping copying of tail bytes" );
+                    continue;
+                }
+
                 // remember the current buffer bytes as the next tail bytes
                 byte[] newTail = new byte[ tailBytes.length + lastByteIndex + 1 ];
                 System.arraycopy( buffer, 0, newTail, 0, lastByteIndex + 1 );
