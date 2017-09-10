@@ -5,6 +5,7 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
+import com.athaydes.logfx.log.LogFXLogFactory;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
@@ -149,12 +150,18 @@ public class LogFX extends Application {
             }
         } );
 
+        MenuItem showLogFxLog = new MenuItem( "Open LogFX Log" );
+        showLogFxLog.setAccelerator( new KeyCodeCombination( KeyCode.O,
+                KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
+        showLogFxLog.setOnAction( ( event ) ->
+                open( LogFXLogFactory.INSTANCE.getLogFilePath().toFile() ) );
+
         MenuItem close = new MenuItem( "E_xit" );
         close.setAccelerator( new KeyCodeCombination( KeyCode.W,
                 KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
         close.setMnemonicParsing( true );
         close.setOnAction( ( event ) -> stage.close() );
-        menu.getItems().addAll( open, close );
+        menu.getItems().addAll( open, showLogFxLog, close );
 
         return menu;
     }
