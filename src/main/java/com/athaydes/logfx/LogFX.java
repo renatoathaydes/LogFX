@@ -30,7 +30,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -42,6 +41,34 @@ import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
  * The LogFX JavaFX Application.
  */
 public class LogFX extends Application {
+
+    public static final Path LOGFX_DIR;
+
+    static {
+        String customHome = System.getProperty( "logfx.home" );
+
+        File homeDir;
+        if ( customHome == null ) {
+            homeDir = new File( System.getProperty( "user.home" ), ".logfx" );
+        } else {
+            homeDir = new File( customHome );
+        }
+
+        if ( homeDir.isFile() ) {
+            throw new IllegalStateException( "LogFX home directory is set to a file: " +
+                    homeDir + ", use the 'logfx.home' system property to change LogFX's home." );
+        }
+
+        if ( !homeDir.exists() ) {
+            boolean ok = homeDir.mkdirs();
+            if ( !ok ) {
+                throw new IllegalStateException( "Unable to create LogFX home directory at " +
+                        homeDir + ", use the 'logfx.home' system property to change LogFX's home." );
+            }
+        }
+
+        LOGFX_DIR = homeDir.toPath();
+    }
 
     private static final Logger log = LoggerFactory.getLogger( LogFX.class );
 
@@ -58,12 +85,7 @@ public class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     public LogFX() {
-        String userHome = System.getProperty( "user.home" );
-        if ( userHome == null ) {
-            throw new IllegalStateException( "Cannot start LogFX, user.home property is not defined" );
-        }
-
-        Path configFile = Paths.get( userHome, ".logfx" );
+        Path configFile = LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner, fontValue );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
