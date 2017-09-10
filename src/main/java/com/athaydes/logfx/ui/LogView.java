@@ -6,6 +6,8 @@ import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
 import com.athaydes.logfx.file.OutsideRangeQueryResult;
+import com.athaydes.logfx.text.DateTimeFormatGuess;
+import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
@@ -25,8 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -35,8 +35,6 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import static java.util.stream.Collectors.toList;
 
@@ -63,8 +61,12 @@ public class LogView extends VBox {
     private final TaskRunner taskRunner;
     private final SelectionHandler selectionHandler;
     private final Runnable cachedUpdateFileRunnable = () -> immediateOnFileChange( DO_NOTHING );
+    private final DateTimeFormatGuesser dateTimeFormatGuesser = DateTimeFormatGuesser.standard();
+
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
     };
+
+    private DateTimeFormatGuess fileDateTimeFormatters = null;
 
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
@@ -153,22 +155,17 @@ public class LogView extends VBox {
     }
 
     void goTo( LocalDateTime dateTime, IntConsumer whenDoneAcceptLineNumber ) {
-        // FIXME find the pattern in the files or ask user for a pattern
-        Pattern pattern = Pattern.compile( "INFO ([A-za-z0-9: ]+)-.*" );
-        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern( "EEE MMM dd HH:mm:ss z yyyy" );
-
         fileReaderExecutor.execute( () -> {
-            FileQueryResult result = fileContentReader.moveTo( dateTime, ( line ) -> {
-                Matcher matcher = pattern.matcher( line );
-                if ( matcher.matches() ) {
-                    try {
-                        return Optional.of( LocalDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) );
-                    } catch ( DateTimeParseException e ) {
-                        log.warn( "Error parsing date: {}", e.toString() );
-                    }
-                }
-                return Optional.empty();
-            } );
+            if ( fileDateTimeFormatters == null ) {
+                findFileDateTimeFormatterFromFileContents();
+            }
+            if ( fileDateTimeFormatters == null ) {
+                log.warn( "Could not guess date-time format from this log file, " +
+                        "will not be able to find log lines by date" );
+                return;
+            }
+
+            FileQueryResult result = fileContentReader.moveTo( dateTime, fileDateTimeFormatters::convert );
             if ( result.isSuccess() ) {
                 log.debug( "Successfully found date: {}, result: {}", dateTime, result );
 
@@ -188,6 +185,17 @@ public class LogView extends VBox {
                 log.warn( "Failed to open date-time in log, could not recognize dates in the log" );
             }
         } );
+    }
+
+    // must be called from fileReaderExecutor Thread
+    private void findFileDateTimeFormatterFromFileContents() {
+        Optional<? extends List<String>> lines = fileContentReader.refresh();
+        if ( lines.isPresent() ) {
+            fileDateTimeFormatters = dateTimeFormatGuesser
+                    .guessDateTimeFormats( lines.get() ).orElse( null );
+        } else {
+            log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", file );
+        }
     }
 
     private void addTopLines( List<String> topLines ) {
