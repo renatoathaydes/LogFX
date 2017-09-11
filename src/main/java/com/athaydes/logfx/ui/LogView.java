@@ -67,6 +67,8 @@ public class LogView extends VBox {
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
     };
 
+    private volatile Runnable onFileUpdate = DO_NOTHING;
+
     private DateTimeFormatGuess fileDateTimeFormatters = null;
 
     @MustCallOnJavaFXThread
@@ -197,6 +199,10 @@ public class LogView extends VBox {
         } );
     }
 
+    void onFileUpdate( Runnable onFileUpdate ) {
+        this.onFileUpdate = onFileUpdate;
+    }
+
     // must be called from fileReaderExecutor Thread
     private void findFileDateTimeFormatterFromFileContents() {
         Optional<? extends List<String>> lines = fileContentReader.refresh();
@@ -248,6 +254,7 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
+        onFileUpdate.run();
         if ( allowRefresh.get() ) {
             taskRunner.runWithMaxFrequency( cachedUpdateFileRunnable, 2_000 );
         }

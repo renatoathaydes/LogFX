@@ -442,23 +442,32 @@ public final class LogViewPane {
             HBox leftAlignedBox = new HBox( 2.0 );
             HBox rightAlignedBox = new HBox( 2.0 );
 
-            Button fileNameLabel = new Button( file.getName() );
+            Button fileNameLabel = new Button();
             fileNameLabel.setMinWidth( 5.0 );
             fileNameLabel.setTooltip( new Tooltip( file.getAbsolutePath() ) );
-            leftAlignedBox.getChildren().add( fileNameLabel );
 
-            if ( file.exists() ) {
-                double fileLength = ( double ) file.length();
-                String fileSizeText;
-                if ( fileLength < 10_000 ) {
-                    fileSizeText = String.format( "(%.0f bytes)", fileLength );
+            Runnable updateFileLabel = () -> {
+                if ( file.exists() ) {
+                    final double fileLength = ( double ) file.length();
+                    final String fileSizeText;
+                    if ( fileLength < 10_000 ) {
+                        fileSizeText = String.format( "(%.0f bytes)", fileLength );
+                    } else {
+                        double fileSize = fileLength / 1_000_000.0;
+                        fileSizeText = String.format( "(%.2f MB)", fileSize );
+                    }
+
+                    Platform.runLater( () ->
+                            fileNameLabel.setText( file.getName() + " " + fileSizeText ) );
                 } else {
-                    double fileSize = fileLength / 1_000_000.0;
-                    fileSizeText = String.format( "(%.2f MB)", fileSize );
+                    Platform.runLater( () -> fileNameLabel.setText( file.getName() ) );
                 }
+            };
 
-                fileNameLabel.setText( fileNameLabel.getText() + " " + fileSizeText );
-            }
+            logView.onFileUpdate( updateFileLabel );
+            updateFileLabel.run();
+
+            leftAlignedBox.getChildren().add( fileNameLabel );
 
             Button goToDateButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOCK );
             goToDateButton.setTooltip( new Tooltip( "Go to date-time" ) );
