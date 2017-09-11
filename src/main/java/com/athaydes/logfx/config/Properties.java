@@ -1,6 +1,7 @@
 package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.log.LogLevel;
+import com.athaydes.logfx.log.LogTarget;
 
 import java.io.File;
 import java.nio.file.Path;
@@ -14,6 +15,8 @@ public class Properties {
     public static final Path LOGFX_DIR;
 
     private static volatile LogLevel logLevel = null;
+
+    private static volatile LogTarget logTarget = null;
 
     static {
         String customHome = System.getProperty( "logfx.home" );
@@ -46,7 +49,27 @@ public class Properties {
             try {
                 logLevel = LogLevel.valueOf( logLevelValue.trim().toUpperCase() );
             } catch ( IllegalArgumentException e ) {
-                e.printStackTrace();
+                System.err.println( "Invalid value for 'logfx.log.level' system property: " + logLevelValue );
+                System.err.println( "Valid values for 'logfx.log.level' are: TRACE, DEBUG, INFO (default), WARN, ERROR" );
+            }
+        }
+
+        String logTargetValue = System.getProperty( "logfx.log.target" );
+
+        if ( logTargetValue != null && !logTargetValue.trim().isEmpty() ) {
+            switch ( logTargetValue.trim().toUpperCase() ) {
+                case "SYSOUT":
+                    logTarget = new LogTarget.PrintStreamLogTarget( System.out );
+                    break;
+                case "SYSERR":
+                    logTarget = new LogTarget.PrintStreamLogTarget( System.err );
+                    break;
+                case "FILE":
+                    logTarget = new LogTarget.FileLogTarget();
+                    break;
+                default:
+                    System.err.println( "Invalid value for 'logfx.log.target' system property: " + logTargetValue );
+                    System.err.println( "Valid values for 'logfx.log.target' are: SYSOUT, SYSERR, FILE (default)" );
             }
         }
     }
@@ -55,4 +78,7 @@ public class Properties {
         return Optional.ofNullable( logLevel );
     }
 
+    public static Optional<LogTarget> getLogTarget() {
+        return Optional.ofNullable( logTarget );
+    }
 }

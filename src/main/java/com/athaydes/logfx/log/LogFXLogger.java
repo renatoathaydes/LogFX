@@ -1,12 +1,10 @@
 package com.athaydes.logfx.log;
 
+import com.athaydes.logfx.config.Properties;
 import org.slf4j.helpers.FormattingTuple;
 import org.slf4j.helpers.MarkerIgnoringBase;
 import org.slf4j.helpers.MessageFormatter;
 
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -15,10 +13,6 @@ import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-
-import static java.nio.file.StandardOpenOption.APPEND;
-import static java.nio.file.StandardOpenOption.CREATE;
-import static java.nio.file.StandardOpenOption.WRITE;
 
 class LogFXLogger extends MarkerIgnoringBase {
 
@@ -38,6 +32,9 @@ class LogFXLogger extends MarkerIgnoringBase {
             .appendValue( ChronoField.MILLI_OF_SECOND )
             .appendOffsetId()
             .toFormatter();
+
+    private static final LogTarget logTarget = Properties.getLogTarget()
+            .orElse( new LogTarget.FileLogTarget() );
 
     private final String name;
 
@@ -232,13 +229,7 @@ class LogFXLogger extends MarkerIgnoringBase {
             messageLines = Collections.singleton( builder.toString() );
         }
 
-        try {
-            Files.write( LogFXLogFactory.INSTANCE.getLogFilePath(),
-                    messageLines, StandardCharsets.UTF_8,
-                    WRITE, CREATE, APPEND );
-        } catch ( IOException e ) {
-            e.printStackTrace();
-        }
+        logTarget.write( messageLines );
     }
 
 }
