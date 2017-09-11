@@ -3,6 +3,7 @@ package com.athaydes.logfx;
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
+import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
@@ -43,34 +44,6 @@ import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
  */
 public class LogFX extends Application {
 
-    public static final Path LOGFX_DIR;
-
-    static {
-        String customHome = System.getProperty( "logfx.home" );
-
-        File homeDir;
-        if ( customHome == null ) {
-            homeDir = new File( System.getProperty( "user.home" ), ".logfx" );
-        } else {
-            homeDir = new File( customHome );
-        }
-
-        if ( homeDir.isFile() ) {
-            throw new IllegalStateException( "LogFX home directory is set to a file: " +
-                    homeDir + ", use the 'logfx.home' system property to change LogFX's home." );
-        }
-
-        if ( !homeDir.exists() ) {
-            boolean ok = homeDir.mkdirs();
-            if ( !ok ) {
-                throw new IllegalStateException( "Unable to create LogFX home directory at " +
-                        homeDir + ", use the 'logfx.home' system property to change LogFX's home." );
-            }
-        }
-
-        LOGFX_DIR = homeDir.toPath();
-    }
-
     // NOT static because it would cause initialization problems if it were
     private final Logger log = LoggerFactory.getLogger( LogFX.class );
 
@@ -87,7 +60,7 @@ public class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     public LogFX() {
-        Path configFile = LOGFX_DIR.resolve( "config" );
+        Path configFile = Properties.LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner, fontValue );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 

@@ -1,6 +1,6 @@
 package com.athaydes.logfx.log;
 
-import com.athaydes.logfx.LogFX;
+import com.athaydes.logfx.config.Properties;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 
@@ -10,9 +10,9 @@ public enum LogFXLogFactory implements ILoggerFactory {
 
     INSTANCE;
 
-    private volatile LogLevel currentLevel = LogLevel.INFO;
+    private final LogLevel currentLevel = Properties.getLogLevel().orElse( LogLevel.INFO );
 
-    private final Path logFilePath = LogFX.LOGFX_DIR.resolve( "logfx.log" );
+    private final Path logFilePath = Properties.LOGFX_DIR.resolve( "logfx.log" );
 
     @Override
     public Logger getLogger( String name ) {
@@ -21,10 +21,6 @@ public enum LogFXLogFactory implements ILoggerFactory {
 
     boolean isLogLevelEnabled( LogLevel logLevel ) {
         return logLevel.ordinal() >= currentLevel.ordinal();
-    }
-
-    public void setLogLevel( LogLevel logLevel ) {
-        currentLevel = logLevel;
     }
 
     public Path getLogFilePath() {
