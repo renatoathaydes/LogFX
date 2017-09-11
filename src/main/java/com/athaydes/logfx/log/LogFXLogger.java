@@ -22,10 +22,6 @@ import static java.nio.file.StandardOpenOption.WRITE;
 
 class LogFXLogger extends MarkerIgnoringBase {
 
-    enum LogLevel {
-        TRACE, DEBUG, INFO, WARN, ERROR
-    }
-
     private static final DateTimeFormatter formatter = new DateTimeFormatterBuilder()
             .appendValue( ChronoField.YEAR )
             .appendLiteral( '-' )

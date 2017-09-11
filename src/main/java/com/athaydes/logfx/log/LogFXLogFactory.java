@@ -1,7 +1,6 @@
 package com.athaydes.logfx.log;
 
 import com.athaydes.logfx.LogFX;
-import com.athaydes.logfx.log.LogFXLogger.LogLevel;
 import org.slf4j.ILoggerFactory;
 import org.slf4j.Logger;
 

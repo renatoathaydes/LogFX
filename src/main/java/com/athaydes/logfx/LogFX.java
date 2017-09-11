@@ -71,7 +71,8 @@ public class LogFX extends Application {
         LOGFX_DIR = homeDir.toPath();
     }
 
-    private static final Logger log = LoggerFactory.getLogger( LogFX.class );
+    // NOT static because it would cause initialization problems if it were
+    private final Logger log = LoggerFactory.getLogger( LogFX.class );
 
     private static final String TITLE = "LogFX";
 
