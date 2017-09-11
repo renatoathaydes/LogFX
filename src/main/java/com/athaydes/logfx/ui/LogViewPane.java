@@ -67,6 +67,11 @@ public final class LogViewPane {
         closeMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( LogViewWrapper::closeView ) );
 
+        MenuItem pauseMenuItem = new MenuItem( "Pause file auto-refresh" );
+        pauseMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.P, KeyCombination.META_DOWN ) );
+        pauseMenuItem.setOnAction( ( event ) ->
+                getFocusedView().ifPresent( view -> view.header.pauseRefreshProperty().set( true ) ) );
+
         MenuItem hideMenuItem = new MenuItem( "Hide" );
         hideMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H,
                 KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
@@ -117,7 +122,7 @@ public final class LogViewPane {
 
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem, new SeparatorMenuItem(),
-                closeMenuItem, hideMenuItem, new SeparatorMenuItem(),
+                closeMenuItem, hideMenuItem, pauseMenuItem, new SeparatorMenuItem(),
                 toTopMenuItem, goToDateMenuItem, pageUpMenuItem, pageDownMenuItem, tailMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
@@ -308,6 +313,7 @@ public final class LogViewPane {
             getChildren().setAll( header, scrollPane );
 
             header.tailFileProperty().bindBidirectional( logView.tailingFileProperty() );
+            logView.allowRefreshProperty().bind( header.pauseRefreshProperty().not() );
 
             logView.setOnFileExists( ( fileExists ) -> {
                 if ( fileExists ) {
@@ -426,6 +432,7 @@ public final class LogViewPane {
     private static class LogViewHeader extends BorderPane {
 
         private final BooleanProperty tailFile;
+        private final BooleanProperty pauseRefresh;
 
         LogViewHeader( LogView logView, Runnable onClose, Runnable goToDateTime ) {
             setMinWidth( 10.0 );
@@ -460,12 +467,27 @@ public final class LogViewPane {
             ToggleButton tailFileButton = AwesomeIcons.createToggleButton( AwesomeIcons.ARROW_DOWN );
             tailFileButton.setTooltip( new Tooltip( "Tail file" ) );
             this.tailFile = tailFileButton.selectedProperty();
+            this.tailFile.addListener( event -> {
+                if ( tailFile.get() ) {
+                    pauseRefreshProperty().set( false );
+                }
+            } );
 
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setTooltip( new Tooltip( "Close file" ) );
             closeButton.setOnAction( event -> onClose.run() );
 
-            rightAlignedBox.getChildren().addAll( goToDateButton, tailFileButton, closeButton );
+            ToggleButton pauseRefreshButton = AwesomeIcons.createToggleButton( AwesomeIcons.PAUSE );
+            pauseRefreshButton.setTooltip( new Tooltip( "Pause file auto-refresh.\n" +
+                    "Disables moving up/down and all file reads." ) );
+            this.pauseRefresh = pauseRefreshButton.selectedProperty();
+            this.pauseRefresh.addListener( event -> {
+                if ( pauseRefresh.get() ) {
+                    tailFile.set( false );
+                }
+            } );
+
+            rightAlignedBox.getChildren().addAll( goToDateButton, tailFileButton, pauseRefreshButton, closeButton );
 
             setLeft( leftAlignedBox );
             setRight( rightAlignedBox );
@@ -473,6 +495,10 @@ public final class LogViewPane {
 
         BooleanProperty tailFileProperty() {
             return tailFile;
+        }
+
+        BooleanProperty pauseRefreshProperty() {
+            return pauseRefresh;
         }
     }
 

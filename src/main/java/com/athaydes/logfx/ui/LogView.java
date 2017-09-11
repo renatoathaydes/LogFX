@@ -54,6 +54,7 @@ public class LogView extends VBox {
     private final HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
+    private final BooleanProperty allowRefresh = new SimpleBooleanProperty( true );
     private final FileContentReader fileContentReader;
     private final File file;
     private final FileChangeWatcher fileChangeWatcher;
@@ -106,6 +107,10 @@ public class LogView extends VBox {
         } );
     }
 
+    BooleanProperty allowRefreshProperty() {
+        return allowRefresh;
+    }
+
     Optional<ClipboardContent> getSelection() {
         return selectionHandler.getSelection();
     }
@@ -127,6 +132,11 @@ public class LogView extends VBox {
     }
 
     void move( double deltaY ) {
+        if ( !allowRefresh.get() ) {
+            log.trace( "Ignoring call to move up/down as the LogView is paused" );
+            return;
+        }
+
         int lines = Double.valueOf( deltaY / DELTA_FACTOR ).intValue();
         log.trace( "Moving by deltaY={}, lines={}", deltaY, lines );
 
@@ -238,11 +248,15 @@ public class LogView extends VBox {
     }
 
     private void onFileChange() {
-        taskRunner.runWithMaxFrequency( cachedUpdateFileRunnable, 2_000 );
+        if ( allowRefresh.get() ) {
+            taskRunner.runWithMaxFrequency( cachedUpdateFileRunnable, 2_000 );
+        }
     }
 
     private void onFileChange( Runnable andThen ) {
-        taskRunner.runWithMaxFrequency( () -> immediateOnFileChange( andThen ), 2_000 );
+        if ( allowRefresh.get() ) {
+            taskRunner.runWithMaxFrequency( () -> immediateOnFileChange( andThen ), 2_000 );
+        }
     }
 
     private void immediateOnFileChange() {
