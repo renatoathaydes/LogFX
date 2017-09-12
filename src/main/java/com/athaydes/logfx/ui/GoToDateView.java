@@ -14,6 +14,7 @@ import javafx.scene.layout.VBox;
 import javafx.stage.StageStyle;
 
 import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
@@ -118,12 +119,12 @@ class GoToDateView {
 
         private final BooleanProperty valid = new SimpleBooleanProperty( true );
 
-        private LocalDateTime dateTime;
+        private ZonedDateTime dateTime;
 
         DateTimeTextField() {
             textProperty().addListener( ( observable, oldValue, newValue ) -> {
                 try {
-                    this.dateTime = formatter.parse( newValue, LocalDateTime::from );
+                    this.dateTime = formatter.parse( newValue, ZonedDateTime::from );
                     valid.set( true );
                     getStyleClass().remove( "error" );
                     lastValidDateTimeText = newValue;
@@ -155,7 +156,7 @@ class GoToDateView {
             return valid;
         }
 
-        Optional<LocalDateTime> getValue() {
+        Optional<ZonedDateTime> getValue() {
             return Optional.ofNullable( dateTime );
         }
     }

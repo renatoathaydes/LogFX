@@ -7,7 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -137,8 +137,8 @@ public class FileReader implements FileContentReader {
 
     @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnusedLabel", "UnnecessaryLabelOnContinueStatement" } )
     @Override
-    public FileQueryResult moveTo( LocalDateTime dateTime,
-                                   Function<String, Optional<LocalDateTime>> dateExtractor ) {
+    public FileQueryResult moveTo( ZonedDateTime dateTime,
+                                   Function<String, Optional<ZonedDateTime>> dateExtractor ) {
         Optional<LinkedList<String>> maybeLines = refresh();
         SearchDirection direction = SearchDirection.ANY;
 
@@ -179,7 +179,7 @@ public class FileReader implements FileContentReader {
             boolean isFirstLine = true;
 
             Iterator<String> nextLinesIter = nextLines.iterator();
-            Optional<LocalDateTime> lineDateTime = Optional.empty();
+            Optional<ZonedDateTime> lineDateTime = Optional.empty();
 
             inspectFileWindow:
             while ( nextLinesIter.hasNext() ) {
@@ -198,7 +198,8 @@ public class FileReader implements FileContentReader {
                 }
 
                 if ( lineDateTime.isPresent() ) {
-                    Comparison lineComparison = Comparison.of( lineDateTime.get(), dateTime );
+                    Comparison lineComparison = Comparison.of(
+                            lineDateTime.get(), dateTime );
 
                     if ( direction == SearchDirection.ANY ) {
                         if ( lineComparison == Comparison.BEFORE ) {
@@ -248,12 +249,12 @@ public class FileReader implements FileContentReader {
     }
 
     private EarlyExitFromFileWindow checkLastValidLine( List<String> nextLines,
-                                                        LocalDateTime dateTime,
-                                                        Function<String, Optional<LocalDateTime>> dateExtractor,
+                                                        ZonedDateTime dateTime,
+                                                        Function<String, Optional<ZonedDateTime>> dateExtractor,
                                                         SearchDirection direction ) {
         int failedLines = 0;
         ListIterator<String> reversedIterator = nextLines.listIterator( nextLines.size() );
-        Optional<LocalDateTime> lastLineDateTime = Optional.empty();
+        Optional<ZonedDateTime> lastLineDateTime = Optional.empty();
 
         while ( reversedIterator.hasPrevious() && failedLines < maxLineParseFailuresAllowed ) {
             lastLineDateTime = dateExtractor.apply( reversedIterator.previous() );

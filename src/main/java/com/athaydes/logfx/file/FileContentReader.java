@@ -1,7 +1,7 @@
 package com.athaydes.logfx.file;
 
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
@@ -55,8 +55,8 @@ public interface FileContentReader {
      * Returning success implies that the file window was successfully moved. If this method
      * returns a unsuccessful result, the file window is left intact.
      */
-    FileQueryResult moveTo( LocalDateTime dateTime,
-                            Function<String, Optional<LocalDateTime>> dateExtractor );
+    FileQueryResult moveTo( ZonedDateTime dateTime,
+                            Function<String, Optional<ZonedDateTime>> dateExtractor );
 
     /**
      * Move the file window to the top of the file.

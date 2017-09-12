@@ -1,6 +1,6 @@
 package com.athaydes.logfx.text;
 
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Optional;
 
 /**
@@ -15,6 +15,6 @@ public interface DateTimeFormatGuess {
      * @return the date-time if the line contained it in a format this guess could understand,
      * empty otherwise.
      */
-    Optional<LocalDateTime> convert( String line );
+    Optional<ZonedDateTime> convert( String line );
 
 }

@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.time.LocalDateTime;
+import java.time.ZonedDateTime;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
@@ -166,7 +166,7 @@ public class LogView extends VBox {
         } );
     }
 
-    void goTo( LocalDateTime dateTime, IntConsumer whenDoneAcceptLineNumber ) {
+    void goTo( ZonedDateTime dateTime, IntConsumer whenDoneAcceptLineNumber ) {
         fileReaderExecutor.execute( () -> {
             if ( fileDateTimeFormatters == null ) {
                 findFileDateTimeFormatterFromFileContents();
