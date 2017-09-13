@@ -5,7 +5,7 @@ import spock.lang.Specification
 import spock.lang.Unroll
 
 import java.nio.file.Files
-import java.time.LocalDateTime
+import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 import java.util.regex.Pattern
 
@@ -643,14 +643,16 @@ class FileContentReaderSpec extends Specification {
         def dateExtractor = { String line ->
             def matcher = pattern.matcher( line )
             if ( matcher.matches() ) {
-                return Optional.of( LocalDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) )
+                return Optional.of( ZonedDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) )
             } else {
                 return Optional.empty()
             }
         }
 
         when: 'we try to move to a certain time (#time) in the log'
-        def result = reader.moveTo( LocalDateTime.parse( time ), dateExtractor )
+        def zonedTime = ZonedDateTime.parse( time + ' CEST',
+                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z" ) )
+        def result = reader.moveTo( zonedTime, dateExtractor )
         def lines = reader.refresh()
 
         then: 'the file reader should be able to move the file window'
@@ -729,7 +731,7 @@ class FileContentReaderSpec extends Specification {
         def dateExtractor = { String line ->
             def matcher = pattern.matcher( line )
             if ( matcher.matches() ) {
-                return Optional.of( LocalDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) )
+                return Optional.of( ZonedDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) )
             } else {
                 return Optional.empty()
             }
@@ -737,7 +739,11 @@ class FileContentReaderSpec extends Specification {
 
         when: 'we try to move to a certain time (#time) in the log (after going to the tail)'
         reader.tail()
-        def result = reader.moveTo( LocalDateTime.parse( time ), dateExtractor )
+
+        def zonedTime = ZonedDateTime.parse( time + ' CEST',
+                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z" ) )
+        def result = reader.moveTo( zonedTime, dateExtractor )
+
         def lines = reader.refresh()
 
         then: 'the file reader should be able to move the file window'
@@ -757,27 +763,27 @@ class FileContentReaderSpec extends Specification {
         }
 
         where:
-        time                     | fileWindowSize || expectedLogLines                       | expectedLineNumber
-        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]                           | -1 // 0
-        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]                           | -1 // 1
-        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]                | 1 // 2
-        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]              | 1 // 3
-        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]              | 1 // 4
-        '2017-09-01T22:03:02'    | 2              || [ '88888888', '999999999' ]            | 2 // 5
-        '2017-09-01T22:03:02.40' | 2              || [ '88888888', '999999999' ]            | -2 // 6
-        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]            | -2 // 7
-        '2075-12-12T02:24:55'    | 2              || [ '88888888', '999999999' ]            | -2 // 8
+        time                     | fileWindowSize || expectedLogLines                                 | expectedLineNumber
+        '1971-01-10T12:33:22'    | 2              || [ '0', '1' ]                                     | -1 // 0
+        '2017-09-01T05:00:00'    | 2              || [ '0', '1' ]                                     | -1 // 1
+        '2017-09-01T22:02:59.48' | 2              || [ '666666', '7777777' ]                          | 1 // 2
+        '2017-09-01T22:03:00'    | 2              || [ '7777777', '88888888' ]                        | 1 // 3
+        '2017-09-01T22:03:00.12' | 2              || [ '7777777', '88888888' ]                        | 1 // 4
+        '2017-09-01T22:03:02'    | 2              || [ '88888888', '999999999' ]                      | 2 // 5
+        '2017-09-01T22:03:02.40' | 2              || [ '88888888', '999999999' ]                      | -2 // 6
+        '2017-09-01T22:45:30'    | 2              || [ '88888888', '999999999' ]                      | -2 // 7
+        '2075-12-12T02:24:55'    | 2              || [ '88888888', '999999999' ]                      | -2 // 8
 
-        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]                     | -1 // 9
-        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]    | 1 // 10
-        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ] | 1 // 11
-        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ] | 1 // 12
-        '2017-09-01T22:03:01'    | 3              || [ '7777777', '88888888', '999999999' ] | 2 // 13
-        '2017-09-01T22:03:01.30' | 3              || [ '7777777', '88888888', '999999999' ] | 2 // 14
-        '2017-09-01T22:03:02'    | 3              || [ '7777777', '88888888', '999999999' ] | 3 // 15
-        '2017-09-01T22:03:02.01' | 3              || [ '7777777', '88888888', '999999999' ] | -2 // 16
-        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ] | -2 // 17
-        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ] | -2 // 18
+        '2017-09-01T05:00:00'    | 3              || [ '0', '1', '22' ]                               | -1 // 9
+        '2017-09-01T22:02:59.48' | 3              || [ '666666', '7777777', '88888888' ]              | 1 // 10
+        '2017-09-01T22:03:00'    | 3              || [ '7777777', '88888888', '999999999' ]           | 1 // 11
+        '2017-09-01T22:03:00.12' | 3              || [ '7777777', '88888888', '999999999' ]           | 1 // 12
+        '2017-09-01T22:03:01'    | 3              || [ '7777777', '88888888', '999999999' ]           | 2 // 13
+        '2017-09-01T22:03:01.30' | 3              || [ '7777777', '88888888', '999999999' ]           | 2 // 14
+        '2017-09-01T22:03:02'    | 3              || [ '7777777', '88888888', '999999999' ]           | 3 // 15
+        '2017-09-01T22:03:02.01' | 3              || [ '7777777', '88888888', '999999999' ]           | -2 // 16
+        '2017-09-01T22:45:30'    | 3              || [ '7777777', '88888888', '999999999' ]           | -2 // 17
+        '2055-12-25T00:00:00'    | 3              || [ '7777777', '88888888', '999999999' ]           | -2 // 18
 
         '2017-09-01T22:02:58'    | 4              || [ '55555', '666666', '7777777', '88888888' ]     | 1 // 19
         '2017-09-01T22:02:59.48' | 4              || [ '666666', '7777777', '88888888', '999999999' ] | 1 // 20
