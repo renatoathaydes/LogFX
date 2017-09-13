@@ -28,35 +28,33 @@ public class DateTimeFormatGuesser {
         Set<Pattern> patterns = new LinkedHashSet<>();
         Set<DateTimeFormatter> formatters = new LinkedHashSet<>();
 
+        String time = "\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}([:.]\\d{1,9})?(\\s{0,2}[+-]\\d{1,2}(:)?\\d{1,2})?";
+
         // 2017-09-11T18:13:57.483+02:00
-        String isoDateTime = "[a-zA-Z0-9:+\\-.]{5,50}";
+        String isoDateTime = "\\d{1,4}-\\d{1,4}-\\d{1,4}(T|\\s{1,2})" + time;
 
-        // Tue, 3 Jun 2008 11:05:30 GMT
-        String rfc1123DateTime = "\\w+(,)?\\s+\\w+\\s+\\w+\\s+\\w+\\s+" + isoDateTime + "(\\s+\\w+)?";
+        // (Tue,) 3 Jun 2008 11:05:30 GMT
+        String rfc1123DateTime = "\\w{1,3}\\s+\\w{1,10}\\s+\\d{2,4}\\s+" + time + "(\\s+\\w+)?";
 
-        // Fri Sep 01 22:02:57 CEST 2017
-        String longDateTime = "\\w+\\s+\\w+\\s+\\w+\\s+" + isoDateTime + "\\s+(\\w+\\s+)?\\w+";
+        // (Fri) Sep 01 22:02:57 CEST 2017
+        String longDateTime = "\\w{3,10}\\s+\\d{1,2}\\s+" + time + "\\s+(\\w+\\s+)?\\d{2,4}";
 
         // 10/Oct/2000:13:55:36 -0700
-        String ncsaCommonLogFormat = "\\w+[/\\-.]\\w+[/\\-.]\\w+" + isoDateTime + "(\\s*[+-][\\d:]+)?";
+        String ncsaCommonLogFormat = "\\w{1,10}[/\\-.]\\w{1,10}[/\\-.]\\d{2,4}([T\\s:]|\\s{1,2})" + time;
 
         String[] formats = { isoDateTime, rfc1123DateTime, longDateTime, ncsaCommonLogFormat };
 
+        // wrap formats into a main group (maybe more complex wrappers in the future?)
         for ( String format : formats ) {
-            patterns.add( Pattern.compile( "\\s*(" + format + ").*" ) );
-            patterns.add( Pattern.compile( "\\s*\\w+\\s*(" + format + ").*" ) );
-            patterns.add( Pattern.compile( "\\s*\\w+\\s*\\w+\\s+(" + format + ").*" ) );
-
-            // 127.0.0.1 user-identifier frank [10/Oct/2000:13:55:36 -0700]
-            patterns.add( Pattern.compile( ".*\\[\\s*(" + format + ")\\s*].*" ) );
+            patterns.add( Pattern.compile( "(" + format + ")" ) );
         }
 
         formatters.addAll( Arrays.asList(
                 DateTimeFormatter.ISO_DATE_TIME,
                 DateTimeFormatter.RFC_1123_DATE_TIME,
                 DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss:SSSZ" ),
-                DateTimeFormatter.ofPattern( "MMM dd HH:mm:ss z yyyy" ),
-                DateTimeFormatter.ofPattern( "LL dd HH:mm:ss.S" )
+                DateTimeFormatter.ofPattern( "MMM dd HH:mm:ss[.SSS] z yyyy" ),
+                DateTimeFormatter.ofPattern( "LL dd HH:mm:ss.SSS" )
         ) );
 
         return new DateTimeFormatGuesser( patterns, formatters );
@@ -71,19 +69,23 @@ public class DateTimeFormatGuesser {
     public Optional<DateTimeFormatGuess> guessDateTimeFormats( Iterable<String> lines ) {
         Set<SingleDateTimeFormatGuess> result = new HashSet<>( 3 );
 
+        log.trace( "Trying to guess date-time formats in log using {} patterns and {} date-time formatters",
+                logLinePatterns.size(), logLineDateFormatters.size() );
+
         for ( String line : lines ) {
             boolean patternFound = false;
 
             findGuessForLine:
             for ( Pattern pattern : logLinePatterns ) {
                 Matcher matcher = pattern.matcher( line );
-                if ( matcher.matches() ) {
+
+                if ( matcher.find() ) {
                     patternFound = true;
                     String dateTimePart = matcher.group( 1 );
                     log.trace( "Line matched pattern (extracted date-time: '{}'): {}", dateTimePart, pattern );
                     for ( DateTimeFormatter formatter : logLineDateFormatters ) {
                         SingleDateTimeFormatGuess guess = new SingleDateTimeFormatGuess( pattern, formatter );
-                        if ( guess.convert( dateTimePart ).isPresent() ) {
+                        if ( guess.convert( line ).isPresent() ) {
                             log.debug( "Found guess: {} - for line: {}", guess, line );
                             result.add( guess );
                             break findGuessForLine; // one success per line is all that should be possible
@@ -140,7 +142,7 @@ public class DateTimeFormatGuesser {
         @Override
         public Optional<ZonedDateTime> convert( String line ) {
             Matcher matcher = pattern.matcher( line );
-            if ( matcher.matches() ) {
+            if ( matcher.find() ) {
                 try {
                     return Optional.of( ZonedDateTime.parse( matcher.group( 1 ), formatter ) );
                 } catch ( Exception e ) {
