@@ -52,7 +52,8 @@ public class DateTimeFormatGuesser {
         formatters.addAll( Arrays.asList(
                 DateTimeFormatter.ISO_DATE_TIME,
                 DateTimeFormatter.RFC_1123_DATE_TIME,
-                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss:SSSZ" ),
+                DateTimeFormatter.ofPattern( "yyyy-M-d'T'HH:mm:ss.SSSz" ),
+                DateTimeFormatter.ofPattern( "yyyy-M-d'T'HH:mm:ss:SSSZ" ),
                 DateTimeFormatter.ofPattern( "MMM dd HH:mm:ss[.SSS] z yyyy" ),
                 DateTimeFormatter.ofPattern( "LL dd HH:mm:ss.SSS" )
         ) );

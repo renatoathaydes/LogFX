@@ -87,7 +87,7 @@ public class FileReader implements FileContentReader {
         this.file = file;
         this.fileWindowSize = fileWindowSize;
         this.bufferSize = bufferSize;
-        this.maxLineParseFailuresAllowed = Math.min( 10, fileWindowSize );
+        this.maxLineParseFailuresAllowed = Math.min( 50, fileWindowSize );
 
         // 1 extra line is needed because we need to know the boundaries between lines
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
@@ -192,6 +192,7 @@ public class FileReader implements FileContentReader {
                     lineNumber++;
 
                     if ( lineDateTime.isPresent() ) {
+                        failedLines = 0;
                         break findNextValidDateTime;
                     }
                     failedLines++;
@@ -224,7 +225,7 @@ public class FileReader implements FileContentReader {
                 }
 
                 if ( failedLines >= maxLineParseFailuresAllowed ) {
-                    log.debug( "Too many log lines do not contain a valid date in file: {}.\nCannot move to date {}",
+                    log.info( "Too many log lines do not contain a valid date in file: {}.\nCannot move to date {}",
                             getFile(), dateTime );
                     break mainLoop;
                 }
