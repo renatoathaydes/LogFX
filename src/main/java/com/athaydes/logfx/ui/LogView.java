@@ -69,7 +69,7 @@ public class LogView extends VBox {
 
     private volatile Runnable onFileUpdate = DO_NOTHING;
 
-    private DateTimeFormatGuess fileDateTimeFormatters = null;
+    private DateTimeFormatGuess dateTimeFormatGuess = null;
 
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
@@ -168,16 +168,16 @@ public class LogView extends VBox {
 
     void goTo( ZonedDateTime dateTime, IntConsumer whenDoneAcceptLineNumber ) {
         fileReaderExecutor.execute( () -> {
-            if ( fileDateTimeFormatters == null ) {
+            if ( dateTimeFormatGuess == null ) {
                 findFileDateTimeFormatterFromFileContents();
             }
-            if ( fileDateTimeFormatters == null ) {
+            if ( dateTimeFormatGuess == null ) {
                 log.warn( "Could not guess date-time format from this log file, " +
                         "will not be able to find log lines by date" );
                 return;
             }
 
-            FileQueryResult result = fileContentReader.moveTo( dateTime, fileDateTimeFormatters::convert );
+            FileQueryResult result = fileContentReader.moveTo( dateTime, dateTimeFormatGuess::convert );
             if ( result.isSuccess() ) {
                 log.debug( "Successfully found date: {}, result: {}", dateTime, result );
 
@@ -207,7 +207,7 @@ public class LogView extends VBox {
     private void findFileDateTimeFormatterFromFileContents() {
         Optional<? extends List<String>> lines = fileContentReader.refresh();
         if ( lines.isPresent() ) {
-            fileDateTimeFormatters = dateTimeFormatGuesser
+            dateTimeFormatGuess = dateTimeFormatGuesser
                     .guessDateTimeFormats( lines.get() ).orElse( null );
         } else {
             log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", file );

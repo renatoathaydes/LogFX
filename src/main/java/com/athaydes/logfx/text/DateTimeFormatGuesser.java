@@ -3,15 +3,23 @@ package com.athaydes.logfx.text;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoField;
+import java.time.temporal.TemporalAccessor;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.ToIntBiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static java.time.temporal.TemporalQueries.offset;
+import static java.time.temporal.TemporalQueries.zoneId;
 
 /**
  * A utility class that can be used to guess the format of dates within a log file
@@ -37,7 +45,7 @@ public class DateTimeFormatGuesser {
         String rfc1123DateTime = "\\w{1,3}\\s+\\w{1,10}\\s+\\d{2,4}\\s+" + time + "(\\s+\\w+)?";
 
         // (Fri) Sep 01 22:02:57 CEST 2017
-        String longDateTime = "\\w{3,10}\\s+\\d{1,2}\\s+" + time + "\\s+(\\w+\\s+)?\\d{2,4}";
+        String longDateTime = "\\w{3,10}\\s+\\d{1,2}\\s+" + time + "(\\s+(\\w+\\s+)?\\d{2,4})?";
 
         // 10/Oct/2000:13:55:36 -0700
         String ncsaCommonLogFormat = "\\w{1,10}[/\\-.]\\w{1,10}[/\\-.]\\d{2,4}([T\\s:]|\\s{1,2})" + time;
@@ -52,10 +60,11 @@ public class DateTimeFormatGuesser {
         formatters.addAll( Arrays.asList(
                 DateTimeFormatter.ISO_DATE_TIME,
                 DateTimeFormatter.RFC_1123_DATE_TIME,
-                DateTimeFormatter.ofPattern( "yyyy-M-d'T'HH:mm:ss.SSSz" ),
-                DateTimeFormatter.ofPattern( "yyyy-M-d'T'HH:mm:ss:SSSZ" ),
-                DateTimeFormatter.ofPattern( "MMM dd HH:mm:ss[.SSS] z yyyy" ),
-                DateTimeFormatter.ofPattern( "LL dd HH:mm:ss.SSS" )
+                DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][z]" ),
+                DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][Z]" ),
+                DateTimeFormatter.ofPattern( "MMM dd H:m:s[.SSS][ z][ yyyy]" ),
+                DateTimeFormatter.ofPattern( "MMM dd[ yyyy] H:m:s[.SSS][ z]" ),
+                DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" )
         ) );
 
         return new DateTimeFormatGuesser( patterns, formatters );
@@ -132,6 +141,9 @@ public class DateTimeFormatGuesser {
     }
 
     private static final class SingleDateTimeFormatGuess implements DateTimeFormatGuess {
+
+        private static final int THIS_YEAR = ZonedDateTime.now().getYear();
+
         private final Pattern pattern;
         private final DateTimeFormatter formatter;
 
@@ -145,13 +157,34 @@ public class DateTimeFormatGuesser {
             Matcher matcher = pattern.matcher( line );
             if ( matcher.find() ) {
                 try {
-                    return Optional.of( ZonedDateTime.parse( matcher.group( 1 ), formatter ) );
+                    return dateTimeFromTemporal( formatter.parse( matcher.group( 1 ) ) );
                 } catch ( Exception e ) {
                     log.debug( "Failed to extract date from line: {}", line );
                 }
             }
 
             return Optional.empty();
+        }
+
+        private static Optional<ZonedDateTime> dateTimeFromTemporal( TemporalAccessor ta ) {
+            ToIntBiFunction<ChronoField, Integer> getField = ( field, orElse ) ->
+                    ta.isSupported( field ) ? ta.get( field ) : orElse;
+
+            ZoneId zone = Optional.<ZoneId>ofNullable( ta.query( offset() ) )
+                    .orElse( Optional.ofNullable( ta.query( zoneId() ) )
+                            .orElse( ZoneOffset.UTC ) );
+
+            int year = getField.applyAsInt( ChronoField.YEAR, THIS_YEAR );
+            int month = getField.applyAsInt( ChronoField.MONTH_OF_YEAR, 1 );
+            int day = getField.applyAsInt( ChronoField.DAY_OF_MONTH, 1 );
+            int hour = getField.applyAsInt( ChronoField.HOUR_OF_DAY, 0 );
+            int minute = getField.applyAsInt( ChronoField.MINUTE_OF_HOUR, 0 );
+            int second = getField.applyAsInt( ChronoField.SECOND_OF_MINUTE, 0 );
+            int nanos = getField.applyAsInt( ChronoField.NANO_OF_SECOND, 0 );
+
+            ZonedDateTime dateTime = ZonedDateTime.of( year, month, day, hour, minute, second, nanos, zone );
+
+            return Optional.of( dateTime );
         }
 
         @Override
