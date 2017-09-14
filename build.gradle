@@ -26,6 +26,10 @@ dependencies {
     testCompile group: 'cglib', name: 'cglib-nodep', version: '3.2.5'
 }
 
+test {
+    systemProperty 'logfx.log.target', 'sysout'
+}
+
 task fatJar( type: Jar ) {
     manifest {
         attributes 'Implementation-Title': 'LogFX',
