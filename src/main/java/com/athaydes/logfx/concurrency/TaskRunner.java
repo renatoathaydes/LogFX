@@ -10,6 +10,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A Runner of tasks that can throttle execution.
@@ -20,8 +22,9 @@ public class TaskRunner {
 
     private final ScheduledExecutorService executor = Executors.newScheduledThreadPool( 2 );
 
+
     private enum TaskState {
-        RAN_WITHIN_LIMIT, WAITING_TO_RUN
+        RAN_WITHIN_LIMIT, WAITING_TO_RUN;
     }
 
     private final Map<Runnable, TaskState> scheduledTasks = new ConcurrentHashMap<>( 2 );
@@ -110,7 +113,25 @@ public class TaskRunner {
         }
     }
 
-    public Cancellable scheduleRepeatingTask( Runnable task, Duration period ) {
+    public Cancellable repeat( int count, Duration delayBetweenRepetitions, Runnable task ) {
+        AtomicReference<Cancellable> cancellable = new AtomicReference<>();
+        AtomicInteger counter = new AtomicInteger( 0 );
+        Runnable taskWrapper = () -> {
+            try {
+                task.run();
+            } finally {
+                if ( counter.incrementAndGet() >= count ) {
+                    cancellable.get().cancel();
+                }
+            }
+        };
+
+        cancellable.set( scheduleRepeatingTask( delayBetweenRepetitions, taskWrapper ) );
+
+        return cancellable.get();
+    }
+
+    public Cancellable scheduleRepeatingTask( Duration period, Runnable task ) {
         ScheduledFuture<?> future = executor.scheduleAtFixedRate(
                 task, 0L, period.toMillis(), TimeUnit.MILLISECONDS );
 

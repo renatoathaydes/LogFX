@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.concurrency.TaskRunner;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
@@ -33,6 +34,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -54,7 +56,7 @@ public final class LogViewPane {
     private final ObjectProperty<Boolean> panesDividersObservable = new SimpleObjectProperty<>( false );
 
     @MustCallOnJavaFXThread
-    public LogViewPane() {
+    public LogViewPane( TaskRunner taskRunner ) {
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.META_DOWN ) );
         copyMenuItem.setOnAction( event -> getFocusedView().ifPresent( wrapper ->
@@ -72,23 +74,46 @@ public final class LogViewPane {
         pauseMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( view -> view.header.pauseRefreshProperty().set( true ) ) );
 
-        MenuItem hideMenuItem = new MenuItem( "Hide" );
-        hideMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H,
+        MenuItem minimizeMenuItem = new MenuItem( "Minimize" );
+        minimizeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.M,
                 KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
-        hideMenuItem.setOnAction( event -> {
+        minimizeMenuItem.setOnAction( event -> {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't hide anything if there isn't more than 1 pane
             }
-            getFocusedView().ifPresent( wrapper -> {
-                int index = pane.getItems().indexOf( wrapper );
-                if ( index == pane.getItems().size() - 1 ) {
-                    // last pane, so we can only hide by opening up the previous one
-                    pane.setDividerPosition( index - 1, 1.0 );
-                } else if ( index >= 0 ) {
-                    // in all other cases, just hide the pane itself
-                    pane.setDividerPosition( index, 0.0 );
-                }
-            } );
+            getFocusedView().ifPresent( wrapper ->
+                    taskRunner.repeat( 2, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
+                        int index = pane.getItems().indexOf( wrapper );
+                        if ( index == pane.getItems().size() - 1 ) {
+                            // last pane, so we can only hide by opening up the previous one
+                            pane.setDividerPosition( index - 1, 1.0 );
+                        } else if ( index >= 0 ) {
+                            // in all other cases, just hide the pane itself
+                            pane.setDividerPosition( index, 0.0 );
+                        }
+                    } ) ) );
+        } );
+
+        MenuItem maximizeMenuItem = new MenuItem( "Maximize" );
+        maximizeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.M,
+                KeyCombination.META_DOWN ) );
+        maximizeMenuItem.setOnAction( event -> {
+            if ( pane.getItems().size() < 2 ) {
+                return; // we can't maximize anything if there isn't more than 1 pane
+            }
+            getFocusedView().ifPresent( wrapper ->
+                    taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
+                        int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
+                        for ( int i = 0; i <= topDividerIndex; i++ ) {
+                            LoggerFactory.getLogger( LogViewPane.class ).warn( "Setting divider {} to {}", i, 0.0 );
+                            pane.setDividerPosition( i, 0.0 );
+                        }
+
+                        for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
+                            LoggerFactory.getLogger( LogViewPane.class ).warn( "Setting divider {} to {}", i, 1.0 );
+                            pane.setDividerPosition( i, 1.0 );
+                        }
+                    } ) ) );
         } );
 
         MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
@@ -121,9 +146,13 @@ public final class LogViewPane {
                 .ifPresent( LogViewWrapper::switchTailFile ) );
 
         pane.setContextMenu( new ContextMenu(
-                copyMenuItem, new SeparatorMenuItem(),
-                closeMenuItem, hideMenuItem, pauseMenuItem, new SeparatorMenuItem(),
-                toTopMenuItem, goToDateMenuItem, pageUpMenuItem, pageDownMenuItem, tailMenuItem ) );
+                copyMenuItem,
+                new SeparatorMenuItem(),
+                toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem,
+                new SeparatorMenuItem(),
+                pauseMenuItem,
+                new SeparatorMenuItem(),
+                minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
