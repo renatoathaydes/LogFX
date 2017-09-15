@@ -28,6 +28,7 @@ import static java.time.temporal.TemporalQueries.zoneId;
 public class DateTimeFormatGuesser {
 
     private static final Logger log = LoggerFactory.getLogger( DateTimeFormatGuesser.class );
+    public static final int MAX_CHARS_TO_LOOK_FOR_DATE = 250;
 
     private final Set<Pattern> logLinePatterns;
     private final Set<DateTimeFormatter> logLineDateFormatters;
@@ -82,7 +83,11 @@ public class DateTimeFormatGuesser {
         log.trace( "Trying to guess date-time formats in log using {} patterns and {} date-time formatters",
                 logLinePatterns.size(), logLineDateFormatters.size() );
 
+        long start = System.currentTimeMillis();
+
         for ( String line : lines ) {
+            // only look for dates within the first 250 characters
+            line = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
             boolean patternFound = false;
 
             findGuessForLine:
@@ -111,7 +116,10 @@ public class DateTimeFormatGuesser {
             }
         }
 
-        log.debug( "Found {} date-time-formatter guesses in provided sample", result.size() );
+        if ( log.isInfoEnabled() ) {
+            log.info( "Found {} date-time-formatter guesses in provided file sample (search took {} ms)",
+                    result.size(), System.currentTimeMillis() - start );
+        }
 
         if ( result.isEmpty() ) {
             return Optional.empty();
@@ -130,6 +138,8 @@ public class DateTimeFormatGuesser {
 
         @Override
         public Optional<ZonedDateTime> convert( String line ) {
+            line = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
+
             for ( SingleDateTimeFormatGuess guess : guesses ) {
                 Optional<ZonedDateTime> result = guess.convert( line );
                 if ( result.isPresent() ) {

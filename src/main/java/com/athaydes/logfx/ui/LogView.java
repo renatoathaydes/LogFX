@@ -177,9 +177,14 @@ public class LogView extends VBox {
                 return;
             }
 
+            long startTime = System.currentTimeMillis();
+
             FileQueryResult result = fileContentReader.moveTo( dateTime, dateTimeFormatGuess::convert );
             if ( result.isSuccess() ) {
-                log.debug( "Successfully found date: {}, result: {}", dateTime, result );
+                if ( log.isInfoEnabled() ) {
+                    log.info( "Successfully found date (in {}ms): {}, result: {}",
+                            System.currentTimeMillis() - startTime, dateTime, result );
+                }
 
                 final int lineNumber = result.isAfterRange() ?
                         MAX_LINES :
