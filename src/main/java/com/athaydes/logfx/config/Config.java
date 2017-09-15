@@ -23,7 +23,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -241,7 +240,7 @@ public class Config {
                 observableExpressions.subList( 0, observableExpressions.size() - 1 ) ) ) );
 
         CompletableFuture<Set<File>> filesFuture = new CompletableFuture<>();
-        Platform.runLater( () -> filesFuture.complete( new HashSet<>( observableFiles ) ) );
+        Platform.runLater( () -> filesFuture.complete( new LinkedHashSet<>( observableFiles ) ) );
 
         CompletableFuture<Orientation> panesOrientationFuture = new CompletableFuture<>();
         Platform.runLater( () -> panesOrientationFuture.complete( panesOrientation.get() ) );
