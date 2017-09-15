@@ -174,8 +174,11 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile ) {
         pane.getItems().add( new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
-            pane.getItems().remove( wrapper );
-            onCloseFile.run();
+            try {
+                pane.getItems().remove( wrapper );
+            } finally {
+                onCloseFile.run();
+            }
         } ) );
     }
 
@@ -290,7 +293,7 @@ public final class LogViewPane {
         private static final Logger log = LoggerFactory.getLogger( LogViewWrapper.class );
 
         private final LogView logView;
-        private final Consumer<LogViewWrapper> onClose;
+        private final Consumer<LogViewWrapper> onCloseFile;
         private final LogViewHeader header;
         private final LogViewScrollPane scrollPane;
         private final Supplier<List<LogViewWrapper>> logViewsGetter;
@@ -298,15 +301,14 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
                         Supplier<List<LogViewWrapper>> logViewsGetter,
-                        Consumer<LogViewWrapper> onClose ) {
+                        Consumer<LogViewWrapper> onCloseFile ) {
             super( 2.0 );
 
             this.logView = logView;
-            this.onClose = onClose;
+            this.onCloseFile = onCloseFile;
             this.logViewsGetter = logViewsGetter;
 
-            this.header = new LogViewHeader( logView,
-                    () -> onClose.accept( this ), this::toDateTime );
+            this.header = new LogViewHeader( logView, this::closeView, this::toDateTime );
 
             this.scrollPane = new LogViewScrollPane( this );
 
@@ -393,7 +395,7 @@ public final class LogViewPane {
             try {
                 logView.closeFileReader();
             } finally {
-                onClose.accept( this );
+                onCloseFile.accept( this );
             }
         }
 
@@ -434,7 +436,7 @@ public final class LogViewPane {
         private final BooleanProperty tailFile;
         private final BooleanProperty pauseRefresh;
 
-        LogViewHeader( LogView logView, Runnable onClose, Runnable goToDateTime ) {
+        LogViewHeader( LogView logView, Runnable closeLogView, Runnable goToDateTime ) {
             setMinWidth( 10.0 );
 
             File file = logView.getFile();
@@ -484,7 +486,7 @@ public final class LogViewPane {
 
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setTooltip( new Tooltip( "Close file" ) );
-            closeButton.setOnAction( event -> onClose.run() );
+            closeButton.setOnAction( event -> closeLogView.run() );
 
             ToggleButton pauseRefreshButton = AwesomeIcons.createToggleButton( AwesomeIcons.PAUSE );
             pauseRefreshButton.setTooltip( new Tooltip( "Pause file auto-refresh.\n" +
