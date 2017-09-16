@@ -36,6 +36,10 @@ public class Dialog {
     private boolean closeWhenLoseFocus = false;
 
     public Dialog( Node top, Node... others ) {
+        this( null, top, others );
+    }
+
+    public Dialog( String stylesheet, Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
         dialogStage.initModality( Modality.NONE );
         VBox box = new VBox( 10 );
@@ -44,7 +48,13 @@ public class Dialog {
         box.getChildren().add( top );
         box.getChildren().addAll( others );
         dialogStage.setScene( new Scene( box ) );
-        FxUtils.setupStylesheet( dialogStage.getScene() );
+
+        if ( stylesheet == null ) {
+            FxUtils.setupStylesheet( dialogStage.getScene() );
+        } else {
+            dialogStage.getScene().getStylesheets().add( stylesheet );
+        }
+
         dialogStage.focusedProperty().addListener( observable -> {
             if ( dialogStage.isFocused() ) {
                 dialogStage.setOpacity( 1.0 );

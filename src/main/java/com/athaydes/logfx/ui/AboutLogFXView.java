@@ -1,6 +1,10 @@
 package com.athaydes.logfx.ui;
 
-import javafx.scene.layout.BorderPane;
+import javafx.application.HostServices;
+import javafx.geometry.Pos;
+import javafx.scene.control.Hyperlink;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.StageStyle;
 
@@ -9,13 +13,41 @@ import javafx.stage.StageStyle;
  */
 public class AboutLogFXView {
 
-    public void show() {
-        BorderPane contents = new BorderPane();
-        contents.setCenter( new Text( "LogFX" ) );
-        contents.setBottom( new Text( "Created by Renato Athaydes, 2017" ) );
+    private final HostServices hostServices;
 
-        Dialog dialog = new Dialog( contents );
+    public AboutLogFXView( HostServices hostServices ) {
+        this.hostServices = hostServices;
+    }
+
+    @MustCallOnJavaFXThread
+    public void show() {
+        VBox contents = new VBox( 25 );
+        contents.setPrefSize( 500, 300 );
+        contents.setAlignment( Pos.CENTER );
+
+        HBox textBox = new HBox( 0 );
+        textBox.setPrefWidth( 500 );
+        textBox.setAlignment( Pos.CENTER );
+        Text logText = new Text( "Log" );
+        logText.setId( "logfx-text-log" );
+        Text fxText = new Text( "FX" );
+        fxText.setId( "logfx-text-fx" );
+        textBox.getChildren().addAll( logText, fxText );
+
+        VBox smallText = new VBox( 10 );
+        smallText.setPrefWidth( 500 );
+        smallText.setAlignment( Pos.CENTER );
+        Text byRenato = new Text( "Copyright Renato Athaydes, 2017. All rights reserved." );
+        Text license = new Text( "Licensed under the GPLv3 License." );
+        Hyperlink link = new Hyperlink( "https://github.com/renatoathaydes/LogFX" );
+        link.setOnAction( ( event ) -> hostServices.showDocument( link.getText() ) );
+        smallText.getChildren().addAll( byRenato, link, license );
+
+        contents.getChildren().addAll( textBox, smallText );
+
+        Dialog dialog = new Dialog( "css/about.css", contents );
         dialog.setStyle( StageStyle.UNDECORATED );
+        dialog.setResizable( false );
         dialog.setCloseWhenLoseFocus( true );
 
         dialog.show();

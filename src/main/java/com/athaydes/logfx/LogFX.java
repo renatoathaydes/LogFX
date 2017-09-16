@@ -149,7 +149,7 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         MenuItem about = new MenuItem( "_About LogFX" );
-        about.setOnAction( ( event ) -> new AboutLogFXView().show() );
+        about.setOnAction( ( event ) -> new AboutLogFXView(getHostServices()).show() );
 
         menu.getItems().addAll( about );
 

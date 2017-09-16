@@ -1,5 +1,6 @@
 .root {
-    -fx-base:  green;
+    -fx-base: green;
+
     -icons-color: -fx-base;
     -fx-focus-color: lightgreen;
 }

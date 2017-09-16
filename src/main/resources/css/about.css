@@ -1,0 +1,24 @@
+.root {
+    -fx-base: #1d1d1d;
+}
+
+Text {
+    -fx-fill: white;
+}
+
+#logfx-text-log {
+    /*-fx-stroke: blue;*/
+    -fx-font-family: sans-serif;
+    -fx-font-weight: 700;
+    -fx-font-size: 70;
+    -fx-fill: linear-gradient(to top, cyan, dodgerblue);
+}
+
+#logfx-text-fx {
+    /*-fx-stroke: blue;*/
+    -fx-font-family: sans-serif;
+    -fx-font-weight: 700;
+    -fx-font-size: 86;
+    -fx-fill: linear-gradient(to top, cyan, dodgerblue);
+    -fx-effect: dropshadow(gaussian, dodgerblue, 15, 0.25, 5, 5);
+}
