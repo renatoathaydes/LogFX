@@ -20,14 +20,39 @@ public class TaskRunner {
 
     private static final Logger log = LoggerFactory.getLogger( TaskRunner.class );
 
-    private final ScheduledExecutorService executor = Executors.newScheduledThreadPool( 2 );
+    private static final TaskRunner globalInstance = new TaskRunner( true ) {
+        @Override
+        public void shutdown() {
+            // cannot shutdown the global task runner (it's a daemon anyway)
+        }
+    };
 
+    private static final ThreadGroup threadGroup = new ThreadGroup( "logfx-global-task-runner" );
+
+    private final ScheduledExecutorService executor;
 
     private enum TaskState {
-        RAN_WITHIN_LIMIT, WAITING_TO_RUN;
+        RAN_WITHIN_LIMIT, WAITING_TO_RUN
     }
 
     private final Map<Runnable, TaskState> scheduledTasks = new ConcurrentHashMap<>( 2 );
+
+    public TaskRunner( boolean daemon ) {
+        this.executor = Executors.newScheduledThreadPool( 2, ( runnable ) -> {
+            Thread thread = new Thread( threadGroup, runnable );
+            thread.setDaemon( daemon );
+            return thread;
+        } );
+    }
+
+    /**
+     * @return the global instance of {@link TaskRunner}.
+     * This class is thread-safe and can be shared safely between the whole application,
+     * but it cannot be closed.
+     */
+    public static TaskRunner getGlobalInstance() {
+        return globalInstance;
+    }
 
     /**
      * Run the given runnable task using the following algorithm:
