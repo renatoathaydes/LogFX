@@ -1,5 +1,7 @@
 package com.athaydes.logfx.file;
 
+import com.athaydes.logfx.concurrency.Cancellable;
+import com.athaydes.logfx.concurrency.TaskRunner;
 import com.sun.nio.file.SensitivityWatchEventModifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,6 +14,7 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -24,13 +27,29 @@ public class FileChangeWatcher {
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final AtomicBoolean watching = new AtomicBoolean( false );
     private final File file;
-    private final Thread watcherThread;
+    private final Cancellable watcherTask;
+    private volatile Thread watcherThread;
     private volatile Runnable onChange;
 
-    public FileChangeWatcher( File file ) {
+    public FileChangeWatcher( File file, TaskRunner taskRunner ) {
         this.file = file;
-        this.watcherThread = watchFile( file.toPath() );
-        this.watcherThread.start();
+
+        this.watcherTask = taskRunner.scheduleRepeatingTask(
+                Duration.ofSeconds( 2 ),
+                this::startIfNotWatching );
+    }
+
+    private void startIfNotWatching() {
+        if ( !isClosed() && !isWatching() ) {
+            log.debug( "FileWatcher is not watching the file yet, trying to start it up for file {}", file );
+            if ( file.getParentFile().isDirectory() ) {
+                Thread thread = watchFile( file.toPath() );
+                this.watcherThread = thread;
+                thread.start();
+            } else {
+                log.debug( "Cannot start watching file as its parent directory does not exist: {}", file );
+            }
+        }
     }
 
     public void setOnChange( Runnable onChange ) {
@@ -50,36 +69,33 @@ public class FileChangeWatcher {
 
                 log.info( "Watching file " + path );
                 watching.set( true );
+                notifyWatcher( "started_watching" );
 
-                while ( !closed.get() ) {
+                while ( isWatching() ) {
                     WatchKey wk = watchService.take();
+                    log.trace( "Watch key: {}", wk );
                     for ( WatchEvent<?> event : wk.pollEvents() ) {
                         //we only register "ENTRY_MODIFY" so the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
-                            final Runnable toRun = onChange;
-                            if ( toRun != null ) {
-                                log.debug( "Notifying listener of change event {} on file {}",
-                                        event.kind(), file );
-                                toRun.run();
-                            } else {
-                                log.info( "File change detected ({}), but no listener has been registered " +
-                                        "for file: {}", event.kind(), file );
-                            }
+                            notifyWatcher( event.kind().name() );
                         }
                     }
                     // reset the key
                     boolean valid = wk.reset();
                     if ( !valid ) {
-                        log.warn( "Key has been unregistered!!!! Closing file watcher of file {}", file );
-                        closed.set( true );
+                        log.info( "Key has been unregistered! File watcher cannot watch file " +
+                                "until it is created again: {}", file );
+                        notifyWatcher( "unregistered" );
+                        watching.set( false );
                     }
                 }
             } catch ( InterruptedException e ) {
                 log.info( "Interrupted watching file {}", file );
                 closed.set( true );
             } catch ( IOException e ) {
-                log.warn( "Problem with file watcher [{}]: {}", file, e );
+                log.warn( "Problem watching file [{}]: {}", file, e );
+                notifyWatcher( "IOException" );
             } finally {
                 watching.set( false );
                 if ( watchKey != null ) {
@@ -87,6 +103,22 @@ public class FileChangeWatcher {
                 }
             }
         } );
+    }
+
+    private void notifyWatcher( String eventKind ) {
+        final Runnable toRun = onChange;
+        if ( toRun != null ) {
+            log.debug( "Notifying listener of change event {} on file {}",
+                    eventKind, file );
+            try {
+                toRun.run();
+            } catch ( Exception e ) {
+                log.warn( "Error handling file change event", e );
+            }
+        } else {
+            log.warn( "File change detected ({}), but no listener has been registered " +
+                    "for file: {}", eventKind, file );
+        }
     }
 
     public boolean isWatching() {
@@ -99,7 +131,12 @@ public class FileChangeWatcher {
 
     public void close() {
         if ( !closed.getAndSet( true ) ) {
-            watcherThread.interrupt();
+            final Thread thread = watcherThread;
+            watcherTask.cancel();
+
+            if ( thread != null ) {
+                thread.interrupt();
+            }
         }
     }
 

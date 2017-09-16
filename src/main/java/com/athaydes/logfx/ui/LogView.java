@@ -82,7 +82,7 @@ public class LogView extends VBox {
         this.taskRunner = taskRunner;
         this.selectionHandler = new SelectionHandler( this );
         this.file = fileContentReader.getFile();
-        this.fileChangeWatcher = new FileChangeWatcher( file );
+        this.fileChangeWatcher = new FileChangeWatcher( file, taskRunner );
 
         final HighlightExpression expression = highlightOptions.expressionFor( "" );
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
