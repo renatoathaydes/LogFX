@@ -7,7 +7,9 @@ import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
+import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.Dialog;
+import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
@@ -56,7 +58,7 @@ public class LogFX extends Application {
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
 
-    private final TaskRunner taskRunner = new TaskRunner();
+    private final TaskRunner taskRunner = new TaskRunner( false );
 
     @MustCallOnJavaFXThread
     public LogFX() {
@@ -78,14 +80,13 @@ public class LogFX extends Application {
 
         MenuBar menuBar = new MenuBar();
         menuBar.useSystemMenuBarProperty().set( true );
-        menuBar.getMenus().addAll( fileMenu(), viewMenu(), new Menu( "About" ) );
+        menuBar.getMenus().addAll( fileMenu(), viewMenu(), helpMenu() );
 
         logsPane.prefHeightProperty().bind( root.heightProperty() );
 
         root.getChildren().addAll( menuBar, logsPane.getNode() );
 
         Scene scene = new Scene( root, 800, 600, Color.RED );
-        scene.getStylesheets().add( "css/LogFX.css" );
 
         primaryStage.setScene( scene );
         primaryStage.centerOnScreen();
@@ -103,6 +104,8 @@ public class LogFX extends Application {
             logsPane.panesDividersProperty().addListener( observable ->
                     config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() ) );
         } );
+
+        FxUtils.setupStylesheet( scene );
     }
 
     @MustCallOnJavaFXThread
@@ -136,6 +139,19 @@ public class LogFX extends Application {
         close.setMnemonicParsing( true );
         close.setOnAction( ( event ) -> stage.close() );
         menu.getItems().addAll( open, showLogFxLog, close );
+
+        return menu;
+    }
+
+    @MustCallOnJavaFXThread
+    private Menu helpMenu() {
+        Menu menu = new Menu( "_Help" );
+        menu.setMnemonicParsing( true );
+
+        MenuItem about = new MenuItem( "_About LogFX" );
+        about.setOnAction( ( event ) -> new AboutLogFXView().show() );
+
+        menu.getItems().addAll( about );
 
         return menu;
     }

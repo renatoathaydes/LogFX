@@ -1,6 +1,7 @@
 .root {
-    -fx-base: #1d1d1d;
-    -icons-color: rgb(61, 114, 144);
+    -fx-base:  green;
+    -icons-color: -fx-base;
+    -fx-focus-color: lightgreen;
 }
 
 .split-pane:horizontal > .split-pane-divider {
@@ -46,5 +47,5 @@
 
 .log-line.selected {
     -fx-background-color: -fx-focus-color;
-    -fx-text-fill: white;
+    -fx-text-fill: derive(-fx-focus-color, -80%);
 }

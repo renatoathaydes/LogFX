@@ -33,6 +33,7 @@ public class Dialog {
 
     private final Stage dialogStage = new Stage();
     private boolean hasBeenShown = false;
+    private boolean closeWhenLoseFocus = false;
 
     public Dialog( Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
@@ -43,14 +44,20 @@ public class Dialog {
         box.getChildren().add( top );
         box.getChildren().addAll( others );
         dialogStage.setScene( new Scene( box ) );
-        dialogStage.getScene().getStylesheets().add( "css/LogFX.css" );
+        FxUtils.setupStylesheet( dialogStage.getScene() );
         dialogStage.focusedProperty().addListener( observable -> {
             if ( dialogStage.isFocused() ) {
                 dialogStage.setOpacity( 1.0 );
+            } else if ( closeWhenLoseFocus ) {
+                dialogStage.close();
             } else {
                 dialogStage.setOpacity( 0.5 );
             }
         } );
+    }
+
+    public void setCloseWhenLoseFocus( boolean closeWhenLoseFocus ) {
+        this.closeWhenLoseFocus = closeWhenLoseFocus;
     }
 
     public void setResizable( boolean resizable ) {

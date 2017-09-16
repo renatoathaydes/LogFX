@@ -15,8 +15,9 @@ public class Properties {
     public static final Path LOGFX_DIR;
 
     private static volatile LogLevel logLevel = null;
-
     private static volatile LogTarget logTarget = null;
+    private static final boolean refreshStylesheet;
+    private static final String customStylesheet;
 
     static {
         String customHome = System.getProperty( "logfx.home" );
@@ -72,6 +73,9 @@ public class Properties {
                     System.err.println( "Valid values for 'logfx.log.target' are: SYSOUT, SYSERR, FILE (default)" );
             }
         }
+
+        customStylesheet = System.getProperty( "logfx.stylesheet.file" );
+        refreshStylesheet = System.getProperty( "logfx.stylesheet.norefresh" ) == null;
     }
 
     public static Optional<LogLevel> getLogLevel() {
@@ -80,5 +84,13 @@ public class Properties {
 
     public static Optional<LogTarget> getLogTarget() {
         return Optional.ofNullable( logTarget );
+    }
+
+    public static Optional<File> getCustomStylesheet() {
+        return Optional.ofNullable( customStylesheet ).map( File::new );
+    }
+
+    public static boolean isRefreshStylesheet() {
+        return refreshStylesheet;
     }
 }

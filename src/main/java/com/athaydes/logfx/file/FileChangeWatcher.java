@@ -31,6 +31,10 @@ public class FileChangeWatcher {
     private volatile Thread watcherThread;
     private volatile Runnable onChange;
 
+    public FileChangeWatcher( File file ) {
+        this( file, TaskRunner.getGlobalInstance() );
+    }
+
     public FileChangeWatcher( File file, TaskRunner taskRunner ) {
         this.file = file;
 
@@ -44,6 +48,7 @@ public class FileChangeWatcher {
             log.debug( "FileWatcher is not watching the file yet, trying to start it up for file {}", file );
             if ( file.getParentFile().isDirectory() ) {
                 Thread thread = watchFile( file.toPath() );
+                thread.setDaemon( true );
                 this.watcherThread = thread;
                 thread.start();
             } else {
