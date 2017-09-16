@@ -62,9 +62,12 @@ public class FxUtils {
                 stylesheetWatcher.setOnChange( resetStylesheet );
 
                 scene.getWindow().setOnCloseRequest( event -> stylesheetWatcher.close() );
+            } else {
+                resetStylesheet.run();
             }
         } else {
             log.debug( "Using default stylesheet for new Scene" );
+            resetStylesheet.run();
         }
 
     }
