@@ -59,6 +59,15 @@ public class TaskRunner {
     }
 
     /**
+     * Run a task asynchronously.
+     *
+     * @param task to run
+     */
+    public void runAsync( Runnable task ) {
+        executor.submit( task );
+    }
+
+    /**
      * Run the given runnable task using the following algorithm:
      * <p>
      * * If the task has not run before or

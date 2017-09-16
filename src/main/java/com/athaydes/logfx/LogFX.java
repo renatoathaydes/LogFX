@@ -21,6 +21,7 @@ import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
+import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
@@ -33,7 +34,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,6 +81,7 @@ public class LogFX extends Application {
     public void start( Stage primaryStage ) throws Exception {
         this.stage = primaryStage;
         setPrimaryStage( primaryStage );
+        setIconsOn( primaryStage );
 
         MenuBar menuBar = new MenuBar();
         menuBar.useSystemMenuBarProperty().set( true );
@@ -106,6 +111,19 @@ public class LogFX extends Application {
         } );
 
         FxUtils.setupStylesheet( scene );
+    }
+
+    private void setIconsOn( Stage primaryStage ) {
+        taskRunner.runAsync( () -> {
+            final List<InputStream> imageStreams = Arrays.asList(
+                    LogFX.class.getResourceAsStream( "/images/favicon-large.png" ),
+                    LogFX.class.getResourceAsStream( "/images/favicon-small.png" ),
+                    LogFX.class.getResourceAsStream( "/images/favicon-tiny.png" ) );
+
+            Platform.runLater( () -> imageStreams.stream()
+                    .map( Image::new )
+                    .forEach( primaryStage.getIcons()::add ) );
+        } );
     }
 
     @MustCallOnJavaFXThread
@@ -149,7 +167,7 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         MenuItem about = new MenuItem( "_About LogFX" );
-        about.setOnAction( ( event ) -> new AboutLogFXView(getHostServices()).show() );
+        about.setOnAction( ( event ) -> new AboutLogFXView( getHostServices() ).show() );
 
         menu.getItems().addAll( about );
 
