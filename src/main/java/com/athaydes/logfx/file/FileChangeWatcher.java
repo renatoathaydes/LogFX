@@ -27,7 +27,8 @@ public class FileChangeWatcher {
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final AtomicBoolean watching = new AtomicBoolean( false );
     private final File file;
-    private final Cancellable watcherTask;
+    private final TaskRunner taskRunner;
+    private volatile Cancellable watcherTask;
     private volatile Thread watcherThread;
     private volatile Runnable onChange;
 
@@ -37,6 +38,18 @@ public class FileChangeWatcher {
 
     public FileChangeWatcher( File file, TaskRunner taskRunner ) {
         this.file = file;
+        this.taskRunner = taskRunner;
+    }
+
+    public void setOnChange( Runnable onChange ) {
+        this.onChange = onChange;
+
+        final Cancellable previousWatcher = this.watcherTask;
+
+        // forbid resetting the watcher
+        if ( previousWatcher != null ) {
+            throw new IllegalStateException( "Cannot replace change listener" );
+        }
 
         this.watcherTask = taskRunner.scheduleRepeatingTask(
                 Duration.ofSeconds( 2 ),
@@ -55,10 +68,6 @@ public class FileChangeWatcher {
                 log.debug( "Cannot start watching file as its parent directory does not exist: {}", file );
             }
         }
-    }
-
-    public void setOnChange( Runnable onChange ) {
-        this.onChange = onChange;
     }
 
     private Thread watchFile( Path path ) {

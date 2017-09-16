@@ -37,6 +37,10 @@ public class TaskRunner {
 
     private final Map<Runnable, TaskState> scheduledTasks = new ConcurrentHashMap<>( 2 );
 
+    public TaskRunner() {
+        this( true );
+    }
+
     public TaskRunner( boolean daemon ) {
         this.executor = Executors.newScheduledThreadPool( 2, ( runnable ) -> {
             Thread thread = new Thread( threadGroup, runnable );
