@@ -225,7 +225,7 @@ public class FileReader implements FileContentReader {
                 }
 
                 if ( failedLines >= maxLineParseFailuresAllowed ) {
-                    log.info( "Too many log lines do not contain a valid date in file: {}.\nCannot move to date {}",
+                    log.info( "Too many log lines do not contain a valid date in file: {}. Cannot move to date {}",
                             getFile(), dateTime );
                     break mainLoop;
                 }

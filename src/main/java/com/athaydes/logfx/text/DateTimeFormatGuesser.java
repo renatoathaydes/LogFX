@@ -63,6 +63,7 @@ public class DateTimeFormatGuesser {
                 DateTimeFormatter.RFC_1123_DATE_TIME,
                 DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][z]" ),
                 DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][Z]" ),
+                DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][Z]" ),
                 DateTimeFormatter.ofPattern( "MMM dd H:m:s[.SSS][ z][ yyyy]" ),
                 DateTimeFormatter.ofPattern( "MMM dd[ yyyy] H:m:s[.SSS][ z]" ),
                 DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" )

@@ -182,7 +182,7 @@ public class LogView extends VBox {
             FileQueryResult result = fileContentReader.moveTo( dateTime, dateTimeFormatGuess::convert );
             if ( result.isSuccess() ) {
                 if ( log.isInfoEnabled() ) {
-                    log.info( "Successfully found date (in {}ms): {}, result: {}",
+                    log.info( "Successfully found date (in {} ms): {}, result: {}",
                             System.currentTimeMillis() - startTime, dateTime, result );
                 }
 
@@ -199,7 +199,8 @@ public class LogView extends VBox {
                     whenDoneAcceptLineNumber.accept( lineNumber );
                 } ) );
             } else {
-                log.warn( "Failed to open date-time in log, could not recognize dates in the log" );
+                log.warn( "Failed to open date-time in log, could not recognize dates in the log (took {} ms)",
+                        System.currentTimeMillis() - startTime );
             }
         } );
     }

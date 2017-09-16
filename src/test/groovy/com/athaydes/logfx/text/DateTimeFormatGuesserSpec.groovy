@@ -41,7 +41,8 @@ class DateTimeFormatGuesserSpec extends Specification {
                   'Sun Nov 03 14:22:00 CEST 2019 msg' ],
                 [ '[Fri Sep 09 10:42:29.902 ART 2011] [core:error]' ],
                 [ '[10/Oct/2000:13:55:36 -0700] INFO hello' ],
-                [ 'Sun Sep 10 03:30:20.271 <kernel> wl0' ],
+                [ 'Sun Sep 10 03:30:20.271 <kernel> wl0',
+                  '2015-12-21 10:48:38.037 INFO  [0] [Licensing]  --> This' ],
         ]
 
         expectedDateTimes << [
@@ -54,7 +55,8 @@ class DateTimeFormatGuesserSpec extends Specification {
                   dateTime( '2019-11-03T14:22:00+01:00' ) ],
                 [ dateTime( '2011-09-09T10:42:29.902-03:00' ) ],
                 [ dateTime( '2000-10-10T13:55:36.000-07:00' ) ],
-                [ dateTime( thisYear() + '-09-10T03:30:20.271+00:00' ) ],
+                [ dateTime( thisYear() + '-09-10T03:30:20.271+00:00' ),
+                  dateTime( '2015-12-21T10:48:38.037+00:00' ) ],
         ]
     }
 
@@ -65,7 +67,7 @@ class DateTimeFormatGuesserSpec extends Specification {
     private static Instant dateTime( String value ) {
         try {
             return ZonedDateTime.parse( value, DateTimeFormatter.ISO_DATE_TIME ).toInstant()
-        } catch ( DateTimeParseException e ) {
+        } catch ( DateTimeParseException ignore ) {
             // without timezone
             return LocalDateTime.parse( value, DateTimeFormatter.ISO_DATE_TIME )
                     .toInstant( ZoneOffset.UTC )
