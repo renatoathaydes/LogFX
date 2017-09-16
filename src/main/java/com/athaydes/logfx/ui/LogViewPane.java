@@ -69,10 +69,10 @@ public final class LogViewPane {
         closeMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( LogViewWrapper::closeView ) );
 
-        MenuItem pauseMenuItem = new MenuItem( "Pause file auto-refresh" );
+        MenuItem pauseMenuItem = new MenuItem( "Pause/Resume file auto-refresh" );
         pauseMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.P, KeyCombination.META_DOWN ) );
         pauseMenuItem.setOnAction( ( event ) ->
-                getFocusedView().ifPresent( view -> view.header.pauseRefreshProperty().set( true ) ) );
+                getFocusedView().ifPresent( view -> view.header.togglePauseRefresh() ) );
 
         MenuItem minimizeMenuItem = new MenuItem( "Minimize" );
         minimizeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.M,
@@ -539,6 +539,11 @@ public final class LogViewPane {
 
         BooleanProperty pauseRefreshProperty() {
             return pauseRefresh;
+        }
+
+        @MustCallOnJavaFXThread
+        void togglePauseRefresh() {
+            pauseRefresh.set( !pauseRefresh.getValue() );
         }
     }
 
