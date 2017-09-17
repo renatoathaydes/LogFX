@@ -49,9 +49,11 @@ public class FxUtils {
                 .map( path -> "file:" + path )
                 .orElse( "css/LogFX.css" );
 
+        String iconsStylesheet = "css/icons.css";
+
         Runnable resetStylesheet = () -> Platform.runLater( () -> {
             scene.getStylesheets().clear();
-            scene.getStylesheets().add( stylesheet );
+            scene.getStylesheets().addAll( stylesheet, iconsStylesheet );
         } );
 
         if ( Properties.getCustomStylesheet().isPresent() ) {
