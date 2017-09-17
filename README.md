@@ -1,7 +1,14 @@
 # LogFX
 
-A simple log reader capable of reading giant files without a hiccup.
+![LogFX Logo](docs/images/lofx-logo.png)
+
+A log viewer capable of reading large files without a performance hit.
 
 It is written in JavaFX so it can run in any Operating System.
 
-Currently in development, but already in a usable state.
+# Getting LogFX
+
+To get LogFX, download the jar:
+
+TBD
+
