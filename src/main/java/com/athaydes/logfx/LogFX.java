@@ -253,7 +253,7 @@ public class LogFX extends Application {
     }
 
     public static void main( String[] args ) {
-        if ( System.getProperty( "os.name", "" ).contains( "Mac" ) ) {
+        if ( FxUtils.isMac() ) {
             SetupMacTrayIcon.run();
         }
 

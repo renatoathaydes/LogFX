@@ -74,4 +74,11 @@ public class FxUtils {
 
     }
 
+    /**
+     * @return true if running on Mac OS.
+     */
+    public static boolean isMac() {
+        return System.getProperty( "os.name", "" ).contains( "Mac" );
+    }
+
 }
