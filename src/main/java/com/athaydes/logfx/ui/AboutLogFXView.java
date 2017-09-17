@@ -19,11 +19,11 @@ public class AboutLogFXView {
         this.hostServices = hostServices;
     }
 
-    @MustCallOnJavaFXThread
-    public void show() {
+    VBox createNode() {
         VBox contents = new VBox( 25 );
         contents.setPrefSize( 500, 300 );
         contents.setAlignment( Pos.CENTER );
+        contents.getStylesheets().add( "css/about.css" );
 
         HBox textBox = new HBox( 0 );
         textBox.setPrefWidth( 500 );
@@ -45,7 +45,12 @@ public class AboutLogFXView {
 
         contents.getChildren().addAll( textBox, smallText );
 
-        Dialog dialog = new Dialog( "css/about.css", contents );
+        return contents;
+    }
+
+    @MustCallOnJavaFXThread
+    public void show() {
+        Dialog dialog = new Dialog( ( String ) null, createNode() );
         dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
         dialog.setCloseWhenLoseFocus( true );

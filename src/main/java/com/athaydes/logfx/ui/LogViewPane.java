@@ -49,6 +49,8 @@ import static java.util.stream.Collectors.toList;
  */
 public final class LogViewPane {
 
+    private static final Logger log = LoggerFactory.getLogger( LogViewPane.class );
+
     private final SplitPane pane = new SplitPane();
 
     // a simple observable that changes state every time a change occurs in a pane divider
@@ -56,7 +58,9 @@ public final class LogViewPane {
     private final ObjectProperty<Boolean> panesDividersObservable = new SimpleObjectProperty<>( false );
 
     @MustCallOnJavaFXThread
-    public LogViewPane( TaskRunner taskRunner ) {
+    public LogViewPane( TaskRunner taskRunner,
+                        Supplier<StartUpView> startUpViewGetter,
+                        boolean showEmptyPanel ) {
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.META_DOWN ) );
         copyMenuItem.setOnAction( event -> getFocusedView().ifPresent( wrapper ->
@@ -105,12 +109,12 @@ public final class LogViewPane {
                     taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
                         int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
                         for ( int i = 0; i <= topDividerIndex; i++ ) {
-                            LoggerFactory.getLogger( LogViewPane.class ).warn( "Setting divider {} to {}", i, 0.0 );
+                            log.debug( "Setting divider [{}] to {}", i, 0.0 );
                             pane.setDividerPosition( i, 0.0 );
                         }
 
                         for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
-                            LoggerFactory.getLogger( LogViewPane.class ).warn( "Setting divider {} to {}", i, 1.0 );
+                            log.debug( "Setting divider [{}] to {}", i, 1.0 );
                             pane.setDividerPosition( i, 1.0 );
                         }
                     } ) ) );
@@ -170,6 +174,16 @@ public final class LogViewPane {
                 }
             }
         } );
+
+        pane.getItems().addListener( ( InvalidationListener ) ( event ) -> {
+            if ( pane.getItems().isEmpty() ) {
+                pane.getItems().add( startUpViewGetter.get() );
+            }
+        } );
+
+        if ( showEmptyPanel ) {
+            pane.getItems().add( startUpViewGetter.get() );
+        }
     }
 
     public ObjectProperty<Orientation> orientationProperty() {
@@ -202,13 +216,20 @@ public final class LogViewPane {
 
     @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile ) {
-        pane.getItems().add( new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
+        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
             try {
                 pane.getItems().remove( wrapper );
             } finally {
                 onCloseFile.run();
             }
-        } ) );
+        } );
+
+        if ( pane.getItems().size() == 1 &&
+                pane.getItems().get( 0 ) instanceof StartUpView ) {
+            pane.getItems().set( 0, logViewWrapper );
+        } else {
+            pane.getItems().add( logViewWrapper );
+        }
     }
 
     @MustCallOnJavaFXThread
@@ -238,8 +259,11 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public void close() {
         for ( int i = 0; i < pane.getItems().size(); i++ ) {
-            LogViewWrapper wrapper = ( LogViewWrapper ) pane.getItems().get( i );
-            wrapper.stop();
+            Node item = pane.getItems().get( i );
+            if ( item instanceof LogViewWrapper ) {
+                LogViewWrapper wrapper = ( LogViewWrapper ) item;
+                wrapper.stop();
+            }
         }
     }
 

@@ -9,11 +9,13 @@ import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
 import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.Dialog;
+import com.athaydes.logfx.ui.FileOpener;
 import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
+import com.athaydes.logfx.ui.StartUpView;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.scene.Scene;
@@ -28,7 +30,6 @@ import javafx.scene.input.KeyCombination;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -70,7 +71,10 @@ public class LogFX extends Application {
         this.config = new Config( configFile, taskRunner, fontValue );
         this.highlightOptions = new HighlightOptions( config.getObservableExpressions() );
 
-        this.logsPane = new LogViewPane( taskRunner );
+        this.logsPane = new LogViewPane( taskRunner, () ->
+                new StartUpView( getHostServices(), () -> new FileOpener( stage, this::open ) ),
+                config.getObservableFiles().isEmpty() );
+
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
 
         openFilesFromConfig();
@@ -134,16 +138,7 @@ public class LogFX extends Application {
         MenuItem open = new MenuItem( "_Open File" );
         open.setAccelerator( new KeyCodeCombination( KeyCode.O, KeyCombination.META_DOWN ) );
         open.setMnemonicParsing( true );
-        open.setOnAction( ( event ) -> {
-            log.debug( "Opening file" );
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle( "Select a file" );
-            File file = fileChooser.showOpenDialog( stage );
-            log.debug( "Selected file {}", file );
-            if ( file != null ) {
-                open( file );
-            }
-        } );
+        open.setOnAction( ( event ) -> new FileOpener( stage, this::open ) );
 
         MenuItem showLogFxLog = new MenuItem( "Open LogFX Log" );
         showLogFxLog.setAccelerator( new KeyCodeCombination( KeyCode.O,
