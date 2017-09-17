@@ -259,7 +259,11 @@ public class HighlightOptions extends VBox {
                 int index = observableExpressions.indexOf( this.expression );
                 observableExpressions.set( index, newExpression );
                 this.expression = newExpression;
+                expressionField.getStyleClass().remove( "error" );
             } catch ( PatternSyntaxException e ) {
+                if ( !expressionField.getStyleClass().contains( "error" ) ) {
+                    expressionField.getStyleClass().add( "error" );
+                }
                 log.warn( "Invalid regular expression: {}", e.toString() );
             }
         }
@@ -274,8 +278,12 @@ public class HighlightOptions extends VBox {
             field.textProperty().addListener( ( ignore, oldValue, newValue ) -> {
                 try {
                     colorRectangle.setFill( Color.valueOf( newValue ) );
+                    field.getStyleClass().remove( "error" );
                     updateExpression();
                 } catch ( IllegalArgumentException e ) {
+                    if ( !field.getStyleClass().contains( "error" ) ) {
+                        field.getStyleClass().add( "error" );
+                    }
                     log.debug( "Invalid color entered" );
                 }
             } );
