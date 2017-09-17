@@ -17,7 +17,9 @@ public class StartUpView extends StackPane {
     public StartUpView( HostServices hostServices, Supplier<FileOpener> fileOpenerGetter ) {
         VBox box = new AboutLogFXView( hostServices ).createNode();
 
-        Hyperlink link = new Hyperlink( "Open file (Cmd + O)" );
+        String metaKey = FxUtils.isMac() ? "⌘" : "Ctrl+";
+
+        Hyperlink link = new Hyperlink( String.format( "Open file (%sO)", metaKey ) );
         link.getStyleClass().add( "large-background-text" );
         link.setOnAction( ( event ) -> fileOpenerGetter.get() );
 
