@@ -142,9 +142,17 @@ public class FileReader implements FileContentReader {
         Optional<LinkedList<String>> maybeLines = refresh();
         SearchDirection direction = SearchDirection.ANY;
 
+        // if the file is larger than the fileWindowSize, we need to adjust the line number according to
+        // in which part of the file we find the date-time, otherwise there's no need
+        boolean requireFileLineAdjustment;
+
         if ( !maybeLines.isPresent() || maybeLines.get().isEmpty() ) {
             log.debug( "No lines found in file, cannot move to given date: {}", dateTime );
+            requireFileLineAdjustment = false;
+        } else {
+            requireFileLineAdjustment = maybeLines.get().size() >= fileWindowSize;
         }
+
 
         mainLoop:
         while ( maybeLines.isPresent() ) {
@@ -218,8 +226,13 @@ public class FileReader implements FileContentReader {
                     if ( lineComparison != Comparison.BEFORE ) {
                         log.debug( "Found line, date comparison = {}, target date = {}, line: {}",
                                 lineComparison, dateTime, line );
-                        return adjustFileWindowToStartAt( nextLines.size(),
-                                ( lineComparison == Comparison.EQUAL ) ? lineNumber : lineNumber - 1 );
+
+                        if ( requireFileLineAdjustment ) {
+                            return adjustFileWindowToStartAt( nextLines.size(),
+                                    ( lineComparison == Comparison.EQUAL ) ? lineNumber : lineNumber - 1 );
+                        } else {
+                            return new SuccessfulQueryResult( lineNumber );
+                        }
                     }
 
                 }

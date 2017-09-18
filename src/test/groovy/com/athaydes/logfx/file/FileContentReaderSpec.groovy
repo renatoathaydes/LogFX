@@ -796,4 +796,76 @@ class FileContentReaderSpec extends Specification {
 
     }
 
+
+    @Unroll
+    def "FileReader can move to a specific time in a log file that is much smaller than the file-window size"() {
+        given: 'a file reader with a default buffer and a large file window'
+        FileContentReader reader = new FileReader( file, 100 )
+
+        and: 'a file with most log lines having a date in a recognizable format (and less than 100 lines)'
+        file.write( '''|INFO Fri Sep 01 22:02:53 CEST 2017 - 0
+            |INFO Fri Sep 01 22:02:54 CEST 2017 - 1
+            |INFO Fri Sep 01 22:02:55 CEST 2017 - 22
+            |INFO Fri Sep 01 22:02:56 CEST 2017 - 333
+            |INFO Fri Sep 01 22:02:57 CEST 2017 - 4444
+            |INFO Fri Sep 01 22:02:58 CEST 2017 - 55555
+            |INFO Fri Sep 01 22:02:59 CEST 2017 - 666666
+            |INFO Fri Sep 01 22:03:00 CEST 2017 - 7777777
+            |INFO Fri Sep 01 22:03:01 CEST 2017 - 88888888
+            |INFO Fri Sep 01 22:03:02 CEST 2017 - 999999999'''.stripMargin() )
+
+        and: 'A function that correctly extracts date-times from log lines'
+        def pattern = Pattern.compile( 'INFO ([A-za-z0-9: ]+)-.*' )
+        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy' )
+        def dateExtractor = { String line ->
+            def matcher = pattern.matcher( line )
+            if ( matcher.matches() ) {
+                return Optional.of( ZonedDateTime.parse( matcher.group( 1 ).trim(), dateFormat ) )
+            } else {
+                return Optional.empty()
+            }
+        }
+
+        when: 'we try to move to a certain time (#time) in the log'
+        def zonedTime = ZonedDateTime.parse( time + ' CEST',
+                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z" ) )
+        def result = reader.moveTo( zonedTime, dateExtractor )
+        def lines = reader.refresh()
+
+        then: 'the file reader should be able to move the file window'
+        result.isSuccess()
+
+        then: 'the reader moves to the expected lines in the file'
+        lines.isPresent()
+
+        and: 'the given line number is correct'
+        result.fileLineNumber() == expectedLineNumber
+
+        and: 'if the query is outside of the file range, the result will reflect that'
+        if ( expectedLineNumber == -1 ) {
+            assert result.isBeforeRange()
+        } else if ( expectedLineNumber == -2 ) {
+            assert result.isAfterRange()
+        } else {
+            assert !result.isBeforeRange() && !result.isAfterRange()
+            assert lines.get()[ result.fileLineNumber() - 1 ].split( ' ' ).last() == expectedLogLine
+        }
+
+        where:
+        time                     || expectedLogLine | expectedLineNumber
+        '2017-09-01T22:00:00'    || null            | -1
+        '2017-09-01T22:02:53'    || '0'             | 1
+        '2017-09-01T22:02:54'    || '1'             | 2
+        '2017-09-01T22:02:55'    || '22'            | 3
+        '2017-09-01T22:02:56'    || '333'           | 4
+        '2017-09-01T22:02:57'    || '4444'          | 5
+        '2017-09-01T22:02:58'    || '55555'         | 6
+        '2017-09-01T22:02:59'    || '666666'        | 7
+        '2017-09-01T22:03:00'    || '7777777'       | 8
+        '2017-09-01T22:03:01'    || '88888888'      | 9
+        '2017-09-01T22:03:02'    || '999999999'     | 10
+        '2017-09-01T22:03:02.40' || null            | -2
+
+    }
+
 }
