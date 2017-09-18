@@ -136,19 +136,19 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         MenuItem open = new MenuItem( "_Open File" );
-        open.setAccelerator( new KeyCodeCombination( KeyCode.O, KeyCombination.META_DOWN ) );
+        open.setAccelerator( new KeyCodeCombination( KeyCode.O, KeyCombination.SHORTCUT_DOWN ) );
         open.setMnemonicParsing( true );
         open.setOnAction( ( event ) -> new FileOpener( stage, this::open ) );
 
         MenuItem showLogFxLog = new MenuItem( "Open LogFX Log" );
         showLogFxLog.setAccelerator( new KeyCodeCombination( KeyCode.O,
-                KeyCombination.META_DOWN, KeyCombination.SHIFT_DOWN ) );
+                KeyCombination.SHORTCUT_DOWN , KeyCombination.SHIFT_DOWN ) );
         showLogFxLog.setOnAction( ( event ) ->
                 open( LogFXLogFactory.INSTANCE.getLogFilePath().toFile() ) );
 
         MenuItem close = new MenuItem( "E_xit" );
         close.setAccelerator( new KeyCodeCombination( KeyCode.W,
-                KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
+                KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN  ) );
         close.setMnemonicParsing( true );
         close.setOnAction( ( event ) -> stage.close() );
         menu.getItems().addAll( open, showLogFxLog, close );
@@ -203,25 +203,25 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         CheckMenuItem highlight = new CheckMenuItem( "_Highlight Options" );
-        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.META_DOWN ) );
+        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN  ) );
         highlight.setMnemonicParsing( true );
         bindMenuItemToDialog( highlight, () ->
                 showHighlightOptionsDialog( highlightOptions ) );
 
         MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
         orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
-                KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
+                KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN  ) );
         orientation.setOnAction( event -> logsPane.switchOrientation() );
 
         CheckMenuItem font = new CheckMenuItem( "Fon_t" );
         font.setAccelerator( new KeyCodeCombination( KeyCode.F,
-                KeyCombination.SHIFT_DOWN, KeyCombination.META_DOWN ) );
+                KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN  ) );
         font.setMnemonicParsing( true );
         bindMenuItemToDialog( font, () ->
                 showFontPicker( fontValue.getValue(), fontValue::setValue ) );
 
         MenuItem showContextMenu = new MenuItem( "Show Context Menu" );
-        showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.META_DOWN ) );
+        showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN  ) );
         showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
 
         menu.getItems().addAll( highlight, orientation, font, showContextMenu );
