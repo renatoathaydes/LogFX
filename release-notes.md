@@ -1,5 +1,12 @@
 ## LogFX Release Notes
 
+## 0.6.1
+
+> 18 Sep 2017
+
+* #4 remember standard log colors between restarts.
+* #5 use "Courier" as default font in non-Mac system ("Monaco" used in Mac).
+
 ## 0.6
 
 > 18 Sep 2017
