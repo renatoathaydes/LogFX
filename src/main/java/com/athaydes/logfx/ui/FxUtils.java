@@ -45,8 +45,7 @@ public class FxUtils {
      */
     public static void setupStylesheet( Scene scene ) {
         String stylesheet = Properties.getCustomStylesheet()
-                .map( File::getAbsolutePath )
-                .map( path -> "file:" + path )
+                .map( FxUtils::toAbsoluteFileUri )
                 .orElse( "css/LogFX.css" );
 
         String iconsStylesheet = "css/icons.css";
@@ -79,6 +78,16 @@ public class FxUtils {
      */
     public static boolean isMac() {
         return System.getProperty( "os.name", "" ).contains( "Mac" );
+    }
+
+    private static String toAbsoluteFileUri( File file ) {
+        String absolutePath = file.getAbsolutePath();
+        if ( File.separatorChar == '\\' ) {
+            // windows stuff
+            return "file:///" + absolutePath.replace( "\\", "/" );
+        } else {
+            return "file:" + absolutePath;
+        }
     }
 
 }
