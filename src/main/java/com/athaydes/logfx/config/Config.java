@@ -2,6 +2,7 @@ package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.data.StandardLogColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
 import javafx.application.Platform;
@@ -39,6 +40,7 @@ public class Config {
     private static final Logger log = LoggerFactory.getLogger( Config.class );
 
     private final Path path;
+    private final SimpleObjectProperty<StandardLogColors> standardLogColors;
     private final ObservableList<HighlightExpression> observableExpressions;
     private final ObservableSet<File> observableFiles;
     private final SimpleObjectProperty<Orientation> panesOrientation;
@@ -48,6 +50,8 @@ public class Config {
     public Config( Path path, TaskRunner taskRunner, BindableValue<Font> fontValue ) {
         this.path = path;
         this.font = fontValue;
+
+        standardLogColors = new SimpleObjectProperty<>( new StandardLogColors( Color.BLACK, Color.LIGHTGREY ) );
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
@@ -60,7 +64,7 @@ public class Config {
         }
 
         // the last item must always be the 'catch-all' item
-        observableExpressions.add( new HighlightExpression( "", Color.BLACK, Color.LIGHTGREY ) );
+        observableExpressions.add( new HighlightExpression( standardLogColors.get() ) );
 
         // make this a singleton object so that it can be remembered when we try to run it many times below
         final Runnable updateConfigFile = this::dumpConfigToFile;
@@ -114,12 +118,37 @@ public class Config {
         }
 
         switch ( line.trim() ) {
+            case "standard-log-colors:":
+                parseStandardLogColors( lines );
             case "expressions:":
                 parseExpressions( lines );
             case "files:":
                 parseFiles( lines );
             case "gui:":
                 parseGuiSection( lines );
+        }
+    }
+
+    private void parseStandardLogColors( Iterator<String> lines ) {
+        while ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                String[] components = line.trim().split( " " );
+                if ( components.length == 2 ) {
+                    try {
+                        Color bkg = Color.valueOf( components[ 0 ] );
+                        Color fill = Color.valueOf( components[ 1 ] );
+                        standardLogColors.set( new StandardLogColors( bkg, fill ) );
+                    } catch ( IllegalArgumentException e ) {
+                        logInvalidProperty( "standard-log-colors", "color", line, e.toString() );
+                    }
+                } else {
+                    logInvalidProperty( "standard-log-colors", "number of colors", line, null );
+                }
+            } else if ( !line.trim().isEmpty() ) {
+                parseConfigFile( line, lines );
+                break;
+            }
         }
     }
 
@@ -236,8 +265,7 @@ public class Config {
      */
     private void dumpConfigToFile() {
         CompletableFuture<List<HighlightExpression>> expressionsFuture = new CompletableFuture<>();
-        Platform.runLater( () -> expressionsFuture.complete( new ArrayList<>(
-                observableExpressions.subList( 0, observableExpressions.size() - 1 ) ) ) );
+        Platform.runLater( () -> expressionsFuture.complete( new ArrayList<>( observableExpressions ) ) );
 
         CompletableFuture<Set<File>> filesFuture = new CompletableFuture<>();
         Platform.runLater( () -> filesFuture.complete( new LinkedHashSet<>( observableFiles ) ) );
@@ -270,12 +298,21 @@ public class Config {
         log.debug( "Writing config to {}", path );
 
         try ( FileWriter writer = new FileWriter( path ) ) {
-            writer.write( "expressions:\n" );
-            for ( HighlightExpression expression : highlightExpressions ) {
-                writer.write( "  " + expression.getBkgColor() );
-                writer.write( " " + expression.getFillColor() );
-                writer.write( " " + expression.getPattern().pattern() );
+
+            if ( !highlightExpressions.isEmpty() ) {
+                HighlightExpression standardExpression = highlightExpressions.remove( highlightExpressions.size() - 1 );
+
+                writer.write( "standard-log-colors:\n" );
+                writer.write( "  " + standardExpression.getBkgColor() + " " + standardExpression.getFillColor() );
                 writer.write( "\n" );
+
+                writer.write( "expressions:\n" );
+                for ( HighlightExpression expression : highlightExpressions ) {
+                    writer.write( "  " + expression.getBkgColor() );
+                    writer.write( " " + expression.getFillColor() );
+                    writer.write( " " + expression.getPattern().pattern() );
+                    writer.write( "\n" );
+                }
             }
 
             writer.write( "files:\n" );

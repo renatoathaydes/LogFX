@@ -1,5 +1,6 @@
 package com.athaydes.logfx.text;
 
+import com.athaydes.logfx.data.StandardLogColors;
 import javafx.scene.paint.Paint;
 
 import java.util.regex.Pattern;
@@ -17,6 +18,10 @@ public class HighlightExpression {
         this.expression = Pattern.compile( expression );
         this.bkgColor = bkgColor;
         this.fillColor = fillColor;
+    }
+
+    public HighlightExpression( StandardLogColors standardLogColors ) {
+        this( "", standardLogColors.getBackground(), standardLogColors.getFill() );
     }
 
     public Paint getBkgColor() {
