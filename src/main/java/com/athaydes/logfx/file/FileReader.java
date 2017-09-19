@@ -424,6 +424,12 @@ public class FileReader implements FileContentReader {
 
                         // if the byte is a new line, don't include it in the result
                         int lineEndIndex = isNewLine ? i - 1 : i;
+
+                        if ( isNewLine && i > 0 && buffer[ i - 1 ] == '\r' ) {
+                            // do not include the return character in the line
+                            lineEndIndex--;
+                        }
+
                         int lineLength = lineEndIndex - lineStartIndex + 1;
 
                         byte[] lineBytes = new byte[ lineLength + topBytes.length ];
@@ -523,12 +529,19 @@ public class FileReader implements FileContentReader {
 
                         // if the byte is a new line, don't include it in the result
                         int lineStartIndex = isNewLine ? i + 1 : i;
+                        int tailBytesLength = tailBytes.length;
+
+                        if ( tailBytesLength > 0 && tailBytes[ tailBytesLength - 1 ] == '\r' ) {
+                            // do not include the return character in the line
+                            tailBytesLength--;
+                        }
+
                         int bufferBytesToAdd = lastByteIndex - lineStartIndex + 1;
 
-                        byte[] lineBytes = new byte[ bufferBytesToAdd + tailBytes.length ];
+                        byte[] lineBytes = new byte[ bufferBytesToAdd + tailBytesLength ];
                         log.trace( "Found line, copying {} bytes from buffer + {} from tail", bufferBytesToAdd, tailBytes.length );
                         System.arraycopy( buffer, lineStartIndex, lineBytes, 0, bufferBytesToAdd );
-                        System.arraycopy( tailBytes, 0, lineBytes, bufferBytesToAdd, tailBytes.length );
+                        System.arraycopy( tailBytes, 0, lineBytes, bufferBytesToAdd, tailBytesLength );
                         result.addFirst( new String( lineBytes, StandardCharsets.UTF_8 ) );
                         log.trace( "Added line: {}", result.getFirst() );
 
