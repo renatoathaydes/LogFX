@@ -868,4 +868,92 @@ class FileContentReaderSpec extends Specification {
 
     }
 
+    @Unroll
+    def "Can read and move down then up through Windows log file, handling line endings correctly"() {
+        given: 'a file reader with a windows size of #windowSize and byte buffer of size #bufferSize'
+        FileContentReader reader = new FileReader( file, windowSize, bufferSize )
+
+        and: 'A Windows log file with 10 lines is created'
+        def lineCreator = { it.toString() * 10 }
+        file << ( 0..9 ).collect( lineCreator ).join( '\r\n' )
+
+        when: 'We read the top lines'
+        def lines = reader.refresh()
+
+        then: 'The top lines are read correctly'
+        lines.isPresent()
+        lines.get() == ( 0..<windowSize ).collect( lineCreator )
+
+        when: 'we move down 2 lines'
+        lines = reader.moveDown( 2 )
+
+        then: 'The next 2 lines are read correctly'
+        lines.isPresent()
+        lines.get() == ( windowSize..<( windowSize + 2 ) ).collect( lineCreator )
+
+        when: 'we move up 2 lines'
+        lines = reader.moveUp( 2 )
+
+        then: 'The first 2 lines are read correctly'
+        lines.isPresent()
+        lines.get() == ( 0..<2 ).collect( lineCreator )
+
+        where:
+        windowSize | bufferSize
+        2          | 8
+        3          | 8
+        4          | 8
+        2          | 24
+        3          | 24
+        4          | 24
+        2          | 4096
+        3          | 4096
+        4          | 4096
+    }
+
+    @Unroll
+    def "Can read and move up then down through Windows log file, handling line endings correctly"() {
+        given: 'a file reader with a windows size of #windowSize and byte buffer of size #bufferSize'
+        FileContentReader reader = new FileReader( file, windowSize, bufferSize )
+
+        and: 'A Windows log file with 10 lines is created'
+        def lineCreator = { it.toString() * 10 }
+        file << ( 0..9 ).collect( lineCreator ).join( '\r\n' )
+
+        when: 'We read the bottom lines'
+        reader.tail()
+        def lines = reader.refresh()
+
+        then: 'The bottom lines are read correctly'
+        def lastWindowFirstLine = 10 - windowSize
+        lines.isPresent()
+        lines.get() == ( lastWindowFirstLine..<10 ).collect( lineCreator )
+
+        when: 'we move up 2 lines'
+        lines = reader.moveUp( 2 )
+
+        then: 'The previous 2 lines are read correctly'
+        lines.isPresent()
+        lines.get() == ( ( lastWindowFirstLine - 2 )..<lastWindowFirstLine ).collect( lineCreator )
+
+        when: 'we move down 2 lines'
+        lines = reader.moveDown( 2 )
+
+        then: 'The bottom 2 lines are read correctly'
+        lines.isPresent()
+        lines.get() == ( 8..<10 ).collect( lineCreator )
+
+        where:
+        windowSize | bufferSize
+        2          | 8
+        3          | 8
+        4          | 8
+        2          | 24
+        3          | 24
+        4          | 24
+        2          | 4096
+        3          | 4096
+        4          | 4096
+    }
+
 }

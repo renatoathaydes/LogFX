@@ -530,13 +530,17 @@ public class FileReader implements FileContentReader {
                         // if the byte is a new line, don't include it in the result
                         int lineStartIndex = isNewLine ? i + 1 : i;
                         int tailBytesLength = tailBytes.length;
-
-                        if ( tailBytesLength > 0 && tailBytes[ tailBytesLength - 1 ] == '\r' ) {
-                            // do not include the return character in the line
-                            tailBytesLength--;
-                        }
-
                         int bufferBytesToAdd = lastByteIndex - lineStartIndex + 1;
+
+                        if ( tailBytesLength > 0 ) {
+                            if ( tailBytes[ tailBytesLength - 1 ] == '\r' ) {
+                                // do not include the return character in the line
+                                tailBytesLength--;
+                            }
+                        } else if ( buffer[ lastByteIndex ] == '\r' ) {
+                            // no tail, so the return character is removed from the buffer
+                            bufferBytesToAdd--;
+                        }
 
                         byte[] lineBytes = new byte[ bufferBytesToAdd + tailBytesLength ];
                         log.trace( "Found line, copying {} bytes from buffer + {} from tail", bufferBytesToAdd, tailBytes.length );
