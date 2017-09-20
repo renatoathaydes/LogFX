@@ -57,7 +57,7 @@ public class LogFX extends Application {
     private static final String TITLE = "LogFX";
 
     private final BindableValue<Font> fontValue = new BindableValue<>(
-            Font.font( FxUtils.isMac() ? "Monaco" : "Courier" ) );
+            Font.font( !FxUtils.isMac() ? "Monaco" : "Courier New" ) );
 
     private Stage stage;
     private final VBox root = new VBox( 10 );
