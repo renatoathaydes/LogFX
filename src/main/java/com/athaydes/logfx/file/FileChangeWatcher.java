@@ -16,6 +16,7 @@ import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Watches a file for any change that might happen to it.
@@ -24,7 +25,7 @@ public class FileChangeWatcher {
 
     private static final Logger log = LoggerFactory.getLogger( FileChangeWatcher.class );
 
-    private static final ThreadGroup FILE_WATCHER_THREAD_GROUP = new ThreadGroup( "file-watcher" );
+    private static final AtomicInteger FILE_WATCHER_THREAD_COUNTER = new AtomicInteger( 0 );
 
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final AtomicBoolean watching = new AtomicBoolean( false );
@@ -59,6 +60,8 @@ public class FileChangeWatcher {
                 Thread thread = watchFile( file.toPath() );
                 thread.setDaemon( true );
                 this.watcherThread = thread;
+
+                log.debug( "Will start Thread {}", thread.getName() );
                 thread.start();
             } else {
                 log.debug( "Cannot start watching file as its parent directory does not exist: {}", file );
@@ -67,8 +70,8 @@ public class FileChangeWatcher {
     }
 
     private Thread watchFile( Path path ) {
-        return new Thread( FILE_WATCHER_THREAD_GROUP, () -> {
-            log.debug( "Starting Thread" );
+        return new Thread( () -> {
+            log.debug( "Thread started" );
 
             WatchKey watchKey = null;
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
@@ -114,7 +117,7 @@ public class FileChangeWatcher {
                     watchKey.cancel();
                 }
             }
-        } );
+        }, "file-change-watcher-" + FILE_WATCHER_THREAD_COUNTER.incrementAndGet() );
     }
 
     private void notifyWatcher( String eventKind ) {
