@@ -24,6 +24,8 @@ public class FileChangeWatcher {
 
     private static final Logger log = LoggerFactory.getLogger( FileChangeWatcher.class );
 
+    private static final ThreadGroup FILE_WATCHER_THREAD_GROUP = new ThreadGroup( "file-watcher" );
+
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final AtomicBoolean watching = new AtomicBoolean( false );
     private final File file;
@@ -46,6 +48,14 @@ public class FileChangeWatcher {
         if ( !isClosed() && !isWatching() ) {
             log.debug( "FileWatcher is not watching the file yet, trying to start it up for file {}", file );
             if ( file.getParentFile().isDirectory() ) {
+                final Thread previousThread = watcherThread;
+
+                if ( previousThread != null ) {
+                    previousThread.interrupt();
+                }
+
+                log.debug( "Creating a new watcher Thread" );
+
                 Thread thread = watchFile( file.toPath() );
                 thread.setDaemon( true );
                 this.watcherThread = thread;
@@ -57,7 +67,9 @@ public class FileChangeWatcher {
     }
 
     private Thread watchFile( Path path ) {
-        return new Thread( () -> {
+        return new Thread( FILE_WATCHER_THREAD_GROUP, () -> {
+            log.debug( "Starting Thread" );
+
             WatchKey watchKey = null;
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
                 watchKey = path.getParent().register( watchService, new WatchEvent.Kind[]{
