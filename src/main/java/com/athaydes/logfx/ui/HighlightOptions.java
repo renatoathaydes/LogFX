@@ -144,13 +144,15 @@ public class HighlightOptions extends VBox {
         return ( event ) -> {
             int childIndex = getChildren().indexOf( row );
             if ( childIndex > 1 ) { // 0th child is the header, 1st child cannot be moved up
+
                 int expressionIndex = observableExpressions.indexOf( expression );
+                if ( expressionIndex > 0 ) {
+                    Row previousChild = ( Row ) getChildren().remove( childIndex - 1 );
+                    getChildren().add( childIndex, previousChild );
 
-                Row previousChild = ( Row ) getChildren().remove( childIndex - 1 );
-                HighlightExpression previousExpression = observableExpressions.remove( expressionIndex - 1 );
-
-                getChildren().add( childIndex, previousChild );
-                observableExpressions.add( expressionIndex, previousExpression );
+                    HighlightExpression previousExpression = observableExpressions.remove( expressionIndex - 1 );
+                    observableExpressions.add( expressionIndex, previousExpression );
+                }
             }
         };
     }
@@ -161,12 +163,15 @@ public class HighlightOptions extends VBox {
             int childIndex = getChildren().indexOf( row );
             Node nextChild = getChildren().get( childIndex + 1 );
             if ( !( nextChild instanceof CatchAllRow ) && ( nextChild instanceof Row ) ) {
-                getChildren().remove( nextChild );
-                getChildren().add( childIndex, nextChild );
-
                 int expressionIndex = observableExpressions.indexOf( expression );
-                HighlightExpression nextExpression = observableExpressions.remove( expressionIndex + 1 );
-                observableExpressions.add( expressionIndex, nextExpression );
+
+                if ( expressionIndex + 1 < observableExpressions.size() ) {
+                    getChildren().remove( nextChild );
+                    getChildren().add( childIndex, nextChild );
+
+                    HighlightExpression nextExpression = observableExpressions.remove( expressionIndex + 1 );
+                    observableExpressions.add( expressionIndex, nextExpression );
+                }
             }
         };
     }
@@ -296,6 +301,7 @@ public class HighlightOptions extends VBox {
         ScrollPane pane = new ScrollPane( highlightOptions );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         Dialog dialog = new Dialog( new ScrollPane( highlightOptions ) );
+        dialog.setSize( 850.0, 260.0 );
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );
         dialog.show();

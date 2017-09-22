@@ -116,6 +116,11 @@ public class Dialog {
         }
     }
 
+    public void setSize( double width, double height ) {
+        dialogStage.setWidth( width );
+        dialogStage.setHeight( height );
+    }
+
     public static void showConfirmDialog( String text ) {
         Platform.runLater( () -> {
             Button okButton = new Button( "OK" );
