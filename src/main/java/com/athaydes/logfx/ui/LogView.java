@@ -82,7 +82,6 @@ public class LogView extends VBox {
         this.taskRunner = taskRunner;
         this.selectionHandler = new SelectionHandler( this );
         this.file = fileContentReader.getFile();
-        this.fileChangeWatcher = new FileChangeWatcher( file, taskRunner );
 
         final HighlightExpression expression = highlightOptions.expressionFor( "" );
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
@@ -100,13 +99,13 @@ public class LogView extends VBox {
             }
         } );
 
-        fileChangeWatcher.setOnChange( this::onFileChange );
-
         tailingFile.addListener( event -> {
             if ( tailingFile.get() ) {
                 onFileChange();
             }
         } );
+
+        this.fileChangeWatcher = new FileChangeWatcher( file, taskRunner, this::onFileChange );
     }
 
     BooleanProperty allowRefreshProperty() {

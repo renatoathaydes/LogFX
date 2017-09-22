@@ -27,29 +27,15 @@ public class FileChangeWatcher {
     private final AtomicBoolean closed = new AtomicBoolean( false );
     private final AtomicBoolean watching = new AtomicBoolean( false );
     private final File file;
-    private final TaskRunner taskRunner;
-    private volatile Cancellable watcherTask;
+    private final Cancellable watcherTask;
+    private final Runnable onChange;
     private volatile Thread watcherThread;
-    private volatile Runnable onChange;
 
-    public FileChangeWatcher( File file ) {
-        this( file, TaskRunner.getGlobalInstance() );
-    }
-
-    public FileChangeWatcher( File file, TaskRunner taskRunner ) {
+    public FileChangeWatcher( File file,
+                              TaskRunner taskRunner,
+                              Runnable onChange ) {
         this.file = file;
-        this.taskRunner = taskRunner;
-    }
-
-    public void setOnChange( Runnable onChange ) {
         this.onChange = onChange;
-
-        final Cancellable previousWatcher = this.watcherTask;
-
-        // forbid resetting the watcher
-        if ( previousWatcher != null ) {
-            throw new IllegalStateException( "Cannot replace change listener" );
-        }
 
         this.watcherTask = taskRunner.scheduleRepeatingTask(
                 Duration.ofSeconds( 2 ),
@@ -120,18 +106,12 @@ public class FileChangeWatcher {
     }
 
     private void notifyWatcher( String eventKind ) {
-        final Runnable toRun = onChange;
-        if ( toRun != null ) {
-            log.debug( "Notifying listener of change event {} on file {}",
-                    eventKind, file );
-            try {
-                toRun.run();
-            } catch ( Exception e ) {
-                log.warn( "Error handling file change event", e );
-            }
-        } else {
-            log.warn( "File change detected ({}), but no listener has been registered " +
-                    "for file: {}", eventKind, file );
+        log.debug( "Notifying listener of change event {} on file {}",
+                eventKind, file );
+        try {
+            onChange.run();
+        } catch ( Exception e ) {
+            log.warn( "Error handling file change event", e );
         }
     }
 
@@ -145,6 +125,8 @@ public class FileChangeWatcher {
 
     public void close() {
         if ( !closed.getAndSet( true ) ) {
+            log.info( "Closing FileChangeWatcher for file {}", file );
+
             final Thread thread = watcherThread;
             watcherTask.cancel();
 

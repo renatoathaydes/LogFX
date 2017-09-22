@@ -56,14 +56,16 @@ public class FxUtils {
         } );
 
         if ( Properties.getCustomStylesheet().isPresent() ) {
-            log.info( "Using custom stylesheet for new Scene: {}", stylesheet );
+            log.info( "Using custom stylesheet for Scene: {}", stylesheet );
             if ( Properties.isRefreshStylesheet() ) {
                 FileChangeWatcher stylesheetWatcher = new FileChangeWatcher(
-                        Properties.getCustomStylesheet().get(), TaskRunner.getGlobalInstance() );
-                stylesheetWatcher.setOnChange( resetStylesheet );
+                        Properties.getCustomStylesheet().get(),
+                        TaskRunner.getGlobalInstance(),
+                        resetStylesheet );
 
                 scene.getWindow().setOnCloseRequest( event -> stylesheetWatcher.close() );
             } else {
+                log.info( "Custom stylesheet will not be refreshed" );
                 resetStylesheet.run();
             }
         } else {

@@ -23,14 +23,12 @@ class FileChangeWatcherSpec extends Specification {
         assert file.isFile()
 
         and: 'A FileChangeWatcher watches over it, informing the test when it changes'
-        def fileWatcher = new FileChangeWatcher( file, taskRunner )
         final changeLatch1 = new CountDownLatch( 1 )
         final changeLatch2 = new CountDownLatch( 2 )
-
-        fileWatcher.onChange = {
+        def fileWatcher = new FileChangeWatcher( file, taskRunner, {
             changeLatch1.countDown()
             changeLatch2.countDown()
-        }
+        } )
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
@@ -59,14 +57,12 @@ class FileChangeWatcherSpec extends Specification {
         assert file.isFile()
 
         and: 'A FileChangeWatcher watches over it, informing the test when it changes'
-        def fileWatcher = new FileChangeWatcher( file, taskRunner )
         final changeLatch1 = new CountDownLatch( 1 )
         final changeLatch2 = new CountDownLatch( 2 )
-
-        fileWatcher.onChange = {
+        def fileWatcher = new FileChangeWatcher( file, taskRunner, {
             changeLatch1.countDown()
             changeLatch2.countDown()
-        }
+        } )
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
@@ -98,14 +94,12 @@ class FileChangeWatcherSpec extends Specification {
         assert !file.exists()
 
         and: 'A FileChangeWatcher watches over it, informing the test when it gets created'
-        def fileWatcher = new FileChangeWatcher( file, taskRunner )
         final changeLatch1 = new CountDownLatch( 1 )
         final changeLatch2 = new CountDownLatch( 2 )
-
-        fileWatcher.onChange = {
+        def fileWatcher = new FileChangeWatcher( file, taskRunner, {
             changeLatch1.countDown()
             changeLatch2.countDown()
-        }
+        } )
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
@@ -139,14 +133,12 @@ class FileChangeWatcherSpec extends Specification {
         assert !nonExistingDir.exists() && !file.exists()
 
         when: 'A FileChangeWatcher watches over it, informing the test when it gets created'
-        def fileWatcher = new FileChangeWatcher( file, taskRunner )
         final changeLatch1 = new CountDownLatch( 1 )
         final changeLatch2 = new CountDownLatch( 2 )
-
-        fileWatcher.onChange = {
+        def fileWatcher = new FileChangeWatcher( file, taskRunner, {
             changeLatch1.countDown()
             changeLatch2.countDown()
-        }
+        } )
 
         then: 'We watcher does not start watching within a second as there is nothing to watch'
         sleep 1000L
@@ -187,16 +179,15 @@ class FileChangeWatcherSpec extends Specification {
         assert file.createNewFile()
 
         when: 'A FileChangeWatcher watches over it, informing the test when it gets changed'
-        def fileWatcher = new FileChangeWatcher( file, taskRunner )
         final changeLatch1 = new CountDownLatch( 1 )
         final changeLatch2 = new CountDownLatch( 2 )
         final changeLatch3 = new CountDownLatch( 3 )
 
-        fileWatcher.onChange = {
+        def fileWatcher = new FileChangeWatcher( file, taskRunner, {
             changeLatch1.countDown()
             changeLatch2.countDown()
             changeLatch3.countDown()
-        }
+        } )
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
@@ -241,14 +232,12 @@ class FileChangeWatcherSpec extends Specification {
         assert file.isFile()
 
         and: 'A FileChangeWatcher watches over it, informing the test when it changes'
-        def fileWatcher = new FileChangeWatcher( file, taskRunner )
         final changeLatch1 = new CountDownLatch( 1 )
         final changeLatch2 = new CountDownLatch( 2 )
-
-        fileWatcher.onChange = {
+        def fileWatcher = new FileChangeWatcher( file, taskRunner, {
             changeLatch1.countDown()
             changeLatch2.countDown()
-        }
+        } )
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
