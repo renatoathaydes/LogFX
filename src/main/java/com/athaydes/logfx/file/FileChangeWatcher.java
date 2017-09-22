@@ -37,12 +37,18 @@ public class FileChangeWatcher {
     public FileChangeWatcher( File file,
                               TaskRunner taskRunner,
                               Runnable onChange ) {
-        this.file = file;
+        this.file = file.getAbsoluteFile();
         this.onChange = onChange;
 
-        this.watcherTask = taskRunner.scheduleRepeatingTask(
-                Duration.ofSeconds( 2 ),
-                this::startIfNotWatching );
+        if ( this.file.getParentFile() == null ) {
+            log.warn( "Unable to watch file at the root path: {}", file );
+            this.watcherTask = () -> log.debug( "Cancelling no-op FileWatcher for {}", file );
+        } else {
+            this.watcherTask = taskRunner.scheduleRepeatingTask(
+                    Duration.ofSeconds( 2 ),
+                    this::startIfNotWatching );
+        }
+
     }
 
     private void startIfNotWatching() {
