@@ -1,12 +1,12 @@
 package com.athaydes.logfx.text;
 
-import com.athaydes.logfx.data.StandardLogColors;
+import com.athaydes.logfx.data.LogLineColors;
 import javafx.scene.paint.Paint;
 
 import java.util.regex.Pattern;
 
 /**
- *
+ * A log line highlight expression.
  */
 public class HighlightExpression {
 
@@ -20,10 +20,6 @@ public class HighlightExpression {
         this.fillColor = fillColor;
     }
 
-    public HighlightExpression( StandardLogColors standardLogColors ) {
-        this( "", standardLogColors.getBackground(), standardLogColors.getFill() );
-    }
-
     public Paint getBkgColor() {
         return bkgColor;
     }
@@ -34,6 +30,10 @@ public class HighlightExpression {
 
     public Pattern getPattern() {
         return expression;
+    }
+
+    public LogLineColors getLogLineColors() {
+        return new LogLineColors( bkgColor, fillColor );
     }
 
     public boolean matches( String text ) {

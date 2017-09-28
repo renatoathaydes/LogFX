@@ -1,6 +1,8 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -15,6 +17,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
@@ -27,7 +30,6 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.util.Optional;
 import java.util.regex.PatternSyntaxException;
 
 import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
@@ -35,7 +37,6 @@ import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 
 /**
  * The highlight options screen.
@@ -44,10 +45,21 @@ public class HighlightOptions extends VBox {
 
     private static final Logger log = LoggerFactory.getLogger( HighlightOptions.class );
 
+    private final SimpleObjectProperty<LogLineColors> standardLogColors;
     private final ObservableList<HighlightExpression> observableExpressions;
 
-    public HighlightOptions( ObservableList<HighlightExpression> observableExpressions ) {
+    private final VBox expressionsBox;
+
+    public HighlightOptions( SimpleObjectProperty<LogLineColors> standardLogColors,
+                             ObservableList<HighlightExpression> observableExpressions ) {
+        this.standardLogColors = standardLogColors;
         this.observableExpressions = observableExpressions;
+        this.expressionsBox = new VBox( 2 );
+
+        expressionsBox.getChildren().addAll( observableExpressions.stream()
+                .map( ex -> new HighlightExpressionRow( ex, observableExpressions, expressionsBox ) )
+                .toArray( HighlightExpressionRow[]::new ) );
+
         setSpacing( 5 );
         setPadding( new Insets( 5 ) );
         Label headerLabel = new Label( "Enter highlight expressions:" );
@@ -61,13 +73,10 @@ public class HighlightOptions extends VBox {
         Button newRow = new Button( "Add rule" );
         newRow.setOnAction( this::addRow );
 
-        getChildren().add( headerRow );
         getChildren().addAll(
-                observableExpressions.subList( 0, observableExpressions.size() - 1 ).stream()
-                        .map( Row::new )
-                        .collect( toList() ) );
-        getChildren().addAll(
-                new CatchAllRow( observableExpressions.get( observableExpressions.size() - 1 ) ),
+                headerRow,
+                expressionsBox,
+                new StandardLogColorsRow( standardLogColors ),
                 new HBox( 5, newRow ) );
     }
 
@@ -108,18 +117,11 @@ public class HighlightOptions extends VBox {
         return help;
     }
 
-
     private void addRow( Object ignore ) {
-        int index = 0;
-        for ( Node child : getChildren() ) {
-            if ( child instanceof CatchAllRow ) {
-                break;
-            }
-            index++;
-        }
         HighlightExpression expression = new HighlightExpression( "", nextColor(), nextColor() );
-        getChildren().add( index, new Row( expression ) );
-        observableExpressions.add( observableExpressions.size() - 1, expression );
+        observableExpressions.add( expression );
+        expressionsBox.getChildren().add( new HighlightExpressionRow(
+                expression, observableExpressions, expressionsBox ) );
     }
 
     private static Color nextColor() {
@@ -130,140 +132,101 @@ public class HighlightOptions extends VBox {
         return observableExpressions;
     }
 
-    public HighlightExpression expressionFor( String text ) {
+    public LogLineColors logLineColorsFor( String text ) {
         for ( HighlightExpression expression : observableExpressions ) {
             if ( expression.matches( text ) ) {
-                return expression;
+                return expression.getLogLineColors();
             }
         }
-        return observableExpressions.get( observableExpressions.size() - 1 );
+
+        return standardLogColors.get();
     }
 
-    private EventHandler<ActionEvent> moveUpEventHandler( Row row ) {
-        HighlightExpression expression = row.expression;
-        return ( event ) -> {
-            int childIndex = getChildren().indexOf( row );
-            if ( childIndex > 1 ) { // 0th child is the header, 1st child cannot be moved up
+    private static class StandardLogColorsRow extends Row {
+        private final SimpleObjectProperty<LogLineColors> standardLogColors;
 
-                int expressionIndex = observableExpressions.indexOf( expression );
-                if ( expressionIndex > 0 ) {
-                    Row previousChild = ( Row ) getChildren().remove( childIndex - 1 );
-                    getChildren().add( childIndex, previousChild );
+        StandardLogColorsRow( SimpleObjectProperty<LogLineColors> standardLogColors ) {
+            super( "", standardLogColors.get().getBackground(), standardLogColors.get().getFill() );
+            this.standardLogColors = standardLogColors;
 
-                    HighlightExpression previousExpression = observableExpressions.remove( expressionIndex - 1 );
-                    observableExpressions.add( expressionIndex, previousExpression );
-                }
-            }
-        };
-    }
-
-    private EventHandler<ActionEvent> moveDownEventHandler( Row row ) {
-        HighlightExpression expression = row.expression;
-        return ( event ) -> {
-            int childIndex = getChildren().indexOf( row );
-            Node nextChild = getChildren().get( childIndex + 1 );
-            if ( !( nextChild instanceof CatchAllRow ) && ( nextChild instanceof Row ) ) {
-                int expressionIndex = observableExpressions.indexOf( expression );
-
-                if ( expressionIndex + 1 < observableExpressions.size() ) {
-                    getChildren().remove( nextChild );
-                    getChildren().add( childIndex, nextChild );
-
-                    HighlightExpression nextExpression = observableExpressions.remove( expressionIndex + 1 );
-                    observableExpressions.add( expressionIndex, nextExpression );
-                }
-            }
-        };
-    }
-
-    private class CatchAllRow extends Row {
-        CatchAllRow( HighlightExpression expression ) {
-            super( expression, false );
             expressionField.setEditable( false );
             expressionField.setDisable( true );
         }
 
         @Override
-        protected Optional<Node> upDownButtons() {
-            return Optional.empty();
-        }
-
-        @Override
-        protected Optional<Node> removeButton() {
-            return Optional.empty();
+        protected void update() {
+            standardLogColors.set( new LogLineColors(
+                    bkgColorRectangle.getFill(), fillColorRectangle.getFill() ) );
         }
     }
 
-    private class Row extends HBox {
-        final TextField expressionField;
-        final TextField bkgColorField;
-        final TextField fillColorField;
-        final Rectangle bkgColorRectangle;
-        final Rectangle fillColorRectangle;
-        volatile HighlightExpression expression;
+    private static class HighlightExpressionRow extends Row {
+        private HighlightExpression expression;
+        private final ObservableList<HighlightExpression> observableExpressions;
+        private final VBox parent;
 
-        Row( HighlightExpression expression ) {
-            this( expression, true );
-        }
-
-        Row( HighlightExpression expression, boolean editable ) {
+        public HighlightExpressionRow( HighlightExpression expression,
+                                       ObservableList<HighlightExpression> observableExpressions,
+                                       VBox parent ) {
+            super( expression.getPattern().pattern(), expression.getBkgColor(), expression.getFillColor() );
             this.expression = expression;
-            setSpacing( 5 );
+            this.observableExpressions = observableExpressions;
+            this.parent = parent;
 
-            expressionField = new TextField( expression.getPattern().pattern() );
-            expressionField.setEditable( editable );
-            expressionField.setMinWidth( 300 );
-            expressionField.setTooltip( new Tooltip( "Enter a regular expression." ) );
-            expressionField.textProperty().addListener( event -> updateExpression() );
-
-            bkgColorRectangle = new Rectangle( 20, 20 );
-            fillColorRectangle = new Rectangle( 20, 20 );
-
-            bkgColorField = fieldFor( bkgColorRectangle,
-                    expression.getBkgColor().toString(), "Enter the background color." );
-            fillColorField = fieldFor( fillColorRectangle,
-                    expression.getFillColor().toString(), "Enter the text color." );
-
-            setMinWidth( 500 );
-            getChildren().addAll( expressionField,
-                    bkgColorField, bkgColorRectangle,
-                    fillColorField, fillColorRectangle );
-
-            Optional<Node> upDown = upDownButtons();
-            upDown.ifPresent( getChildren()::add );
-
-            Optional<Node> remove = removeButton();
-            remove.ifPresent( getChildren()::add );
+            getChildren().addAll( upDownButtons(), removeButton() );
         }
 
-        protected Optional<Node> upDownButtons() {
+        private Node upDownButtons() {
             VBox upDownArrows = new VBox( 2 );
             upDownArrows.getChildren().addAll(
-                    Arrow.arrowButton( UP, moveUpEventHandler( this ), "Move rule up" ),
-                    Arrow.arrowButton( DOWN, moveDownEventHandler( this ), "Move rule down" ) );
-            return Optional.of( upDownArrows );
+                    Arrow.arrowButton( UP, moveUpEventHandler(), "Move rule up" ),
+                    Arrow.arrowButton( DOWN, moveDownEventHandler(), "Move rule down" ) );
+            return upDownArrows;
         }
 
-        protected Optional<Node> removeButton() {
+        private EventHandler<ActionEvent> moveUpEventHandler() {
+            return event -> {
+                int index = observableExpressions.indexOf( expression );
+                if ( index > 0 ) {
+                    observableExpressions.remove( index );
+                    parent.getChildren().remove( index );
+                    observableExpressions.add( index - 1, expression );
+                    parent.getChildren().add( index - 1, this );
+                }
+            };
+        }
+
+        private EventHandler<ActionEvent> moveDownEventHandler() {
+            return event -> {
+                int index = observableExpressions.indexOf( expression );
+                if ( index < observableExpressions.size() - 1 ) {
+                    observableExpressions.remove( index );
+                    parent.getChildren().remove( index );
+                    observableExpressions.add( index + 1, expression );
+                    parent.getChildren().add( index + 1, this );
+                }
+            };
+        }
+
+        private Node removeButton() {
             Label removeButton = AwesomeIcons.createIconLabel( TRASH );
             removeButton.setTooltip( new Tooltip( "Remove rule" ) );
             removeButton.setOnMouseClicked( event -> {
                 observableExpressions.remove( expression );
-                HighlightOptions.this.getChildren().remove( this );
+                parent.getChildren().remove( this );
             } );
             removeButton.setOnMouseEntered( event -> getScene().setCursor( Cursor.HAND ) );
             removeButton.setOnMouseExited( event -> getScene().setCursor( Cursor.DEFAULT ) );
-            return Optional.of( removeButton );
+            return removeButton;
         }
 
-        private void updateExpression() {
+        @Override
+        protected void update() {
             try {
-                HighlightExpression newExpression = new HighlightExpression(
-                        expressionField.getText(), bkgColorRectangle.getFill(), fillColorRectangle.getFill()
-                );
-                int index = observableExpressions.indexOf( this.expression );
-                observableExpressions.set( index, newExpression );
-                this.expression = newExpression;
+                int index = observableExpressions.indexOf( expression );
+                expression = new HighlightExpression(
+                        expressionField.getText(), bkgColorRectangle.getFill(), fillColorRectangle.getFill() );
+                observableExpressions.set( index, expression );
                 expressionField.getStyleClass().remove( "error" );
             } catch ( PatternSyntaxException e ) {
                 if ( !expressionField.getStyleClass().contains( "error" ) ) {
@@ -272,6 +235,40 @@ public class HighlightOptions extends VBox {
                 log.warn( "Invalid regular expression: {}", e.toString() );
             }
         }
+
+    }
+
+    private static abstract class Row extends HBox {
+        final TextField expressionField;
+        final TextField bkgColorField;
+        final TextField fillColorField;
+        final Rectangle bkgColorRectangle;
+        final Rectangle fillColorRectangle;
+
+        Row( String pattern, Paint backgroundColor, Paint fillColor ) {
+            setSpacing( 5 );
+
+            expressionField = new TextField( pattern );
+            expressionField.setMinWidth( 300 );
+            expressionField.setTooltip( new Tooltip( "Enter a regular expression." ) );
+            expressionField.textProperty().addListener( event -> update() );
+
+            bkgColorRectangle = new Rectangle( 20, 20 );
+            fillColorRectangle = new Rectangle( 20, 20 );
+
+            bkgColorField = fieldFor( bkgColorRectangle,
+                    backgroundColor.toString(), "Enter the background color." );
+            fillColorField = fieldFor( fillColorRectangle,
+                    fillColor.toString(), "Enter the text color." );
+
+            setMinWidth( 500 );
+            getChildren().addAll( expressionField,
+                    bkgColorField, bkgColorRectangle,
+                    fillColorField, fillColorRectangle );
+        }
+
+        @MustCallOnJavaFXThread
+        protected abstract void update();
 
         private TextField fieldFor( Rectangle colorRectangle,
                                     String initialColor,
@@ -284,7 +281,7 @@ public class HighlightOptions extends VBox {
                 try {
                     colorRectangle.setFill( Color.valueOf( newValue ) );
                     field.getStyleClass().remove( "error" );
-                    updateExpression();
+                    update();
                 } catch ( IllegalArgumentException e ) {
                     if ( !field.getStyleClass().contains( "error" ) ) {
                         field.getStyleClass().add( "error" );

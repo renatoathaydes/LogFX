@@ -2,7 +2,7 @@ package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
-import com.athaydes.logfx.data.StandardLogColors;
+import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
 import javafx.application.Platform;
@@ -40,7 +40,7 @@ public class Config {
     private static final Logger log = LoggerFactory.getLogger( Config.class );
 
     private final Path path;
-    private final SimpleObjectProperty<StandardLogColors> standardLogColors;
+    private final SimpleObjectProperty<LogLineColors> standardLogColors;
     private final ObservableList<HighlightExpression> observableExpressions;
     private final ObservableSet<File> observableFiles;
     private final SimpleObjectProperty<Orientation> panesOrientation;
@@ -51,7 +51,7 @@ public class Config {
         this.path = path;
         this.font = fontValue;
 
-        standardLogColors = new SimpleObjectProperty<>( new StandardLogColors( Color.BLACK, Color.LIGHTGREY ) );
+        standardLogColors = new SimpleObjectProperty<>( new LogLineColors( Color.BLACK, Color.LIGHTGREY ) );
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
@@ -63,9 +63,6 @@ public class Config {
             observableExpressions.add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED ) );
         }
 
-        // the last item must always be the 'catch-all' item
-        observableExpressions.add( new HighlightExpression( standardLogColors.get() ) );
-
         // make this a singleton object so that it can be remembered when we try to run it many times below
         final Runnable updateConfigFile = this::dumpConfigToFile;
 
@@ -74,11 +71,16 @@ public class Config {
         InvalidationListener listener = ( event ) ->
                 taskRunner.runWithMaxFrequency( updateConfigFile, 2000L );
 
+        standardLogColors.addListener( listener );
         observableExpressions.addListener( listener );
         observableFiles.addListener( listener );
         panesOrientation.addListener( listener );
         paneDividerPositions.addListener( listener );
         font.addListener( listener );
+    }
+
+    public SimpleObjectProperty<LogLineColors> standardLogColorsProperty() {
+        return standardLogColors;
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
@@ -138,7 +140,7 @@ public class Config {
                     try {
                         Color bkg = Color.valueOf( components[ 0 ] );
                         Color fill = Color.valueOf( components[ 1 ] );
-                        standardLogColors.set( new StandardLogColors( bkg, fill ) );
+                        standardLogColors.set( new LogLineColors( bkg, fill ) );
                     } catch ( IllegalArgumentException e ) {
                         logInvalidProperty( "standard-log-colors", "color", line, e.toString() );
                     }
@@ -264,6 +266,9 @@ public class Config {
      * where we write the config file.
      */
     private void dumpConfigToFile() {
+        CompletableFuture<LogLineColors> standardLogColorsFuture = new CompletableFuture<>();
+        Platform.runLater( () -> standardLogColorsFuture.complete( standardLogColors.get() ) );
+
         CompletableFuture<List<HighlightExpression>> expressionsFuture = new CompletableFuture<>();
         Platform.runLater( () -> expressionsFuture.complete( new ArrayList<>( observableExpressions ) ) );
 
@@ -279,17 +284,19 @@ public class Config {
         CompletableFuture<Font> fontFuture = new CompletableFuture<>();
         Platform.runLater( () -> fontFuture.complete( font.getValue() ) );
 
-        expressionsFuture.thenAccept( expressions ->
-                filesFuture.thenAccept( files ->
-                        panesOrientationFuture.thenAccept( orientation ->
-                                paneDividersFuture.thenAccept( dividers ->
-                                        fontFuture.thenAccept( font ->
-                                                dumpConfigToFile(
-                                                        expressions, files, orientation,
-                                                        dividers, font, path.toFile() ) ) ) ) ) );
+        standardLogColorsFuture.thenAccept( logLineColors ->
+                expressionsFuture.thenAccept( expressions ->
+                        filesFuture.thenAccept( files ->
+                                panesOrientationFuture.thenAccept( orientation ->
+                                        paneDividersFuture.thenAccept( dividers ->
+                                                fontFuture.thenAccept( font ->
+                                                        dumpConfigToFile(
+                                                                logLineColors, expressions, files, orientation,
+                                                                dividers, font, path.toFile() ) ) ) ) ) ) );
     }
 
-    private static void dumpConfigToFile( List<HighlightExpression> highlightExpressions,
+    private static void dumpConfigToFile( LogLineColors logLineColors,
+                                          List<HighlightExpression> highlightExpressions,
                                           Set<File> files,
                                           Orientation orientation,
                                           List<Double> dividerPositions,
@@ -299,13 +306,11 @@ public class Config {
 
         try ( FileWriter writer = new FileWriter( path ) ) {
 
+            writer.write( "standard-log-colors:\n" );
+            writer.write( "  " + logLineColors.getBackground() + " " + logLineColors.getFill() );
+            writer.write( "\n" );
+
             if ( !highlightExpressions.isEmpty() ) {
-                HighlightExpression standardExpression = highlightExpressions.remove( highlightExpressions.size() - 1 );
-
-                writer.write( "standard-log-colors:\n" );
-                writer.write( "  " + standardExpression.getBkgColor() + " " + standardExpression.getFillColor() );
-                writer.write( "\n" );
-
                 writer.write( "expressions:\n" );
                 for ( HighlightExpression expression : highlightExpressions ) {
                     writer.write( "  " + expression.getBkgColor() );

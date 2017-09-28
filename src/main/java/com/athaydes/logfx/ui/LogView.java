@@ -2,13 +2,13 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
 import com.athaydes.logfx.file.OutsideRangeQueryResult;
 import com.athaydes.logfx.text.DateTimeFormatGuess;
 import com.athaydes.logfx.text.DateTimeFormatGuesser;
-import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
@@ -83,11 +83,11 @@ public class LogView extends VBox {
         this.selectionHandler = new SelectionHandler( this );
         this.file = fileContentReader.getFile();
 
-        final HighlightExpression expression = highlightOptions.expressionFor( "" );
+        final LogLineColors logLineColors = highlightOptions.logLineColorsFor( "" );
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
 
         logLineFactory = () -> new LogLine( fontValue, width,
-                expression.getBkgColor(), expression.getFillColor() );
+                logLineColors.getBackground(), logLineColors.getFill() );
 
         for ( int i = 0; i < MAX_LINES; i++ ) {
             getChildren().add( logLineFactory.get() );
@@ -321,8 +321,8 @@ public class LogView extends VBox {
 
     @MustCallOnJavaFXThread
     private void updateLine( LogLine line, String text ) {
-        HighlightExpression expression = highlightOptions.expressionFor( text );
-        line.setText( text, expression.getBkgColor(), expression.getFillColor() );
+        LogLineColors logLineColors = highlightOptions.logLineColorsFor( text );
+        line.setText( text, logLineColors.getBackground(), logLineColors.getFill() );
     }
 
     @MustCallOnJavaFXThread
