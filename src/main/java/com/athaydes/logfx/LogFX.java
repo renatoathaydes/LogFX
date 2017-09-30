@@ -9,6 +9,7 @@ import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
 import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.Dialog;
+import com.athaydes.logfx.ui.FileDragAndDrop;
 import com.athaydes.logfx.ui.FileOpener;
 import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.HighlightOptions;
@@ -27,8 +28,10 @@ import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -60,7 +63,8 @@ public class LogFX extends Application {
             Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
 
     private Stage stage;
-    private final VBox root = new VBox( 10 );
+    private final StackPane root = new StackPane();
+    private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
@@ -95,9 +99,12 @@ public class LogFX extends Application {
         menuBar.useSystemMenuBarProperty().set( true );
         menuBar.getMenus().addAll( fileMenu(), viewMenu(), helpMenu() );
 
-        logsPane.prefHeightProperty().bind( root.heightProperty() );
+        VBox mainBox = new VBox( 10 );
+        root.getChildren().addAll( mainBox, overlay );
 
-        root.getChildren().addAll( menuBar, logsPane.getNode() );
+        logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
+
+        mainBox.getChildren().addAll( menuBar, logsPane.getNode() );
 
         Scene scene = new Scene( root, 800, 600, Color.RED );
 
@@ -175,30 +182,53 @@ public class LogFX extends Application {
 
     private void openFilesFromConfig() {
         for ( File file : config.getObservableFiles() ) {
-            Platform.runLater( () -> openViewFor( file ) );
+            Platform.runLater( () -> openViewFor( file, -1 ) );
         }
     }
 
     @MustCallOnJavaFXThread
     private void open( File file ) {
+        open( file, -1 );
+    }
+
+    @MustCallOnJavaFXThread
+    private void open( File file, int index ) {
         if ( config.getObservableFiles().contains( file ) ) {
             log.debug( "Tried to open file that is already opened, will focus on it" );
             logsPane.focusOn( file );
         } else {
-            openViewFor( file );
+            openViewFor( file, index );
             config.getObservableFiles().add( file );
         }
     }
 
     @MustCallOnJavaFXThread
-    private void openViewFor( File file ) {
+    private void openViewFor( File file, int index ) {
         log.debug( "Creating file reader and view for file {}", file );
 
         FileContentReader fileReader = new FileReader( file, LogView.MAX_LINES );
         LogView view = new LogView( fontValue, root.widthProperty(),
                 highlightOptions, fileReader, taskRunner );
 
-        logsPane.add( view, () -> config.getObservableFiles().remove( file ) );
+        FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
+            int droppedOnPaneIndex = logsPane.indexOf( view );
+            if ( droppedOnPaneIndex < 0 ) {
+                open( droppedFile );
+            } else {
+                switch ( target ) {
+                    case BEFORE:
+                        open( droppedFile, droppedOnPaneIndex );
+                        break;
+                    case AFTER:
+                        open( droppedFile, droppedOnPaneIndex + 1 );
+                        break;
+                    default:
+                        throw new IllegalStateException( "Unknown target: " + target.name() );
+                }
+            }
+        } );
+
+        logsPane.add( view, () -> config.getObservableFiles().remove( file ), index );
     }
 
     @MustCallOnJavaFXThread

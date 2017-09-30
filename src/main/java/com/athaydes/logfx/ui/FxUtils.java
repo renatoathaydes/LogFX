@@ -4,6 +4,7 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.file.FileChangeWatcher;
 import javafx.application.Platform;
+import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.scene.Scene;
 import javafx.scene.layout.Background;
@@ -92,4 +93,12 @@ public class FxUtils {
         }
     }
 
+    public static void addIfNotPresent( ObservableList<String> styleClasses,
+                                        String... cssClasses ) {
+        for ( String cssClass : cssClasses ) {
+            if ( !styleClasses.contains( cssClass ) ) {
+                styleClasses.add( cssClass );
+            }
+        }
+    }
 }

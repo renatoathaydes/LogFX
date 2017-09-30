@@ -62,25 +62,25 @@ public final class LogViewPane {
                         Supplier<StartUpView> startUpViewGetter,
                         boolean showEmptyPanel ) {
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
-        copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN  ) );
+        copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
         copyMenuItem.setOnAction( event -> getFocusedView().ifPresent( wrapper ->
                 wrapper.logView.getSelection().ifPresent( content -> {
                     Clipboard.getSystemClipboard().setContent( content );
                 } ) ) );
 
         MenuItem closeMenuItem = new MenuItem( "Close" );
-        closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.SHORTCUT_DOWN  ) );
+        closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.SHORTCUT_DOWN ) );
         closeMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( LogViewWrapper::closeView ) );
 
         MenuItem pauseMenuItem = new MenuItem( "Pause/Resume file auto-refresh" );
-        pauseMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.P, KeyCombination.SHORTCUT_DOWN  ) );
+        pauseMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.P, KeyCombination.SHORTCUT_DOWN ) );
         pauseMenuItem.setOnAction( ( event ) ->
                 getFocusedView().ifPresent( view -> view.header.togglePauseRefresh() ) );
 
         MenuItem minimizeMenuItem = new MenuItem( "Minimize" );
         minimizeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.M,
-                KeyCombination.SHORTCUT_DOWN , KeyCombination.SHIFT_DOWN ) );
+                KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         minimizeMenuItem.setOnAction( event -> {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't hide anything if there isn't more than 1 pane
@@ -100,7 +100,7 @@ public final class LogViewPane {
 
         MenuItem maximizeMenuItem = new MenuItem( "Maximize" );
         maximizeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.M,
-                KeyCombination.SHORTCUT_DOWN  ) );
+                KeyCombination.SHORTCUT_DOWN ) );
         maximizeMenuItem.setOnAction( event -> {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't maximize anything if there isn't more than 1 pane
@@ -121,7 +121,7 @@ public final class LogViewPane {
         } );
 
         MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
-        goToDateMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN  ) );
+        goToDateMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN ) );
         goToDateMenuItem.setOnAction( event -> {
             Optional<LogViewWrapper> wrapper = getFocusedView();
             if ( wrapper.isPresent() ) {
@@ -133,19 +133,19 @@ public final class LogViewPane {
 
         MenuItem toTopMenuItem = new MenuItem( "To top of file" );
         toTopMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T,
-                KeyCombination.SHORTCUT_DOWN , KeyCombination.SHIFT_DOWN ) );
+                KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         toTopMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::toTop ) );
 
         MenuItem pageUpMenuItem = new MenuItem( "Page Up" );
-        pageUpMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.U, KeyCombination.SHORTCUT_DOWN  ) );
+        pageUpMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.U, KeyCombination.SHORTCUT_DOWN ) );
         pageUpMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::pageUp ) );
 
         MenuItem pageDownMenuItem = new MenuItem( "Page Down" );
-        pageDownMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.D, KeyCombination.SHORTCUT_DOWN  ) );
+        pageDownMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.D, KeyCombination.SHORTCUT_DOWN ) );
         pageDownMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::pageDown ) );
 
         MenuItem tailMenuItem = new MenuItem( "Tail file (on/off)" );
-        tailMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T, KeyCombination.SHORTCUT_DOWN  ) );
+        tailMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T, KeyCombination.SHORTCUT_DOWN ) );
         tailMenuItem.setOnAction( event -> getFocusedView()
                 .ifPresent( LogViewWrapper::switchTailFile ) );
 
@@ -214,8 +214,28 @@ public final class LogViewPane {
         return pane;
     }
 
+    public int indexOf( LogView view ) {
+        int index = 0;
+        boolean found = false;
+        for ( Node item : pane.getItems() ) {
+            if ( item instanceof LogViewWrapper ) {
+                if ( ( ( LogViewWrapper ) item ).logView == view ) {
+                    found = true;
+                    break;
+                }
+            }
+            index++;
+        }
+
+        if ( found ) {
+            return index;
+        } else {
+            return -1;
+        }
+    }
+
     @MustCallOnJavaFXThread
-    public void add( LogView logView, Runnable onCloseFile ) {
+    public void add( LogView logView, Runnable onCloseFile, int index ) {
         LogViewWrapper logViewWrapper = new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
             try {
                 pane.getItems().remove( wrapper );
@@ -228,7 +248,11 @@ public final class LogViewPane {
                 pane.getItems().get( 0 ) instanceof StartUpView ) {
             pane.getItems().set( 0, logViewWrapper );
         } else {
-            pane.getItems().add( logViewWrapper );
+            if ( index < 0 || index >= pane.getItems().size() ) {
+                pane.getItems().add( logViewWrapper );
+            } else {
+                pane.getItems().add( index, logViewWrapper );
+            }
         }
     }
 
@@ -302,6 +326,20 @@ public final class LogViewPane {
     public List<Double> getSeparatorsPositions() {
         return DoubleStream.of( pane.getDividerPositions() )
                 .boxed().collect( toList() );
+    }
+
+    @MustCallOnJavaFXThread
+    public ScrollPane getScrollPaneFor( LogView view ) {
+        for ( Node item : pane.getItems() ) {
+            if ( item instanceof LogViewWrapper ) {
+                LogViewWrapper wrapper = ( LogViewWrapper ) item;
+                if ( wrapper.getLogView() == view ) {
+                    return wrapper.getScrollPane();
+                }
+            }
+        }
+
+        return null;
     }
 
     private static class LogViewScrollPane extends ScrollPane {
@@ -389,6 +427,10 @@ public final class LogViewPane {
 
         LogView getLogView() {
             return logView;
+        }
+
+        public LogViewScrollPane getScrollPane() {
+            return scrollPane;
         }
 
         private boolean isShowingFileContents() {
