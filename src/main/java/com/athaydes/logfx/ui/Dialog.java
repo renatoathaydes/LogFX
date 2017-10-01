@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import javafx.animation.Animation;
 import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.ParallelTransition;
@@ -42,6 +43,7 @@ public class Dialog {
     }
 
     private static Window primaryStage = null;
+    private static Stage currentMessageStage = null;
 
     public static void setPrimaryStage( Window primaryStage ) {
         Dialog.primaryStage = primaryStage;
@@ -180,14 +182,15 @@ public class Dialog {
             blurText.setRadius( 0 );
             messageText.setEffect( blurText );
 
-            Animation blurAnimation = new Timeline( new KeyFrame( Duration.millis( 550 ),
+            Animation blurAnimation = new Timeline( new KeyFrame( Duration.millis( 450 ),
                     new KeyValue( blurText.angleProperty(), 45.0 ),
                     new KeyValue( blurText.radiusProperty(), 20.0 ) ) );
             blurAnimation.setDelay( Duration.millis( 500 ) );
 
-            FadeTransition hideAnimation = new FadeTransition( Duration.seconds( 2 ), dialog.getBox() );
+            FadeTransition hideAnimation = new FadeTransition( Duration.seconds( 1 ), dialog.getBox() );
             hideAnimation.setFromValue( 1.0 );
             hideAnimation.setToValue( 0.1 );
+            hideAnimation.setInterpolator( Interpolator.EASE_IN );
 
             ParallelTransition allAnimations = new ParallelTransition( hideAnimation, blurAnimation );
             allAnimations.setDelay( Duration.seconds( 3 ) );
@@ -201,6 +204,12 @@ public class Dialog {
 
             dialog.show( DialogPosition.TOP_CENTER );
             allAnimations.play();
+
+            if ( currentMessageStage != null ) {
+                dialog.dialogStage.setY( dialog.dialogStage.getY() + 20 + currentMessageStage.getHeight() );
+            }
+
+            currentMessageStage = dialog.dialogStage;
         } );
     }
 
