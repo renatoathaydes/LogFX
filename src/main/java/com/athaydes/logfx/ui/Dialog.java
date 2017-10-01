@@ -37,6 +37,10 @@ public class Dialog {
         INFO, WARNING, ERROR
     }
 
+    public enum DialogPosition {
+        CENTER, TOP_CENTER
+    }
+
     private static Window primaryStage = null;
 
     public static void setPrimaryStage( Window primaryStage ) {
@@ -104,7 +108,21 @@ public class Dialog {
     }
 
     public void show() {
-        dialogStage.centerOnScreen();
+        show( DialogPosition.CENTER );
+    }
+
+    public void show( DialogPosition position ) {
+        switch ( position ) {
+            case CENTER:
+                dialogStage.centerOnScreen();
+                break;
+            case TOP_CENTER:
+                Window owner = dialogStage.getOwner();
+                dialogStage.setX( owner.getX() + ( owner.getWidth() * 0.25 ) );
+                dialogStage.setY( owner.getY() + 30 );
+                break;
+        }
+
         dialogStage.show();
         hasBeenShown = true;
     }
@@ -181,7 +199,7 @@ public class Dialog {
                 allAnimations.play();
             } );
 
-            dialog.show();
+            dialog.show( DialogPosition.TOP_CENTER );
             allAnimations.play();
         } );
     }

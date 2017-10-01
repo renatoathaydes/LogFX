@@ -173,6 +173,8 @@ public class LogView extends VBox {
             if ( dateTimeFormatGuess == null ) {
                 log.warn( "Could not guess date-time format from this log file, " +
                         "will not be able to find log lines by date" );
+                Dialog.showMessage( "Unable to guess date-time format in file\n" +
+                        file.getName(), Dialog.MessageLevel.INFO );
                 return;
             }
 
@@ -219,6 +221,7 @@ public class LogView extends VBox {
                     .guessDateTimeFormats( lines.get() ).orElse( null );
         } else {
             log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", file );
+            Dialog.showMessage( "Could not be read file\n" + file.getName(), Dialog.MessageLevel.INFO );
         }
     }
 
