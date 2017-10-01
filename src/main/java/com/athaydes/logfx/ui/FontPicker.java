@@ -44,6 +44,7 @@ public class FontPicker {
         dialog.setTitle( "Select a font" );
         dialog.setAlwaysOnTop( true );
         dialog.setResizable( false );
+        dialog.setTransparentWhenNoFocus();
 
         dialog.show();
         return dialog;

@@ -7,6 +7,7 @@ import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.ParallelTransition;
 import javafx.animation.Timeline;
+import javafx.animation.Transition;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -27,6 +28,9 @@ import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedList;
+import java.util.List;
+
 /**
  * A dialog window to display other nodes vertically.
  */
@@ -43,7 +47,7 @@ public class Dialog {
     }
 
     private static Window primaryStage = null;
-    private static Stage currentMessageStage = null;
+    private static final List<Stage> currentMessageStages = new LinkedList<>();
 
     public static void setPrimaryStage( Window primaryStage ) {
         Dialog.primaryStage = primaryStage;
@@ -53,6 +57,7 @@ public class Dialog {
     private final VBox box = new VBox( 10 );
     private boolean hasBeenShown = false;
     private boolean closeWhenLoseFocus = false;
+    private boolean transparentWhenNoFocus = true;
 
     public Dialog( Node top, Node... others ) {
         this( null, top, others );
@@ -73,16 +78,6 @@ public class Dialog {
         } else {
             dialogStage.getScene().getStylesheets().add( stylesheet );
         }
-
-        dialogStage.focusedProperty().addListener( observable -> {
-            if ( dialogStage.isFocused() ) {
-                dialogStage.setOpacity( 1.0 );
-            } else if ( closeWhenLoseFocus ) {
-                dialogStage.close();
-            } else {
-                dialogStage.setOpacity( 0.5 );
-            }
-        } );
     }
 
     public VBox getBox() {
@@ -107,6 +102,21 @@ public class Dialog {
 
     public void setAlwaysOnTop( boolean alwaysOnTop ) {
         dialogStage.setAlwaysOnTop( alwaysOnTop );
+    }
+
+    public void setTransparentWhenNoFocus() {
+        if ( !transparentWhenNoFocus ) {
+            dialogStage.focusedProperty().addListener( observable -> {
+                if ( dialogStage.isFocused() ) {
+                    dialogStage.setOpacity( 1.0 );
+                } else if ( closeWhenLoseFocus ) {
+                    dialogStage.close();
+                } else {
+                    dialogStage.setOpacity( 0.5 );
+                }
+            } );
+            transparentWhenNoFocus = true;
+        }
     }
 
     public void show() {
@@ -194,7 +204,10 @@ public class Dialog {
 
             ParallelTransition allAnimations = new ParallelTransition( hideAnimation, blurAnimation );
             allAnimations.setDelay( Duration.seconds( 3 ) );
-            allAnimations.setOnFinished( event -> dialog.hide() );
+            allAnimations.setOnFinished( event -> {
+                dialog.hide();
+                currentMessageStages.remove( dialog.dialogStage );
+            } );
 
             dialog.getBox().setOnMouseClicked( event -> {
                 allAnimations.setDelay( Duration.seconds( 0 ) );
@@ -205,12 +218,43 @@ public class Dialog {
             dialog.show( DialogPosition.TOP_CENTER );
             allAnimations.play();
 
-            if ( currentMessageStage != null ) {
-                dialog.dialogStage.setY( dialog.dialogStage.getY() + 20 + currentMessageStage.getHeight() );
-            }
+            double yShift = 20 + currentMessageStages.stream()
+                    .mapToDouble( stage -> stage.getHeight() + 5.0 )
+                    .sum();
 
-            currentMessageStage = dialog.dialogStage;
+            StageTranslateTransition shiftDown = new StageTranslateTransition( dialog.dialogStage );
+            shiftDown.setToY( yShift );
+            shiftDown.setDuration( Duration.millis( 250.0 ) );
+            shiftDown.setInterpolator( Interpolator.EASE_BOTH );
+            shiftDown.play();
+
+            currentMessageStages.add( dialog.dialogStage );
         } );
+    }
+
+    private static class StageTranslateTransition extends Transition {
+
+        private final Stage stage;
+        private final double originalY;
+        private double toY = 100.0;
+
+        StageTranslateTransition( Stage stage ) {
+            this.stage = stage;
+            this.originalY = stage.getY();
+        }
+
+        void setToY( double toY ) {
+            this.toY = toY;
+        }
+
+        void setDuration( Duration duration ) {
+            setCycleDuration( duration );
+        }
+
+        @Override
+        protected void interpolate( double frac ) {
+            stage.setY( originalY + toY * frac );
+        }
     }
 
 }
