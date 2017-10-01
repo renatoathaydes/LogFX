@@ -44,20 +44,16 @@ public class FileDragAndDrop {
             if ( scrollPane != null ) {
                 scrollPaneRef.set( scrollPane );
                 double halfHeight = scrollPane.getHeight() / 2.0;
-                Bounds viewBounds = view.localToScene( view.getBoundsInLocal() );
+                Bounds viewBounds = scrollPaneRef.get().localToScene( scrollPaneRef.get().getBoundsInLocal() );
                 double halfMark = viewBounds.getMinY() + halfHeight;
                 boolean isTopHalf = event.getSceneY() < halfMark;
 
-                log.info( "Dragging over {}: sceneY={}, viewBounds: {}, scrollHeight: {}",
-                        isTopHalf ? "top half" : "bottom half",
-                        event.getSceneY(), viewBounds, scrollPane.getHeight() );
-
                 overlay.setVisible( true );
-                overlay.setPickOnBounds( true );
-                overlay.setX( 2 );
-                overlay.setY( viewBounds.getMinY() + ( isTopHalf ? 2 : halfHeight - 2 ) );
-                overlay.setHeight( halfHeight - 4 );
-                overlay.setWidth( scrollPane.getWidth() - 4 );
+                overlay.setMouseTransparent( true );
+                overlay.setX( 4 );
+                overlay.setY( viewBounds.getMinY() + ( isTopHalf ? 4 : halfHeight - 4 ) );
+                overlay.setHeight( halfHeight - 8 );
+                overlay.setWidth( scrollPane.getWidth() - 8 );
             } else {
                 log.warn( "Cannot find ScrollPane for LogView" );
             }
@@ -68,6 +64,7 @@ public class FileDragAndDrop {
             overlay.getStyleClass().remove( "shadow-overlay" );
             overlay.getStyleClass().remove( "highlight" );
             overlay.setVisible( false );
+            overlay.setMouseTransparent( false );
         } );
 
         view.setOnDragOver( event -> {
@@ -75,15 +72,11 @@ public class FileDragAndDrop {
                 event.acceptTransferModes( TransferMode.ANY );
 
                 double halfHeight = scrollPaneRef.get().getHeight() / 2.0;
-                Bounds viewBounds = view.localToScene( view.getBoundsInLocal() );
+                Bounds viewBounds = scrollPaneRef.get().localToScene( scrollPaneRef.get().getBoundsInLocal() );
                 double halfMark = viewBounds.getMinY() + halfHeight;
                 boolean isTopHalf = event.getSceneY() < halfMark;
 
-                log.info( "Dragging over {}: sceneY={}, viewBounds: {}, scrollHeight: {}",
-                        isTopHalf ? "top half" : "bottom half",
-                        event.getSceneY(), viewBounds, scrollPaneRef.get().getHeight() );
-
-                overlay.setY( viewBounds.getMinY() + ( isTopHalf ? 2 : halfHeight - 2 ) );
+                overlay.setY( viewBounds.getMinY() + ( isTopHalf ? 4 : halfHeight - 4 ) );
             }
             event.consume();
         } );

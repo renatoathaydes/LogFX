@@ -28,7 +28,7 @@ import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCodeCombination;
 import javafx.scene.input.KeyCombination;
-import javafx.scene.layout.StackPane;
+import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
@@ -63,7 +63,7 @@ public class LogFX extends Application {
             Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
 
     private Stage stage;
-    private final StackPane root = new StackPane();
+    private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
     private final HighlightOptions highlightOptions;
@@ -100,13 +100,18 @@ public class LogFX extends Application {
         menuBar.getMenus().addAll( fileMenu(), viewMenu(), helpMenu() );
 
         VBox mainBox = new VBox( 10 );
-        root.getChildren().addAll( mainBox, overlay );
-
         logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
-
         mainBox.getChildren().addAll( menuBar, logsPane.getNode() );
 
+        root.getChildren().addAll( mainBox, overlay );
+
         Scene scene = new Scene( root, 800, 600, Color.RED );
+
+        root.prefHeightProperty().bind( scene.heightProperty() );
+        root.prefWidthProperty().bind( scene.widthProperty() );
+
+        mainBox.prefHeightProperty().bind( scene.heightProperty() );
+        mainBox.prefWidthProperty().bind( scene.widthProperty() );
 
         primaryStage.setScene( scene );
         primaryStage.centerOnScreen();
