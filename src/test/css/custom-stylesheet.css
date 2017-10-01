@@ -47,3 +47,18 @@ LogView.dropping-files {
 .shadow-overlay.highlight {
     -fx-stroke: red 1px;
 }
+
+.message.info {
+    -fx-background-color: palegreen;
+    -fx-text-fill: lightyellow;
+}
+
+.message.warning {
+    -fx-background-color: sandybrown;
+    -fx-text-fill: darkslategray;
+}
+
+.message.error {
+    -fx-background-color: palevioletred;
+    -fx-text-fill: whitesmoke;
+}
