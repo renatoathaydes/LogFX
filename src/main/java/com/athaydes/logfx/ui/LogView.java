@@ -200,6 +200,9 @@ public class LogView extends VBox {
             } else {
                 log.warn( "Failed to open date-time in log, could not recognize dates in the log (took {} ms)",
                         System.currentTimeMillis() - startTime );
+
+                Dialog.showMessage( "Unable to open date-time.\n" +
+                        "The date-times in the file could not be recognized.", Dialog.MessageLevel.WARNING );
             }
         } );
     }

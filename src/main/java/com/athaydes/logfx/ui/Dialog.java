@@ -1,5 +1,11 @@
 package com.athaydes.logfx.ui;
 
+import javafx.animation.Animation;
+import javafx.animation.FadeTransition;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.ParallelTransition;
+import javafx.animation.Timeline;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -7,16 +13,18 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.effect.MotionBlur;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
 import javafx.stage.WindowEvent;
+import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 /**
  * A dialog window to display other nodes vertically.
@@ -25,6 +33,10 @@ public class Dialog {
 
     private static final Logger log = LoggerFactory.getLogger( Dialog.class );
 
+    public enum MessageLevel {
+        INFO, WARNING, ERROR
+    }
+
     private static Window primaryStage = null;
 
     public static void setPrimaryStage( Window primaryStage ) {
@@ -32,6 +44,7 @@ public class Dialog {
     }
 
     private final Stage dialogStage = new Stage();
+    private final VBox box = new VBox( 10 );
     private boolean hasBeenShown = false;
     private boolean closeWhenLoseFocus = false;
 
@@ -42,12 +55,12 @@ public class Dialog {
     public Dialog( String stylesheet, Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
         dialogStage.initModality( Modality.NONE );
-        VBox box = new VBox( 10 );
         box.setAlignment( Pos.CENTER );
         box.setPadding( new Insets( 20 ) );
         box.getChildren().add( top );
         box.getChildren().addAll( others );
         dialogStage.setScene( new Scene( box ) );
+        dialogStage.getScene().setFill( Color.TRANSPARENT );
 
         if ( stylesheet == null ) {
             FxUtils.setupStylesheet( dialogStage.getScene() );
@@ -64,6 +77,10 @@ public class Dialog {
                 dialogStage.setOpacity( 0.5 );
             }
         } );
+    }
+
+    public VBox getBox() {
+        return box;
     }
 
     public void setCloseWhenLoseFocus( boolean closeWhenLoseFocus ) {
@@ -129,6 +146,43 @@ public class Dialog {
                     okButton );
             okButton.setOnAction( event -> dialog.hide() );
             dialog.show();
+        } );
+    }
+
+    static void showMessage( String text, MessageLevel level ) {
+        Platform.runLater( () -> {
+            Text messageText = new Text( text );
+            Dialog dialog = new Dialog( messageText );
+            dialog.setStyle( StageStyle.TRANSPARENT );
+            dialog.getBox().setSpacing( 0 );
+            dialog.getBox().getStyleClass().addAll( "message", level.name().toLowerCase() );
+
+            MotionBlur blurText = new MotionBlur();
+            blurText.setAngle( 0 );
+            blurText.setRadius( 0 );
+            messageText.setEffect( blurText );
+
+            Animation blurAnimation = new Timeline( new KeyFrame( Duration.millis( 550 ),
+                    new KeyValue( blurText.angleProperty(), 45.0 ),
+                    new KeyValue( blurText.radiusProperty(), 20.0 ) ) );
+            blurAnimation.setDelay( Duration.millis( 500 ) );
+
+            FadeTransition hideAnimation = new FadeTransition( Duration.seconds( 2 ), dialog.getBox() );
+            hideAnimation.setFromValue( 1.0 );
+            hideAnimation.setToValue( 0.1 );
+
+            ParallelTransition allAnimations = new ParallelTransition( hideAnimation, blurAnimation );
+            allAnimations.setDelay( Duration.seconds( 3 ) );
+            allAnimations.setOnFinished( event -> dialog.hide() );
+
+            dialog.getBox().setOnMouseClicked( event -> {
+                allAnimations.setDelay( Duration.seconds( 0 ) );
+                allAnimations.stop();
+                allAnimations.play();
+            } );
+
+            dialog.show();
+            allAnimations.play();
         } );
     }
 
