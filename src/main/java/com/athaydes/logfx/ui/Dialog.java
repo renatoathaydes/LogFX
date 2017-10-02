@@ -57,7 +57,7 @@ public class Dialog {
     private final VBox box = new VBox( 10 );
     private boolean hasBeenShown = false;
     private boolean closeWhenLoseFocus = false;
-    private boolean transparentWhenNoFocus = true;
+    private boolean transparentWhenNoFocus = false;
 
     public Dialog( Node top, Node... others ) {
         this( null, top, others );
@@ -84,8 +84,15 @@ public class Dialog {
         return box;
     }
 
-    public void setCloseWhenLoseFocus( boolean closeWhenLoseFocus ) {
-        this.closeWhenLoseFocus = closeWhenLoseFocus;
+    public void closeWhenLoseFocus() {
+        if ( !closeWhenLoseFocus ) {
+            dialogStage.focusedProperty().addListener( observable -> {
+                if ( !dialogStage.isFocused() ) {
+                    dialogStage.close();
+                }
+            } );
+            closeWhenLoseFocus = true;
+        }
     }
 
     public void setResizable( boolean resizable ) {
@@ -104,13 +111,11 @@ public class Dialog {
         dialogStage.setAlwaysOnTop( alwaysOnTop );
     }
 
-    public void setTransparentWhenNoFocus() {
+    public void makeTransparentWhenLoseFocus() {
         if ( !transparentWhenNoFocus ) {
             dialogStage.focusedProperty().addListener( observable -> {
                 if ( dialogStage.isFocused() ) {
                     dialogStage.setOpacity( 1.0 );
-                } else if ( closeWhenLoseFocus ) {
-                    dialogStage.close();
                 } else {
                     dialogStage.setOpacity( 0.5 );
                 }

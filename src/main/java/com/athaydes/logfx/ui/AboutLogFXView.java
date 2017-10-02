@@ -55,7 +55,7 @@ public class AboutLogFXView {
         Dialog dialog = new Dialog( ( String ) null, createNode() );
         dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
-        dialog.setCloseWhenLoseFocus( true );
+        dialog.closeWhenLoseFocus();
 
         dialog.show();
     }

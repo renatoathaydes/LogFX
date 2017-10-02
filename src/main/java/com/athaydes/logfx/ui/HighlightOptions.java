@@ -301,7 +301,7 @@ public class HighlightOptions extends VBox {
         dialog.setSize( 850.0, 260.0 );
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );
-        dialog.setTransparentWhenNoFocus();
+        dialog.makeTransparentWhenLoseFocus();
         dialog.show();
         return dialog;
     }
