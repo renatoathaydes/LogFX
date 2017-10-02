@@ -4,8 +4,11 @@ import javafx.application.HostServices;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
 
-import java.util.function.Supplier;
+import java.io.File;
+import java.util.function.Consumer;
 
 /**
  * The startup view.
@@ -14,16 +17,26 @@ import java.util.function.Supplier;
  */
 public class StartUpView extends StackPane {
 
-    public StartUpView( HostServices hostServices, Supplier<FileOpener> fileOpenerGetter ) {
+    public StartUpView( HostServices hostServices,
+                        Stage stage,
+                        Consumer<File> openFile ) {
         VBox box = new AboutLogFXView( hostServices ).createNode();
 
         String metaKey = FxUtils.isMac() ? "⌘" : "Ctrl+";
 
         Hyperlink link = new Hyperlink( String.format( "Open file (%sO)", metaKey ) );
         link.getStyleClass().add( "large-background-text" );
-        link.setOnAction( ( event ) -> fileOpenerGetter.get() );
+        link.setOnAction( ( event ) -> new FileOpener( stage, openFile ) );
 
-        box.getChildren().add( link );
+        Text dropText = new Text( "Or drop files here" );
+        dropText.getStyleClass().add( "large-background-text" );
+
+        StackPane fileDropPane = new StackPane( dropText );
+        fileDropPane.getStyleClass().add("drop-file-pane");
+
+        FileDragAndDrop.install( fileDropPane, openFile );
+
+        box.getChildren().addAll( link, fileDropPane );
         getChildren().addAll( box );
     }
 

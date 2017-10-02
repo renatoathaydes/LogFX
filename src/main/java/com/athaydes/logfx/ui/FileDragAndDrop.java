@@ -1,6 +1,7 @@
 package com.athaydes.logfx.ui;
 
 import javafx.geometry.Bounds;
+import javafx.scene.Node;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.input.Dragboard;
 import javafx.scene.input.TransferMode;
@@ -11,6 +12,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * Utility class to install file drag-and-drop functionality onto Nodes.
@@ -97,6 +99,48 @@ public class FileDragAndDrop {
                             onDrop.accept( draggedFile, isTopHalf ? DropTarget.BEFORE : DropTarget.AFTER );
                             success = true;
                         }
+                    }
+                }
+            }
+
+            event.setDropCompleted( success );
+            event.consume();
+        } );
+    }
+
+    /**
+     * Install file drag-and-drop functionality onto the given Node.
+     *
+     * @param node   node to accept file drop
+     * @param onDrop action on drop
+     */
+    public static void install( Node node,
+                                Consumer<File> onDrop ) {
+        node.setOnDragEntered( event -> {
+            FxUtils.addIfNotPresent( node.getStyleClass(), "dropping-files" );
+        } );
+
+        node.setOnDragExited( event -> {
+            node.getStyleClass().remove( "dropping-files" );
+        } );
+
+        node.setOnDragOver( event -> {
+            if ( event.getDragboard().hasFiles() ) {
+                event.acceptTransferModes( TransferMode.ANY );
+            }
+            event.consume();
+        } );
+
+        node.setOnDragDropped( event -> {
+            Dragboard db = event.getDragboard();
+            boolean success = false;
+
+            if ( db.hasFiles() ) {
+                log.debug( "Dropping files: {}", db.getFiles() );
+                for ( File draggedFile : db.getFiles() ) {
+                    if ( draggedFile.isFile() ) {
+                        onDrop.accept( draggedFile );
+                        success = true;
                     }
                 }
             }

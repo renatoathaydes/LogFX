@@ -60,3 +60,15 @@ LogView.dropping-files {
     -fx-background-color: palevioletred;
     -fx-text-fill: whitesmoke;
 }
+
+.drop-file-pane {
+    -fx-max-width: 290px;
+    -fx-pref-height: 150px;
+    -fx-border-width: 1px;
+    -fx-border-color: derive(-fx-base, -80%);
+}
+
+.drop-file-pane.dropping-files {
+    -fx-border-width: 2px;
+    -fx-border-color: derive(-fx-base, 80%);
+}

@@ -9,7 +9,7 @@ import java.io.File;
 import java.util.function.Consumer;
 
 /**
- * File opener.
+ * Operating System File opener Dialog.
  */
 public class FileOpener {
 

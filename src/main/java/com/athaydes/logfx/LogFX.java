@@ -80,7 +80,7 @@ public class LogFX extends Application {
                 config.getObservableExpressions() );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
-                new StartUpView( getHostServices(), () -> new FileOpener( stage, this::open ) ),
+                new StartUpView( getHostServices(), stage, this::open ),
                 config.getObservableFiles().isEmpty() );
 
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
