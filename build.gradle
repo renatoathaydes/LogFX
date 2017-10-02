@@ -1,3 +1,5 @@
+import groovy.text.SimpleTemplateEngine
+
 buildscript {
     repositories {
         jcenter()
@@ -24,6 +26,10 @@ repositories {
     jcenter()
 }
 
+final generatedJavaSources = "$buildDir/java-generated-sources"
+
+sourceSets.main.java.srcDir generatedJavaSources
+
 dependencies {
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
 
@@ -43,6 +49,29 @@ test {
     systemProperty 'logfx.log.target', 'sysout'
     systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', 'true'
 }
+
+task generateJavaSources(
+        description: 'Generates Java sources based on the java-templates directory' ) {
+    def properties = [ logfxVersion: version ]
+    def templates = fileTree( dir: 'src/main/java-templates' )
+    def destination = file( generatedJavaSources )
+
+    doLast {
+        templates.visit { item ->
+            def file = item.file
+            if ( file.isFile() ) {
+                def transformedTemplate = new SimpleTemplateEngine().createTemplate( file ).make( properties )
+                new File( destination, item.relativePath.toString() ).withWriter {
+                    transformedTemplate.writeTo it
+                }
+            } else {
+                new File( destination, item.relativePath.toString() ).mkdirs()
+            }
+        }
+    }
+}
+
+compileJava.dependsOn generateJavaSources
 
 task fatJar( type: Jar ) {
     manifest {

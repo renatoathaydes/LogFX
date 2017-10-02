@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.Constants;
 import javafx.application.HostServices;
 import javafx.geometry.Pos;
 import javafx.scene.control.Hyperlink;
@@ -37,11 +38,12 @@ public class AboutLogFXView {
         VBox smallText = new VBox( 10 );
         smallText.setPrefWidth( 500 );
         smallText.setAlignment( Pos.CENTER );
+        Text version = new Text( "Version " + Constants.LOGFX_VERSION );
         Text byRenato = new Text( "Copyright Renato Athaydes, 2017. All rights reserved." );
         Text license = new Text( "Licensed under the GPLv3 License." );
         Hyperlink link = new Hyperlink( "https://github.com/renatoathaydes/LogFX" );
         link.setOnAction( ( event ) -> hostServices.showDocument( link.getText() ) );
-        smallText.getChildren().addAll( byRenato, link, license );
+        smallText.getChildren().addAll( version, byRenato, link, license );
 
         contents.getChildren().addAll( textBox, smallText );
 
