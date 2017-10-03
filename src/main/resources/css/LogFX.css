@@ -66,6 +66,7 @@ LogView.dropping-files {
     -fx-pref-height: 150px;
     -fx-border-width: 1px;
     -fx-border-color: derive(-fx-base, -80%);
+    -fx-border-style: dashed;
 }
 
 .drop-file-pane.dropping-files {
