@@ -10,7 +10,7 @@ buildscript {
 }
 
 group 'com.athaydes.logfx'
-version '0.6.1'
+version '0.7.0'
 
 apply plugin: 'groovy'
 apply plugin: 'application'
