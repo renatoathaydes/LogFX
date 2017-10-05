@@ -16,8 +16,8 @@ apply plugin: 'groovy'
 apply plugin: 'application'
 apply plugin: 'maven'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.9
+targetCompatibility = 1.9
 
 mainClassName = "com.athaydes.logfx.LogFX"
 
@@ -30,10 +30,24 @@ final generatedJavaSources = "$buildDir/java-generated-sources"
 
 sourceSets.main.java.srcDir generatedJavaSources
 
+ext.moduleName = 'com.athaydes.logfx'
+
+compileJava {
+    inputs.property("moduleName", moduleName)
+    doFirst {
+        options.compilerArgs = [
+                '--module-path', classpath.asPath,
+        ]
+        classpath = files()
+    }
+}
+
 dependencies {
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
 
-    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.4'
+    // Groovy 2.4.12 supports JDK9 but with warnings - upgrade again when possible
+    testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.12'
+
     testCompile group: 'org.spockframework', name: 'spock-core', version: '1.1-groovy-2.4', {
         transitive = false
     }

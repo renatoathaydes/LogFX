@@ -47,9 +47,9 @@ public class FxUtils {
     public static void setupStylesheet( Scene scene ) {
         String stylesheet = Properties.getCustomStylesheet()
                 .map( FxUtils::toAbsoluteFileUri )
-                .orElse( "css/LogFX.css" );
+                .orElse( "com/athaydes/logfx/css/LogFX.css" );
 
-        String iconsStylesheet = "css/icons.css";
+        String iconsStylesheet = "com/athaydes/logfx/css/icons.css";
 
         Runnable resetStylesheet = () -> Platform.runLater( () -> {
             scene.getStylesheets().clear();

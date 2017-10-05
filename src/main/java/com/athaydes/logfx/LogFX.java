@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.InputStream;
+import java.net.URL;
 import java.nio.file.Path;
 import java.util.Arrays;
 import java.util.List;
@@ -136,9 +137,9 @@ public class LogFX extends Application {
     private void setIconsOn( Stage primaryStage ) {
         taskRunner.runAsync( () -> {
             final List<InputStream> imageStreams = Arrays.asList(
-                    LogFX.class.getResourceAsStream( "/images/favicon-large.png" ),
-                    LogFX.class.getResourceAsStream( "/images/favicon-small.png" ),
-                    LogFX.class.getResourceAsStream( "/images/favicon-tiny.png" ) );
+                    LogFX.class.getResourceAsStream( "/com/athaydes/logfx/images/favicon-large.png" ),
+                    LogFX.class.getResourceAsStream( "/com/athaydes/logfx/images/favicon-small.png" ),
+                    LogFX.class.getResourceAsStream( "/com/athaydes/logfx/images/favicon-tiny.png" ) );
 
             Platform.runLater( () -> imageStreams.stream()
                     .map( Image::new )
@@ -296,7 +297,11 @@ public class LogFX extends Application {
             SetupMacTrayIcon.run();
         }
 
-        Font.loadFont( LogFX.class.getResource( "/fonts/fontawesome-webfont.ttf" ).toExternalForm(), 12 );
+        URL resource = LogFX.class.getResource( "fonts/fontawesome-webfont.ttf" );
+        if ( resource == null ) {
+            throw new IllegalStateException( "Cannot load FontAwesome" );
+        }
+        Font.loadFont( resource.toExternalForm(), 12 );
         Application.launch( LogFX.class );
     }
 

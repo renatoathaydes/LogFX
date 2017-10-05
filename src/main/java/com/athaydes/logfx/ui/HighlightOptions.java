@@ -87,7 +87,7 @@ public class HighlightOptions extends VBox {
         String htmlText;
         try {
             htmlText = new BufferedReader( new InputStreamReader(
-                    getClass().getResourceAsStream( "/html/highlight-options-help.html" ),
+                    getClass().getResourceAsStream( "/com/athaydes/logfx/html/highlight-options-help.html" ),
                     StandardCharsets.UTF_8 )
             ).lines().collect( joining( "\n" ) );
 
