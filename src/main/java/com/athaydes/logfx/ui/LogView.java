@@ -10,6 +10,7 @@ import com.athaydes.logfx.file.OutsideRangeQueryResult;
 import com.athaydes.logfx.text.DateTimeFormatGuess;
 import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
@@ -70,6 +71,7 @@ public class LogView extends VBox {
     private volatile Runnable onFileUpdate = DO_NOTHING;
 
     private DateTimeFormatGuess dateTimeFormatGuess = null;
+    private final InvalidationListener colorChangeListener;
 
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
@@ -93,11 +95,14 @@ public class LogView extends VBox {
             getChildren().add( logLineFactory.get() );
         }
 
-        highlightOptions.getObservableExpressions().addListener( ( Observable observable ) -> {
+        this.colorChangeListener = ( Observable observable ) -> {
             for ( int i = 0; i < MAX_LINES; i++ ) {
                 updateLine( i );
             }
-        } );
+        };
+
+        highlightOptions.getObservableExpressions().addListener( colorChangeListener );
+        highlightOptions.getStandardLogColors().addListener( colorChangeListener );
 
         tailingFile.addListener( event -> {
             if ( tailingFile.get() ) {
@@ -343,5 +348,7 @@ public class LogView extends VBox {
     void closeFileReader() {
         fileChangeWatcher.close();
         fileReaderExecutor.shutdown();
+        highlightOptions.getObservableExpressions().removeListener( colorChangeListener );
+        highlightOptions.getStandardLogColors().removeListener( colorChangeListener );
     }
 }

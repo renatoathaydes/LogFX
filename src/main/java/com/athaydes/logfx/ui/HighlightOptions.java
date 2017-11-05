@@ -132,6 +132,10 @@ public class HighlightOptions extends VBox {
         return observableExpressions;
     }
 
+    public SimpleObjectProperty<LogLineColors> getStandardLogColors() {
+        return standardLogColors;
+    }
+
     public LogLineColors logLineColorsFor( String text ) {
         for ( HighlightExpression expression : observableExpressions ) {
             if ( expression.matches( text ) ) {
