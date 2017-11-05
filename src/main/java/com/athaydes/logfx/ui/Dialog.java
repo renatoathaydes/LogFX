@@ -16,6 +16,8 @@ import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.effect.MotionBlur;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -72,6 +74,11 @@ public class Dialog {
         box.getChildren().addAll( others );
         dialogStage.setScene( new Scene( box ) );
         dialogStage.getScene().setFill( Color.TRANSPARENT );
+        dialogStage.addEventHandler( KeyEvent.KEY_RELEASED, ( KeyEvent event ) -> {
+            if ( KeyCode.ESCAPE == event.getCode() ) {
+                dialogStage.close();
+            }
+        } );
 
         if ( stylesheet == null ) {
             FxUtils.setupStylesheet( dialogStage.getScene() );

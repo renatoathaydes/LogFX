@@ -28,7 +28,7 @@ OR
 * download the jar from the command-line:
 
 ```
-curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.7.0/logfx-0.7.0-all.jar -o logfx.jar
+curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.8.0/logfx-0.8.0-all.jar -o logfx.jar
 ```
 
 > Size of the jar as of version `0.6.1`: 289 KB. *Not MB!*
