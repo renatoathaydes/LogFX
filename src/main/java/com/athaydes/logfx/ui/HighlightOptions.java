@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -18,7 +19,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.web.WebEngine;
@@ -158,9 +158,8 @@ public class HighlightOptions extends VBox {
         }
 
         @Override
-        protected void update() {
-            standardLogColors.set( new LogLineColors(
-                    bkgColorRectangle.getFill(), fillColorRectangle.getFill() ) );
+        protected void update( Color bkgColor, Color fillColor ) {
+            standardLogColors.set( new LogLineColors( bkgColor, fillColor ) );
         }
     }
 
@@ -225,11 +224,11 @@ public class HighlightOptions extends VBox {
         }
 
         @Override
-        protected void update() {
+        protected void update( Color bkgColor, Color fillColor ) {
             try {
                 int index = observableExpressions.indexOf( expression );
                 expression = new HighlightExpression(
-                        expressionField.getText(), bkgColorRectangle.getFill(), fillColorRectangle.getFill() );
+                        expressionField.getText(), bkgColor, fillColor );
                 observableExpressions.set( index, expression );
                 expressionField.getStyleClass().remove( "error" );
             } catch ( PatternSyntaxException e ) {
@@ -244,10 +243,8 @@ public class HighlightOptions extends VBox {
 
     private static abstract class Row extends HBox {
         final TextField expressionField;
-        final TextField bkgColorField;
-        final TextField fillColorField;
-        final Rectangle bkgColorRectangle;
-        final Rectangle fillColorRectangle;
+        private final ColorChooser bkgColorPicker;
+        private final ColorChooser fillColorPicker;
 
         Row( String pattern, Paint backgroundColor, Paint fillColor ) {
             setSpacing( 5 );
@@ -255,46 +252,26 @@ public class HighlightOptions extends VBox {
             expressionField = new TextField( pattern );
             expressionField.setMinWidth( 300 );
             expressionField.setTooltip( new Tooltip( "Enter a regular expression." ) );
-            expressionField.textProperty().addListener( event -> update() );
 
-            bkgColorRectangle = new Rectangle( 20, 20 );
-            fillColorRectangle = new Rectangle( 20, 20 );
+            bkgColorPicker = new ColorChooser( backgroundColor.toString(), "Enter the background color." );
+            fillColorPicker = new ColorChooser( fillColor.toString(), "Enter the text color." );
 
-            bkgColorField = fieldFor( bkgColorRectangle,
-                    backgroundColor.toString(), "Enter the background color." );
-            fillColorField = fieldFor( fillColorRectangle,
-                    fillColor.toString(), "Enter the text color." );
+            InvalidationListener updater = ( ignore ) ->
+                    update( bkgColorPicker.getColor(), fillColorPicker.getColor() );
+
+            bkgColorPicker.addListener( updater );
+            fillColorPicker.addListener( updater );
 
             setMinWidth( 500 );
             getChildren().addAll( expressionField,
-                    bkgColorField, bkgColorRectangle,
-                    fillColorField, fillColorRectangle );
+                    bkgColorPicker.node(), fillColorPicker.node() );
+
+            expressionField.textProperty().addListener( event ->
+                    update( bkgColorPicker.getColor(), fillColorPicker.getColor() ) );
         }
 
         @MustCallOnJavaFXThread
-        protected abstract void update();
-
-        private TextField fieldFor( Rectangle colorRectangle,
-                                    String initialColor,
-                                    String toolTipText ) {
-            TextField field = new TextField( initialColor );
-            field.setTooltip( new Tooltip( toolTipText ) );
-            colorRectangle.setFill( Color.valueOf( field.getText() ) );
-            field.setMinWidth( 30 );
-            field.textProperty().addListener( ( ignore, oldValue, newValue ) -> {
-                try {
-                    colorRectangle.setFill( Color.valueOf( newValue ) );
-                    field.getStyleClass().remove( "error" );
-                    update();
-                } catch ( IllegalArgumentException e ) {
-                    if ( !field.getStyleClass().contains( "error" ) ) {
-                        field.getStyleClass().add( "error" );
-                    }
-                    log.debug( "Invalid color entered" );
-                }
-            } );
-            return field;
-        }
+        protected abstract void update( Color bkgColor, Color fillColor );
 
     }
 
