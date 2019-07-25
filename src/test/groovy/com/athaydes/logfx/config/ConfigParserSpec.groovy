@@ -7,11 +7,11 @@ import spock.lang.Unroll
 import java.util.regex.Pattern
 
 @Unroll
-class ConfigSpec extends Specification {
+class ConfigParserSpec extends Specification {
 
     def "Can parse highlight expressions from config"() {
         when:
-        def result = Config.parseHighlightExpression( expression )
+        def result = ConfigParser.parseHighlightExpression( expression )
 
         then:
         result.bkgColor == expectedBkg
@@ -27,7 +27,7 @@ class ConfigSpec extends Specification {
 
     def "Errors when parsing invalid highlight expressions"() {
         when:
-        Config.parseHighlightExpression( expression )
+        ConfigParser.parseHighlightExpression( expression )
 
         then:
         IllegalArgumentException exception = thrown()
