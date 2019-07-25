@@ -5,6 +5,7 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
+import com.athaydes.logfx.ui.FxUtils;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.SimpleObjectProperty;
@@ -47,10 +48,10 @@ public class Config {
     private final ObservableList<Double> paneDividerPositions;
     private final BindableValue<Font> font;
 
-    public Config( Path path, TaskRunner taskRunner, BindableValue<Font> fontValue ) {
+    public Config( Path path, TaskRunner taskRunner ) {
         this.path = path;
-        this.font = fontValue;
 
+        font = new BindableValue<>( Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
         standardLogColors = new SimpleObjectProperty<>( new LogLineColors( Color.BLACK, Color.LIGHTGREY ) );
         observableExpressions = FXCollections.observableArrayList();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
@@ -97,6 +98,10 @@ public class Config {
 
     public ObservableList<Double> getPaneDividerPositions() {
         return paneDividerPositions;
+    }
+
+    public BindableValue<Font> fontProperty() {
+        return font;
     }
 
     private void readConfigFile( Path path ) {
@@ -406,6 +411,5 @@ public class Config {
     private static IllegalArgumentException highlightParseError( String error, String line ) {
         return new IllegalArgumentException( "Invalid highlight expression [" + error + "]: " + line );
     }
-
 
 }

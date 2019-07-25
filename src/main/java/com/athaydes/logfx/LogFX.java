@@ -1,6 +1,5 @@
 package com.athaydes.logfx;
 
-import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
@@ -59,9 +58,6 @@ public class LogFX extends Application {
 
     private static final String TITLE = "LogFX";
 
-    private final BindableValue<Font> fontValue = new BindableValue<>(
-            Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
-
     private Stage stage;
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
@@ -74,7 +70,7 @@ public class LogFX extends Application {
     @MustCallOnJavaFXThread
     public LogFX() {
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
-        this.config = new Config( configFile, taskRunner, fontValue );
+        this.config = new Config( configFile, taskRunner );
         this.highlightOptions = new HighlightOptions(
                 config.standardLogColorsProperty(),
                 config.getObservableExpressions() );
@@ -212,7 +208,7 @@ public class LogFX extends Application {
         log.debug( "Creating file reader and view for file {}", file );
 
         FileContentReader fileReader = new FileReader( file, LogView.MAX_LINES );
-        LogView view = new LogView( fontValue, root.widthProperty(),
+        LogView view = new LogView( config.fontProperty(), root.widthProperty(),
                 highlightOptions, fileReader, taskRunner );
 
         FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
@@ -256,8 +252,7 @@ public class LogFX extends Application {
         font.setAccelerator( new KeyCodeCombination( KeyCode.F,
                 KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
         font.setMnemonicParsing( true );
-        bindMenuItemToDialog( font, () ->
-                showFontPicker( fontValue.getValue(), fontValue::setValue ) );
+        bindMenuItemToDialog( font, () -> showFontPicker( config.fontProperty() ) );
 
         MenuItem showContextMenu = new MenuItem( "Show Context Menu" );
         showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN ) );
