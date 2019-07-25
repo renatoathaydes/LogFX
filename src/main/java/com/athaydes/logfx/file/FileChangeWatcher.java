@@ -51,7 +51,7 @@ public class FileChangeWatcher {
 
     }
 
-    private void startIfNotWatching() {
+    private synchronized void startIfNotWatching() {
         if ( !isClosed() && !isWatching() ) {
             log.debug( "FileWatcher is not watching the file yet, trying to start it up for file {}", file );
             if ( file.getParentFile().isDirectory() ) {
@@ -77,7 +77,7 @@ public class FileChangeWatcher {
 
     private Thread watchFile( Path path ) {
         return new Thread( () -> {
-            log.debug( "Thread started" );
+            log.debug( "File watcher Thread started: {}", path );
 
             WatchKey watchKey = null;
             try ( WatchService watchService = FileSystems.getDefault().newWatchService() ) {
@@ -88,15 +88,15 @@ public class FileChangeWatcher {
                         StandardWatchEventKinds.ENTRY_DELETE
                 }, SensitivityWatchEventModifier.HIGH );
 
-                log.info( "Watching file " + path );
+                log.info( "Watching file {}", path );
                 watching.set( true );
                 notifyWatcher( "started_watching" );
 
-                while ( isWatching() ) {
+                while ( !isClosed() && isWatching() ) {
                     WatchKey wk = watchService.take();
                     log.trace( "Watch key: {}", wk );
                     for ( WatchEvent<?> event : wk.pollEvents() ) {
-                        //we only register "ENTRY_MODIFY" so the context is always a Path.
+                        // we only register event kinds for which the context is always a Path.
                         Path changed = ( Path ) event.context();
                         if ( !closed.get() && path.getFileName().equals( changed.getFileName() ) ) {
                             notifyWatcher( event.kind().name() );
@@ -116,7 +116,6 @@ public class FileChangeWatcher {
                 closed.set( true );
             } catch ( IOException e ) {
                 log.warn( "Problem watching file [{}]: {}", file, e );
-                notifyWatcher( "IOException" );
             } finally {
                 watching.set( false );
                 if ( watchKey != null ) {
@@ -137,18 +136,19 @@ public class FileChangeWatcher {
     }
 
     public boolean isWatching() {
-        return !isClosed() && watching.get();
+        return watching.get();
     }
 
     public boolean isClosed() {
         return closed.get();
     }
 
-    public void close() {
+    public synchronized void close() {
         if ( !closed.getAndSet( true ) ) {
             log.info( "Closing FileChangeWatcher for file {}", file );
 
             final Thread thread = watcherThread;
+            watcherThread = null;
             watcherTask.cancel();
 
             if ( thread != null ) {
