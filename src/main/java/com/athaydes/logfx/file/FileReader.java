@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import static com.athaydes.logfx.file.FileReader.LoadMode.MOVE;
 import static com.athaydes.logfx.file.FileReader.LoadMode.REFRESH;
@@ -72,6 +73,8 @@ public class FileReader implements FileContentReader {
     private final FileLineStarts lineStarts;
     private final int maxLineParseFailuresAllowed;
 
+    private Predicate<String> lineFilter = (line) -> true;
+
     // state to avoid reading a file when it is not required...
     // e.g. moving down when the last moveDown returned no lines and:
     //   the file has not been refreshed and
@@ -93,8 +96,20 @@ public class FileReader implements FileContentReader {
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
     }
 
+    /**
+     * Set the line filter being used by this reader.
+     *
+     * @param lineFilter a filter that may or may not accept lines from the file. The result only included lines
+     *                   that were accepted by the filter.
+     */
+    @Override
+    public void setLineFilter( Predicate<String> lineFilter ) {
+        this.lineFilter = lineFilter;
+    }
+
     @Override
     public Optional<LinkedList<String>> moveUp( int lines ) {
+        log.trace( "Moving up {} lines", lines );
         if ( lines < 1 ) {
             return Optional.of( new LinkedList<>() );
         }
@@ -116,6 +131,8 @@ public class FileReader implements FileContentReader {
 
     @Override
     public Optional<LinkedList<String>> moveDown( int lines ) {
+        log.trace( "Moving down {} lines", lines );
+
         if ( lines < 1 ) {
             return Optional.of( new LinkedList<>() );
         }
@@ -139,6 +156,7 @@ public class FileReader implements FileContentReader {
     @Override
     public FileQueryResult moveTo( ZonedDateTime dateTime,
                                    Function<String, Optional<ZonedDateTime>> dateExtractor ) {
+        log.trace( "Moving to date: {}", dateTime );
         Optional<LinkedList<String>> maybeLines = refresh();
         SearchDirection direction = SearchDirection.ANY;
 
@@ -351,6 +369,7 @@ public class FileReader implements FileContentReader {
         noLinesUp = false;
 
         long initialLine = lineStarts.getFirst();
+        log.debug( "Refreshing file from line {}", initialLine );
         Optional<LinkedList<String>> fromTop = loadFromTop( initialLine, fileWindowSize, REFRESH );
         if ( fromTop.isPresent() ) {
             LinkedList<String> topList = fromTop.get();
@@ -420,8 +439,6 @@ public class FileReader implements FileContentReader {
                     boolean isLastByte = ( fileIndex == lastIndex );
 
                     if ( isNewLine || isLastByte ) {
-                        lineStarts.addLast( startIndex + i + 1 );
-
                         // if the byte is a new line, don't include it in the result
                         int lineEndIndex = isNewLine ? i - 1 : i;
 
@@ -437,12 +454,17 @@ public class FileReader implements FileContentReader {
                                 lineStartIndex, lineLength, topBytes.length );
                         System.arraycopy( topBytes, 0, lineBytes, 0, topBytes.length );
                         System.arraycopy( buffer, lineStartIndex, lineBytes, topBytes.length, lineLength );
-                        result.addLast( new String( lineBytes, StandardCharsets.UTF_8 ) );
-                        log.trace( "Added line: {}", result.getLast() );
 
-                        if ( result.size() >= lines ) {
-                            log.trace( "Got enough lines, breaking out of reader loop" );
-                            break readerMainLoop;
+                        String line = new String( lineBytes, StandardCharsets.UTF_8 );
+
+                        if (lineFilter.test( line )) {
+                            lineStarts.addLast( startIndex + i + 1 );
+                            result.addLast( line );
+                            log.trace( "Added line: {}", line );
+                            if ( result.size() >= lines ) {
+                                log.trace( "Got enough lines, breaking out of reader loop" );
+                                break readerMainLoop;
+                            }
                         }
 
                         topBytes = new byte[ 0 ];
@@ -546,22 +568,26 @@ public class FileReader implements FileContentReader {
                         log.trace( "Found line, copying {} bytes from buffer + {} from tail", bufferBytesToAdd, tailBytes.length );
                         System.arraycopy( buffer, lineStartIndex, lineBytes, 0, bufferBytesToAdd );
                         System.arraycopy( tailBytes, 0, lineBytes, bufferBytesToAdd, tailBytesLength );
-                        result.addFirst( new String( lineBytes, StandardCharsets.UTF_8 ) );
-                        log.trace( "Added line: {}", result.getFirst() );
+
+                        String line = new String( lineBytes, StandardCharsets.UTF_8 );
+
+                        if (lineFilter.test( line )) {
+                            result.addFirst( line );
+                            log.trace( "Added line: {}", line );
+
+                            if ( isNewLine ) {
+                                lineStarts.addFirst( bufferStartIndex + i + 1 );
+                            } else { // this must be the first file byte, remember it
+                                lineStarts.addFirst( 0 );
+                            }
+
+                            if ( result.size() >= lines ) {
+                                log.trace( "Got enough lines, breaking out of the reader loop" );
+                                break readerMainLoop;
+                            }
+                        }
 
                         tailBytes = new byte[ 0 ];
-
-                        if ( isNewLine ) {
-                            lineStarts.addFirst( bufferStartIndex + i + 1 );
-                        } else { // this must be the first file byte, remember it
-                            lineStarts.addFirst( 0 );
-                        }
-
-                        if ( result.size() >= lines ) {
-                            log.trace( "Got enough lines, breaking out of the reader loop" );
-                            break readerMainLoop;
-                        }
-
                         lastByteIndex = i - 1;
                         log.trace( "Last byte index is now {}", lastByteIndex );
                     }

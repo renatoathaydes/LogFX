@@ -47,6 +47,7 @@ dependencies {
 
 test {
     systemProperty 'logfx.log.target', 'sysout'
+    systemProperty 'logfx.log.level', 'info'
     systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', 'true'
 }
 
