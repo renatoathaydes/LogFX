@@ -7,17 +7,22 @@ import java.util.regex.Pattern;
 
 /**
  * A log line highlight expression.
+ * <p>
+ * This class is immutable, so every time the user changes one of its properties
+ * the UI components managing it need to create a new instance.
  */
-public class HighlightExpression {
+public final class HighlightExpression {
 
     private final Pattern expression;
     private final Paint bkgColor;
     private final Paint fillColor;
+    private final boolean isFiltered;
 
-    public HighlightExpression( String expression, Paint bkgColor, Paint fillColor ) {
+    public HighlightExpression( String expression, Paint bkgColor, Paint fillColor, boolean isFiltered ) {
         this.expression = Pattern.compile( expression );
         this.bkgColor = bkgColor;
         this.fillColor = fillColor;
+        this.isFiltered=isFiltered;
     }
 
     public Paint getBkgColor() {
@@ -30,6 +35,10 @@ public class HighlightExpression {
 
     public Pattern getPattern() {
         return expression;
+    }
+
+    public boolean isFiltered() {
+        return isFiltered;
     }
 
     public LogLineColors getLogLineColors() {
@@ -51,6 +60,7 @@ public class HighlightExpression {
                 "expression=" + expression +
                 ", bkgColor=" + bkgColor +
                 ", fillColor=" + fillColor +
+                ", isFiltered=" + isFiltered +
                 '}';
     }
 }

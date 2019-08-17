@@ -26,6 +26,8 @@ public class FileReader implements FileContentReader {
 
     private static final Logger log = LoggerFactory.getLogger( FileReader.class );
 
+    private static final Predicate<String> NO_FILTER = ( line ) -> true;
+
     enum LoadMode {
         MOVE, REFRESH
     }
@@ -73,7 +75,7 @@ public class FileReader implements FileContentReader {
     private final FileLineStarts lineStarts;
     private final int maxLineParseFailuresAllowed;
 
-    private Predicate<String> lineFilter = (line) -> true;
+    private Predicate<String> lineFilter = NO_FILTER;
 
     // state to avoid reading a file when it is not required...
     // e.g. moving down when the last moveDown returned no lines and:
@@ -96,15 +98,13 @@ public class FileReader implements FileContentReader {
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
     }
 
-    /**
-     * Set the line filter being used by this reader.
-     *
-     * @param lineFilter a filter that may or may not accept lines from the file. The result only included lines
-     *                   that were accepted by the filter.
-     */
     @Override
     public void setLineFilter( Predicate<String> lineFilter ) {
-        this.lineFilter = lineFilter;
+        if ( lineFilter == null ) {
+            this.lineFilter = NO_FILTER;
+        } else {
+            this.lineFilter = lineFilter;
+        }
     }
 
     @Override
@@ -457,7 +457,7 @@ public class FileReader implements FileContentReader {
 
                         String line = new String( lineBytes, StandardCharsets.UTF_8 );
 
-                        if (lineFilter.test( line )) {
+                        if ( lineFilter.test( line ) ) {
                             lineStarts.addLast( startIndex + i + 1 );
                             result.addLast( line );
                             log.trace( "Added line: {}", line );
@@ -571,7 +571,7 @@ public class FileReader implements FileContentReader {
 
                         String line = new String( lineBytes, StandardCharsets.UTF_8 );
 
-                        if (lineFilter.test( line )) {
+                        if ( lineFilter.test( line ) ) {
                             result.addFirst( line );
                             log.trace( "Added line: {}", line );
 

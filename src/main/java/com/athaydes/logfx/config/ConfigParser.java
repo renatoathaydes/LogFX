@@ -213,9 +213,12 @@ final class ConfigParser {
             throw highlightParseError( "regular expression not specified", line );
         }
 
+        // TODO add to config
+        boolean isFiltered = false;
+
         String expression = line;
         try {
-            return new HighlightExpression( expression, bkgColor, fillColor );
+            return new HighlightExpression( expression, bkgColor, fillColor, isFiltered );
         } catch ( PatternSyntaxException e ) {
             throw highlightParseError( "cannot parse regular expression '" + expression + "'", line );
         }

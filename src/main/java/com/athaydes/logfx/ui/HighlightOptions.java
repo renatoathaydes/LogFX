@@ -3,6 +3,7 @@ package com.athaydes.logfx.ui;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -11,10 +12,12 @@ import javafx.geometry.Insets;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -30,7 +33,10 @@ import org.slf4j.LoggerFactory;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
+import java.util.stream.Collectors;
 
 import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
@@ -47,6 +53,7 @@ public class HighlightOptions extends VBox {
 
     private final SimpleObjectProperty<LogLineColors> standardLogColors;
     private final ObservableList<HighlightExpression> observableExpressions;
+    private final BooleanProperty isFilterEnabled;
 
     private final VBox expressionsBox;
 
@@ -65,16 +72,24 @@ public class HighlightOptions extends VBox {
         Label headerLabel = new Label( "Enter highlight expressions:" );
         headerLabel.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
 
+        CheckBox enableFilter = new CheckBox( "Filter?" );
+        this.isFilterEnabled = enableFilter.selectedProperty();
+        enableFilter.setTooltip( new Tooltip( "Filter log lines that match selected rules" ) );
+
         Node helpIcon = createHelpIcon();
 
         HBox headerRow = new HBox( 10 );
         headerRow.getChildren().addAll( headerLabel, helpIcon );
 
+        BorderPane headerPane = new BorderPane();
+        headerPane.setLeft( headerRow );
+        headerPane.setRight( enableFilter );
+
         Button newRow = new Button( "Add rule" );
         newRow.setOnAction( this::addRow );
 
         getChildren().addAll(
-                headerRow,
+                headerPane,
                 expressionsBox,
                 new StandardLogColorsRow( standardLogColors ),
                 new HBox( 5, newRow ) );
@@ -118,7 +133,7 @@ public class HighlightOptions extends VBox {
     }
 
     private void addRow( Object ignore ) {
-        HighlightExpression expression = new HighlightExpression( "", nextColor(), nextColor() );
+        HighlightExpression expression = new HighlightExpression( "", nextColor(), nextColor(), false );
         observableExpressions.add( expression );
         expressionsBox.getChildren().add( new HighlightExpressionRow(
                 expression, observableExpressions, expressionsBox ) );
@@ -128,15 +143,15 @@ public class HighlightOptions extends VBox {
         return Color.color( Math.random(), Math.random(), Math.random() );
     }
 
-    public ObservableList<HighlightExpression> getObservableExpressions() {
+    ObservableList<HighlightExpression> getObservableExpressions() {
         return observableExpressions;
     }
 
-    public SimpleObjectProperty<LogLineColors> getStandardLogColors() {
+    SimpleObjectProperty<LogLineColors> getStandardLogColors() {
         return standardLogColors;
     }
 
-    public LogLineColors logLineColorsFor( String text ) {
+    LogLineColors logLineColorsFor( String text ) {
         for ( HighlightExpression expression : observableExpressions ) {
             if ( expression.matches( text ) ) {
                 return expression.getLogLineColors();
@@ -146,19 +161,38 @@ public class HighlightOptions extends VBox {
         return standardLogColors.get();
     }
 
+    BooleanProperty filterEnabled() {
+        return isFilterEnabled;
+    }
+
+    Predicate<String> getLineFilter() {
+        if ( isFilterEnabled.get() ) {
+            List<HighlightExpression> filteredExpressions = observableExpressions.stream()
+                    .filter( HighlightExpression::isFiltered )
+                    .collect( Collectors.toList() );
+            return ( line ) -> filteredExpressions.stream()
+                    .anyMatch( ( exp ) -> exp.matches( line ) );
+        } else {
+            return ( ignore ) -> true;
+        }
+    }
+
     private static class StandardLogColorsRow extends Row {
         private final SimpleObjectProperty<LogLineColors> standardLogColors;
 
         StandardLogColorsRow( SimpleObjectProperty<LogLineColors> standardLogColors ) {
-            super( "", standardLogColors.get().getBackground(), standardLogColors.get().getFill() );
+            super( "", standardLogColors.get().getBackground(), standardLogColors.get().getFill(), false );
             this.standardLogColors = standardLogColors;
 
             expressionField.setEditable( false );
             expressionField.setDisable( true );
+
+            getChildren().addAll( expressionField,
+                    bkgColorPicker.node(), fillColorPicker.node() );
         }
 
         @Override
-        protected void update( Color bkgColor, Color fillColor ) {
+        protected void update( Color bkgColor, Color fillColor, boolean isFiltered ) {
             standardLogColors.set( new LogLineColors( bkgColor, fillColor ) );
         }
     }
@@ -168,15 +202,18 @@ public class HighlightOptions extends VBox {
         private final ObservableList<HighlightExpression> observableExpressions;
         private final VBox parent;
 
-        public HighlightExpressionRow( HighlightExpression expression,
-                                       ObservableList<HighlightExpression> observableExpressions,
-                                       VBox parent ) {
-            super( expression.getPattern().pattern(), expression.getBkgColor(), expression.getFillColor() );
+        HighlightExpressionRow( HighlightExpression expression,
+                                ObservableList<HighlightExpression> observableExpressions,
+                                VBox parent ) {
+            super( expression.getPattern().pattern(), expression.getBkgColor(),
+                    expression.getFillColor(), expression.isFiltered() );
             this.expression = expression;
             this.observableExpressions = observableExpressions;
             this.parent = parent;
 
-            getChildren().addAll( upDownButtons(), removeButton() );
+            getChildren().addAll( expressionField,
+                    bkgColorPicker.node(), fillColorPicker.node(),
+                    isFilteredBox, upDownButtons(), removeButton() );
         }
 
         private Node upDownButtons() {
@@ -224,11 +261,11 @@ public class HighlightOptions extends VBox {
         }
 
         @Override
-        protected void update( Color bkgColor, Color fillColor ) {
+        protected void update( Color bkgColor, Color fillColor, boolean isFiltered ) {
             try {
                 int index = observableExpressions.indexOf( expression );
                 expression = new HighlightExpression(
-                        expressionField.getText(), bkgColor, fillColor );
+                        expressionField.getText(), bkgColor, fillColor, isFiltered );
                 observableExpressions.set( index, expression );
                 expressionField.getStyleClass().remove( "error" );
             } catch ( PatternSyntaxException e ) {
@@ -243,10 +280,11 @@ public class HighlightOptions extends VBox {
 
     private static abstract class Row extends HBox {
         final TextField expressionField;
-        private final ColorChooser bkgColorPicker;
-        private final ColorChooser fillColorPicker;
+        final ColorChooser bkgColorPicker;
+        final ColorChooser fillColorPicker;
+        final CheckBox isFilteredBox;
 
-        Row( String pattern, Paint backgroundColor, Paint fillColor ) {
+        Row( String pattern, Paint backgroundColor, Paint fillColor, boolean isFiltered ) {
             setSpacing( 5 );
 
             expressionField = new TextField( pattern );
@@ -256,22 +294,23 @@ public class HighlightOptions extends VBox {
             bkgColorPicker = new ColorChooser( backgroundColor.toString(), "Enter the background color." );
             fillColorPicker = new ColorChooser( fillColor.toString(), "Enter the text color." );
 
+            isFilteredBox = new CheckBox();
+            isFilteredBox.setSelected( isFiltered );
+            isFilteredBox.setTooltip( new Tooltip( "Include in filter" ) );
+
             InvalidationListener updater = ( ignore ) ->
-                    update( bkgColorPicker.getColor(), fillColorPicker.getColor() );
+                    update( bkgColorPicker.getColor(), fillColorPicker.getColor(), isFilteredBox.selectedProperty().get() );
 
             bkgColorPicker.addListener( updater );
             fillColorPicker.addListener( updater );
+            isFilteredBox.selectedProperty().addListener( updater );
+            expressionField.textProperty().addListener( updater );
 
             setMinWidth( 500 );
-            getChildren().addAll( expressionField,
-                    bkgColorPicker.node(), fillColorPicker.node() );
-
-            expressionField.textProperty().addListener( event ->
-                    update( bkgColorPicker.getColor(), fillColorPicker.getColor() ) );
         }
 
         @MustCallOnJavaFXThread
-        protected abstract void update( Color bkgColor, Color fillColor );
+        protected abstract void update( Color bkgColor, Color fillColor, boolean isFiltered );
 
     }
 

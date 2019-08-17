@@ -35,6 +35,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.toList;
@@ -62,7 +63,6 @@ public class LogView extends VBox {
     private final Supplier<LogLine> logLineFactory;
     private final TaskRunner taskRunner;
     private final SelectionHandler selectionHandler;
-    private final Runnable cachedUpdateFileRunnable = () -> immediateOnFileChange( DO_NOTHING );
     private final DateTimeFormatGuesser dateTimeFormatGuesser = DateTimeFormatGuesser.standard();
 
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
@@ -72,6 +72,7 @@ public class LogView extends VBox {
 
     private DateTimeFormatGuess dateTimeFormatGuess = null;
     private final InvalidationListener colorChangeListener;
+    private final InvalidationListener filterChangeListener;
 
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
@@ -96,13 +97,24 @@ public class LogView extends VBox {
         }
 
         this.colorChangeListener = ( Observable observable ) -> {
-            for ( int i = 0; i < MAX_LINES; i++ ) {
+            // the cause of the change may be a change in the filters, which requires a file refresh
+            if ( observable == highlightOptions.getObservableExpressions() ) {
+                // FIXME only refresh if the filter changed!
+                log.warn( "colorChangeListener notified that expressions changed, refreshing file" );
+                immediateOnFileChange();
+            } else for ( int i = 0; i < MAX_LINES; i++ ) {
                 updateLine( i );
             }
         };
 
+        this.filterChangeListener = ( Observable observable ) -> {
+            log.warn( "Filter has changed, refreshing file" );
+            immediateOnFileChange();
+        };
+
         highlightOptions.getObservableExpressions().addListener( colorChangeListener );
         highlightOptions.getStandardLogColors().addListener( colorChangeListener );
+        highlightOptions.filterEnabled().addListener( filterChangeListener );
 
         tailingFile.addListener( event -> {
             if ( tailingFile.get() ) {
@@ -272,7 +284,7 @@ public class LogView extends VBox {
     private void onFileChange() {
         onFileUpdate.run();
         if ( allowRefresh.get() ) {
-            taskRunner.runWithMaxFrequency( cachedUpdateFileRunnable, 2_000 );
+            taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
         }
     }
 
@@ -287,7 +299,10 @@ public class LogView extends VBox {
     }
 
     private void immediateOnFileChange( Runnable andThen ) {
+        Predicate<String> filter = highlightOptions.filterEnabled().get() ?
+                highlightOptions.getLineFilter() : null;
         fileReaderExecutor.execute( () -> {
+            fileContentReader.setLineFilter( filter );
             if ( tailingFileProperty().get() ) {
                 fileContentReader.tail();
             }
@@ -350,5 +365,6 @@ public class LogView extends VBox {
         fileReaderExecutor.shutdown();
         highlightOptions.getObservableExpressions().removeListener( colorChangeListener );
         highlightOptions.getStandardLogColors().removeListener( colorChangeListener );
+        highlightOptions.filterEnabled().removeListener( filterChangeListener );
     }
 }

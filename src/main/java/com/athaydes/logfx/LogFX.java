@@ -86,7 +86,7 @@ public class LogFX extends Application {
 
     @Override
     @MustCallOnJavaFXThread
-    public void start( Stage primaryStage ) throws Exception {
+    public void start( Stage primaryStage ) {
         this.stage = primaryStage;
         setPrimaryStage( primaryStage );
         setIconsOn( primaryStage );

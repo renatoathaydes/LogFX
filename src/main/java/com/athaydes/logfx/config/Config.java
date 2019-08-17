@@ -44,7 +44,7 @@ public class Config {
         if ( path.toFile().exists() ) {
             readConfigFile( path );
         } else {
-            properties.observableExpressions.add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED ) );
+            properties.observableExpressions.add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED, false ) );
         }
 
         // make this a singleton object so that it can be remembered when we try to run it many times below
