@@ -7,6 +7,7 @@ import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
 import com.athaydes.logfx.ui.AboutLogFXView;
+import com.athaydes.logfx.ui.BottomMessagePane;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FileDragAndDrop;
 import com.athaydes.logfx.ui.FileOpener;
@@ -65,6 +66,7 @@ public class LogFX extends Application {
     private final Config config;
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
+    private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
     private final TaskRunner taskRunner = new TaskRunner( false );
 
@@ -97,9 +99,12 @@ public class LogFX extends Application {
         menuBar.useSystemMenuBarProperty().set( true );
         menuBar.getMenus().addAll( fileMenu(), viewMenu(), helpMenu() );
 
-        VBox mainBox = new VBox( 10 );
+        VBox mainBox = new VBox( 0 );
         logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
-        mainBox.getChildren().addAll( menuBar, logsPane.getNode() );
+        mainBox.getChildren().addAll( menuBar, logsPane.getNode(), bottomMessagePane );
+
+        updateBottomMessagePane();
+        config.filtersEnabledProperty().addListener( ( o ) -> updateBottomMessagePane() );
 
         root.getChildren().addAll( mainBox, overlay );
 
@@ -129,6 +134,11 @@ public class LogFX extends Application {
         } );
 
         FxUtils.setupStylesheet( scene );
+    }
+
+    private void updateBottomMessagePane() {
+        boolean enable = config.filtersEnabledProperty().get();
+        bottomMessagePane.setShow( enable );
     }
 
     private void setIconsOn( Stage primaryStage ) {
