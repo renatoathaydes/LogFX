@@ -19,9 +19,18 @@ import static java.util.stream.Collectors.toList;
 
 final class ConfigParser {
 
+    enum ConfigVersion {
+        V1, V2;
+
+        public boolean isAfterV1() {
+            return this == V2;
+        }
+    }
+
     private static final Logger log = LoggerFactory.getLogger( ConfigParser.class );
 
     private final ConfigProperties properties;
+    private ConfigVersion version = ConfigVersion.V1;
 
     ConfigParser( ConfigProperties properties ) {
         this.properties = properties;
@@ -38,6 +47,8 @@ final class ConfigParser {
         }
 
         switch ( line.trim() ) {
+            case "version:":
+                parseVersion( lines );
             case "standard-log-colors:":
                 parseStandardLogColors( lines );
             case "expressions:":
@@ -46,6 +57,21 @@ final class ConfigParser {
                 parseFiles( lines );
             case "gui:":
                 parseGuiSection( lines );
+        }
+    }
+
+    private void parseVersion( Iterator<String> lines ) {
+        if ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                try {
+                    version = ConfigVersion.valueOf( line.trim() );
+                } catch ( IllegalArgumentException e ) {
+                    logInvalidProperty( "version", "version", line.trim(), "Unknown version" );
+                }
+            } else {
+                parseConfigFile( line, lines );
+            }
         }
     }
 
@@ -77,7 +103,7 @@ final class ConfigParser {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
                 try {
-                    properties.observableExpressions.add( parseHighlightExpression( line.trim() ) );
+                    properties.observableExpressions.add( parseHighlightExpression( line.trim(), version ) );
                 } catch ( IllegalArgumentException e ) {
                     logInvalidProperty( "expressions", "highlight", line, e.toString() );
                 }
@@ -162,7 +188,7 @@ final class ConfigParser {
         }
     }
 
-    static HighlightExpression parseHighlightExpression( String line )
+    static HighlightExpression parseHighlightExpression( String line, ConfigVersion version )
             throws IllegalArgumentException {
         if ( line.isEmpty() ) {
             throw highlightParseError( "empty highlight expression", line );
@@ -203,18 +229,47 @@ final class ConfigParser {
             throw highlightParseError( "invalid fill color: '" + fillColorString + "'", line );
         }
 
-        if ( line.length() > secondSpaceIndex + 1 ) {
-            line = line.substring( secondSpaceIndex + 1 ).trim();
+        boolean isFiltered = false;
+
+        if ( version.isAfterV1() ) {
+            if ( line.length() > secondSpaceIndex + 1 ) {
+                line = line.substring( secondSpaceIndex + 1 ).trim();
+            } else {
+                throw highlightParseError( "filter and regular expression not specified", line );
+            }
+
+            int thirdSpaceIndex = line.indexOf( ' ' );
+            if ( thirdSpaceIndex <= 0 ) {
+                throw highlightParseError( "regular expression not specified", line );
+            }
+            String filteredString = line.substring( 0, thirdSpaceIndex );
+            switch ( filteredString.toLowerCase() ) {
+                case "true":
+                    isFiltered = true;
+                    break;
+                case "false":
+                    isFiltered = false;
+                    break;
+                default:
+                    throw highlightParseError( "invalid value for filtered property", line );
+            }
+
+            if ( line.length() > thirdSpaceIndex + 1 ) {
+                line = line.substring( thirdSpaceIndex + 1 ).trim();
+            } else {
+                line = "";
+            }
         } else {
-            line = "";
+            if ( line.length() > secondSpaceIndex + 1 ) {
+                line = line.substring( secondSpaceIndex + 1 ).trim();
+            } else {
+                line = "";
+            }
         }
 
         if ( line.isEmpty() ) {
             throw highlightParseError( "regular expression not specified", line );
         }
-
-        // TODO add to config
-        boolean isFiltered = false;
 
         String expression = line;
         try {

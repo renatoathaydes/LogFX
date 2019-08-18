@@ -91,7 +91,8 @@ public class Config {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
             new ConfigParser( properties ).parseConfigFile( null, lines );
-        } catch ( IOException e ) {
+        } catch ( Exception e ) {
+            log.warn( "Error loading config", e );
             Dialog.showConfirmDialog( "Could not read config file: " + path +
                     "\n\n" + e );
         }
@@ -143,7 +144,9 @@ public class Config {
 
         try ( FileWriter writer = new FileWriter( path ) ) {
 
-            writer.write( "standard-log-colors:\n" );
+            writer.write( "version:\n  " );
+            writer.write( ConfigParser.ConfigVersion.V2.name() );
+            writer.write( "\nstandard-log-colors:\n" );
             writer.write( "  " + logLineColors.getBackground() + " " + logLineColors.getFill() );
             writer.write( "\n" );
 
@@ -152,6 +155,7 @@ public class Config {
                 for ( HighlightExpression expression : highlightExpressions ) {
                     writer.write( "  " + expression.getBkgColor() );
                     writer.write( " " + expression.getFillColor() );
+                    writer.write( " " + expression.isFiltered() );
                     writer.write( " " + expression.getPattern().pattern() );
                     writer.write( "\n" );
                 }
