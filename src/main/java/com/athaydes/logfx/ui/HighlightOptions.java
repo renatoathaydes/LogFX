@@ -34,6 +34,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -165,15 +166,15 @@ public class HighlightOptions extends VBox {
         return isFilterEnabled;
     }
 
-    Predicate<String> getLineFilter() {
+    Optional<Predicate<String>> getLineFilter() {
         if ( isFilterEnabled.get() ) {
             List<HighlightExpression> filteredExpressions = observableExpressions.stream()
                     .filter( HighlightExpression::isFiltered )
                     .collect( Collectors.toList() );
-            return ( line ) -> filteredExpressions.stream()
-                    .anyMatch( ( exp ) -> exp.matches( line ) );
+            return Optional.of( ( line ) -> filteredExpressions.stream()
+                    .anyMatch( ( exp ) -> exp.matches( line ) ) );
         } else {
-            return ( ignore ) -> true;
+            return Optional.empty();
         }
     }
 
@@ -262,8 +263,8 @@ public class HighlightOptions extends VBox {
 
         @Override
         protected void update( Color bkgColor, Color fillColor, boolean isFiltered ) {
+            int index = observableExpressions.indexOf( expression );
             try {
-                int index = observableExpressions.indexOf( expression );
                 expression = new HighlightExpression(
                         expressionField.getText(), bkgColor, fillColor, isFiltered );
                 observableExpressions.set( index, expression );
