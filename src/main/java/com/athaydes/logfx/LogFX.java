@@ -39,6 +39,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -183,8 +184,14 @@ public class LogFX extends Application {
     }
 
     private void openFilesFromConfig() {
-        for ( File file : config.getObservableFiles() ) {
-            Platform.runLater( () -> openViewFor( file, -1 ) );
+        List<File> files = new ArrayList<>( config.getObservableFiles() );
+        for ( File file : files ) {
+            Platform.runLater( () -> {
+                boolean accepted = openViewFor( file, -1 );
+                if ( !accepted ) {
+                    config.getObservableFiles().remove( file );
+                }
+            } );
         }
     }
 
@@ -199,13 +206,15 @@ public class LogFX extends Application {
             log.debug( "Tried to open file that is already opened, will focus on it" );
             logsPane.focusOn( file );
         } else {
-            openViewFor( file, index );
-            config.getObservableFiles().add( file );
+            boolean accepted = openViewFor( file, index );
+            if ( accepted ) {
+                config.getObservableFiles().add( file );
+            }
         }
     }
 
     @MustCallOnJavaFXThread
-    private void openViewFor( File file, int index ) {
+    private boolean openViewFor( File file, int index ) {
         log.debug( "Creating file reader and view for file {}", file );
 
         FileContentReader fileReader;
@@ -213,7 +222,7 @@ public class LogFX extends Application {
             fileReader = new FileReader( file, LogView.MAX_LINES );
         } catch ( IllegalStateException e ) {
             Dialog.showMessage( e.getMessage(), Dialog.MessageLevel.ERROR );
-            return;
+            return false;
         }
         LogView view = new LogView( config.fontProperty(), root.widthProperty(),
                 highlightOptions, fileReader, taskRunner );
@@ -237,6 +246,8 @@ public class LogFX extends Application {
         } );
 
         logsPane.add( view, () -> config.getObservableFiles().remove( file ), index );
+
+        return true;
     }
 
     @MustCallOnJavaFXThread
