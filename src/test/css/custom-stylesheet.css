@@ -26,6 +26,13 @@
     -fx-border-radius: 2, 1;
 }
 
+.bottom-message-pane {
+    -fx-background-color: lightyellow;
+    -fx-min-height: 10;
+    -fx-font-style: italic;
+    -fx-font-size: 9;
+}
+
 .log-line {
     -fx-padding: 0, 5, 0, 5;
 }

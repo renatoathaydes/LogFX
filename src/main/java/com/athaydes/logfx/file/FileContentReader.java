@@ -5,6 +5,7 @@ import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 /**
  * API for the {@link com.athaydes.logfx.ui.LogView} to request file contents.
@@ -18,6 +19,16 @@ import java.util.function.Function;
  * directly.
  */
 public interface FileContentReader {
+
+    /**
+     * Set the line filter being used by this reader.
+     * <p>
+     * If the given filter is null, any filter that had been previously set will be unset.
+     *
+     * @param lineFilter a filter that may or may not accept lines from the file. The result only included lines
+     *                   that were accepted by the filter.
+     */
+    void setLineFilter( Predicate<String> lineFilter );
 
     /**
      * Request the given number of lines above the current file window, moving

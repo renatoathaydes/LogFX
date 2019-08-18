@@ -10,7 +10,7 @@ buildscript {
 }
 
 group 'com.athaydes.logfx'
-version '0.8.0'
+version '0.9.0'
 
 apply plugin: 'groovy'
 apply plugin: 'application'
@@ -47,6 +47,7 @@ dependencies {
 
 test {
     systemProperty 'logfx.log.target', 'sysout'
+    systemProperty 'logfx.log.level', 'info'
     systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', 'true'
 }
 

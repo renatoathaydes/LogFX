@@ -1,6 +1,5 @@
 package com.athaydes.logfx;
 
-import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
@@ -8,6 +7,7 @@ import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
 import com.athaydes.logfx.ui.AboutLogFXView;
+import com.athaydes.logfx.ui.BottomMessagePane;
 import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FileDragAndDrop;
 import com.athaydes.logfx.ui.FileOpener;
@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -59,25 +60,24 @@ public class LogFX extends Application {
 
     private static final String TITLE = "LogFX";
 
-    private final BindableValue<Font> fontValue = new BindableValue<>(
-            Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
-
     private Stage stage;
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
     private final HighlightOptions highlightOptions;
     private final LogViewPane logsPane;
+    private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
     private final TaskRunner taskRunner = new TaskRunner( false );
 
     @MustCallOnJavaFXThread
     public LogFX() {
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
-        this.config = new Config( configFile, taskRunner, fontValue );
+        this.config = new Config( configFile, taskRunner );
         this.highlightOptions = new HighlightOptions(
                 config.standardLogColorsProperty(),
-                config.getObservableExpressions() );
+                config.getObservableExpressions(),
+                config.filtersEnabledProperty() );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( getHostServices(), stage, this::open ),
@@ -90,7 +90,7 @@ public class LogFX extends Application {
 
     @Override
     @MustCallOnJavaFXThread
-    public void start( Stage primaryStage ) throws Exception {
+    public void start( Stage primaryStage ) {
         this.stage = primaryStage;
         setPrimaryStage( primaryStage );
         setIconsOn( primaryStage );
@@ -99,9 +99,12 @@ public class LogFX extends Application {
         menuBar.useSystemMenuBarProperty().set( true );
         menuBar.getMenus().addAll( fileMenu(), viewMenu(), helpMenu() );
 
-        VBox mainBox = new VBox( 10 );
+        VBox mainBox = new VBox( 0 );
         logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
-        mainBox.getChildren().addAll( menuBar, logsPane.getNode() );
+        mainBox.getChildren().addAll( menuBar, logsPane.getNode(), bottomMessagePane );
+
+        Platform.runLater( this::updateBottomMessagePane );
+        config.filtersEnabledProperty().addListener( ( o ) -> updateBottomMessagePane() );
 
         root.getChildren().addAll( mainBox, overlay );
 
@@ -131,6 +134,11 @@ public class LogFX extends Application {
         } );
 
         FxUtils.setupStylesheet( scene );
+    }
+
+    private void updateBottomMessagePane() {
+        boolean enable = config.filtersEnabledProperty().get();
+        bottomMessagePane.setShow( enable );
     }
 
     private void setIconsOn( Stage primaryStage ) {
@@ -186,8 +194,14 @@ public class LogFX extends Application {
     }
 
     private void openFilesFromConfig() {
-        for ( File file : config.getObservableFiles() ) {
-            Platform.runLater( () -> openViewFor( file, -1 ) );
+        List<File> files = new ArrayList<>( config.getObservableFiles() );
+        for ( File file : files ) {
+            Platform.runLater( () -> {
+                boolean accepted = openViewFor( file, -1 );
+                if ( !accepted ) {
+                    config.getObservableFiles().remove( file );
+                }
+            } );
         }
     }
 
@@ -202,17 +216,25 @@ public class LogFX extends Application {
             log.debug( "Tried to open file that is already opened, will focus on it" );
             logsPane.focusOn( file );
         } else {
-            openViewFor( file, index );
-            config.getObservableFiles().add( file );
+            boolean accepted = openViewFor( file, index );
+            if ( accepted ) {
+                config.getObservableFiles().add( file );
+            }
         }
     }
 
     @MustCallOnJavaFXThread
-    private void openViewFor( File file, int index ) {
+    private boolean openViewFor( File file, int index ) {
         log.debug( "Creating file reader and view for file {}", file );
 
-        FileContentReader fileReader = new FileReader( file, LogView.MAX_LINES );
-        LogView view = new LogView( fontValue, root.widthProperty(),
+        FileContentReader fileReader;
+        try {
+            fileReader = new FileReader( file, LogView.MAX_LINES );
+        } catch ( IllegalStateException e ) {
+            Dialog.showMessage( e.getMessage(), Dialog.MessageLevel.ERROR );
+            return false;
+        }
+        LogView view = new LogView( config.fontProperty(), root.widthProperty(),
                 highlightOptions, fileReader, taskRunner );
 
         FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
@@ -234,6 +256,8 @@ public class LogFX extends Application {
         } );
 
         logsPane.add( view, () -> config.getObservableFiles().remove( file ), index );
+
+        return true;
     }
 
     @MustCallOnJavaFXThread
@@ -256,14 +280,19 @@ public class LogFX extends Application {
         font.setAccelerator( new KeyCodeCombination( KeyCode.F,
                 KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
         font.setMnemonicParsing( true );
-        bindMenuItemToDialog( font, () ->
-                showFontPicker( fontValue.getValue(), fontValue::setValue ) );
+        bindMenuItemToDialog( font, () -> showFontPicker( config.fontProperty() ) );
+
+        CheckMenuItem filter = new CheckMenuItem( "Enable _filters" );
+        filter.setAccelerator( new KeyCodeCombination( KeyCode.F,
+                KeyCombination.SHORTCUT_DOWN ) );
+        filter.setMnemonicParsing( true );
+        filter.selectedProperty().bindBidirectional( config.filtersEnabledProperty() );
 
         MenuItem showContextMenu = new MenuItem( "Show Context Menu" );
         showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN ) );
         showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
 
-        menu.getItems().addAll( highlight, orientation, font, showContextMenu );
+        menu.getItems().addAll( highlight, orientation, font, filter, showContextMenu );
         return menu;
     }
 

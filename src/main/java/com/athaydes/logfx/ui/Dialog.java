@@ -41,7 +41,19 @@ public class Dialog {
     private static final Logger log = LoggerFactory.getLogger( Dialog.class );
 
     public enum MessageLevel {
-        INFO, WARNING, ERROR
+        INFO, WARNING, ERROR;
+
+        int getDelay() {
+            switch ( this ) {
+                case INFO:
+                default:
+                    return 3;
+                case WARNING:
+                    return 5;
+                case ERROR:
+                    return 15;
+            }
+        }
     }
 
     public enum DialogPosition {
@@ -191,9 +203,11 @@ public class Dialog {
         } );
     }
 
-    static void showMessage( String text, MessageLevel level ) {
+    public static void showMessage( String text, MessageLevel level ) {
         Platform.runLater( () -> {
             Text messageText = new Text( text );
+            messageText.setWrappingWidth( Math.max( 100, primaryStage.getWidth() - 20 ) );
+
             Dialog dialog = new Dialog( messageText );
             dialog.setStyle( StageStyle.TRANSPARENT );
             dialog.getBox().setSpacing( 0 );
@@ -215,7 +229,7 @@ public class Dialog {
             hideAnimation.setInterpolator( Interpolator.EASE_IN );
 
             ParallelTransition allAnimations = new ParallelTransition( hideAnimation, blurAnimation );
-            allAnimations.setDelay( Duration.seconds( 3 ) );
+            allAnimations.setDelay( Duration.seconds( level.getDelay() ) );
             allAnimations.setOnFinished( event -> {
                 dialog.hide();
                 currentMessageStages.remove( dialog.dialogStage );
