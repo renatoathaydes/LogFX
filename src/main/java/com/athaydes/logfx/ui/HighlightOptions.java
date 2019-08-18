@@ -86,14 +86,48 @@ public class HighlightOptions extends VBox {
         headerPane.setLeft( headerRow );
         headerPane.setRight( enableFilter );
 
+        BorderPane buttonsPane = new BorderPane();
+
         Button newRow = new Button( "Add rule" );
         newRow.setOnAction( this::addRow );
+
+        Button selectAllFilters = new Button( "All" );
+        selectAllFilters.setOnAction( ( event ) -> enableFilters( true ) );
+        Button disableAllFilters = new Button( "None" );
+        disableAllFilters.setOnAction( ( event ) -> enableFilters( false ) );
+
+        HBox filterButtons = new HBox( 5, new Label( "Select Filters:" ),
+                selectAllFilters, disableAllFilters );
+
+        buttonsPane.setLeft( newRow );
+        buttonsPane.setRight( filterButtons );
 
         getChildren().addAll(
                 headerPane,
                 expressionsBox,
                 new StandardLogColorsRow( standardLogColors ),
-                new HBox( 5, newRow ) );
+                buttonsPane );
+    }
+
+    private void enableFilters( boolean enable ) {
+        if ( !enable ) {
+            // set first if disabling because then we avoid refreshing files more than once
+            isFilterEnabled.setValue( false );
+        }
+
+        List<HighlightExpression> newExpressions = observableExpressions.stream()
+                .map( ( e ) -> e.withFilter( enable ) )
+                .collect( Collectors.toList() );
+        observableExpressions.setAll( newExpressions );
+
+        expressionsBox.getChildren().setAll( observableExpressions.stream()
+                .map( ex -> new HighlightExpressionRow( ex, observableExpressions, expressionsBox ) )
+                .toArray( HighlightExpressionRow[]::new ) );
+
+        if ( enable ) {
+            // set last if enabling so only when all expressions are selected, do we refresh the file
+            isFilterEnabled.setValue( true );
+        }
     }
 
     private Node createHelpIcon() {

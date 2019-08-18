@@ -19,10 +19,14 @@ public final class HighlightExpression {
     private final boolean isFiltered;
 
     public HighlightExpression( String expression, Paint bkgColor, Paint fillColor, boolean isFiltered ) {
-        this.expression = Pattern.compile( expression );
+        this( Pattern.compile( expression ), bkgColor, fillColor, isFiltered );
+    }
+
+    public HighlightExpression( Pattern expression, Paint bkgColor, Paint fillColor, boolean isFiltered ) {
+        this.expression = expression;
         this.bkgColor = bkgColor;
         this.fillColor = fillColor;
-        this.isFiltered=isFiltered;
+        this.isFiltered = isFiltered;
     }
 
     public Paint getBkgColor() {
@@ -52,6 +56,10 @@ public final class HighlightExpression {
 
         // the find method does not anchor the String by default, unlike matches()
         return expression.matcher( text ).find();
+    }
+
+    public HighlightExpression withFilter( boolean enable ) {
+        return new HighlightExpression( this.expression, this.bkgColor, this.fillColor, enable );
     }
 
     @Override
