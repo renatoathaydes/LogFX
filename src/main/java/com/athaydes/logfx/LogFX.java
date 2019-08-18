@@ -207,7 +207,13 @@ public class LogFX extends Application {
     private void openViewFor( File file, int index ) {
         log.debug( "Creating file reader and view for file {}", file );
 
-        FileContentReader fileReader = new FileReader( file, LogView.MAX_LINES );
+        FileContentReader fileReader;
+        try {
+            fileReader = new FileReader( file, LogView.MAX_LINES );
+        } catch ( IllegalStateException e ) {
+            Dialog.showMessage( e.getMessage(), Dialog.MessageLevel.ERROR );
+            return;
+        }
         LogView view = new LogView( config.fontProperty(), root.widthProperty(),
                 highlightOptions, fileReader, taskRunner );
 

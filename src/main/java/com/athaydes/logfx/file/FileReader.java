@@ -1,5 +1,6 @@
 package com.athaydes.logfx.file;
 
+import com.athaydes.logfx.config.Properties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -93,6 +94,16 @@ public class FileReader implements FileContentReader {
         this.fileWindowSize = fileWindowSize;
         this.bufferSize = bufferSize;
         this.maxLineParseFailuresAllowed = Math.min( 50, fileWindowSize );
+
+        if ( log.isDebugEnabled() ) {
+            String logfxLog = Properties.LOGFX_DIR.resolve( "logfx.log" ).toFile().getAbsolutePath();
+            if ( file.getAbsolutePath().equals( logfxLog ) ) {
+                throw new IllegalStateException( "Cannot open LogFX's own log when log level is set to DEBUG or finer.\n" +
+                        "That would case an infinite loop when LogFX refreshes the view with the file contents, " +
+                        "which causes the file contents to change with new log messages, which causes the view " +
+                        "to be refreshed, and so on." );
+            }
+        }
 
         // 1 extra line is needed because we need to know the boundaries between lines
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
@@ -360,6 +371,7 @@ public class FileReader implements FileContentReader {
         noLinesDown = true;
         noLinesUp = false;
         lineStarts.clear();
+        // FIXME if filter is enabled, we need to find the last line that's filtered
         lineStarts.addFirst( file.length() + 1 );
     }
 
