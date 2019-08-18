@@ -1,5 +1,12 @@
 ## LogFX Release Notes
 
+## 0.9.0
+
+> 18 Aug 2019
+
+* Added filtering capability so that only lines matching certain highlight rules are displayed.
+* Several small improvements to make LogFX more maintainable.
+
 ## 0.8.0
 
 > 05 Nov 2017

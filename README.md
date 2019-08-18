@@ -13,6 +13,7 @@ It is written in JavaFX so it can run in any Operating System.
 * tail file(s) with option to pause at any time.
 * go to date-time in any log file (or all opened files).
 * highlight text using regular expressions rules.
+* filter content based on highlight expressions.
 * highly customizable look via JavaFX CSS (refreshes instantly).
 * keyboard friendly (shortcuts for everything).
 
@@ -28,10 +29,12 @@ OR
 * download the jar from the command-line:
 
 ```
-curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.8.0/logfx-0.8.0-all.jar -o logfx.jar
+curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.9.0/logfx-0.9.0-all.jar -o logfx.jar
 ```
 
 > Size of the jar as of version `0.6.1`: 289 KB. *Not MB!*
+
+> UPDATE: Version 0.9.0's jar size: 320KB. 
 
 ## Running LogFX
 
