@@ -73,7 +73,8 @@ public class LogFX extends Application {
         this.config = new Config( configFile, taskRunner );
         this.highlightOptions = new HighlightOptions(
                 config.standardLogColorsProperty(),
-                config.getObservableExpressions() );
+                config.getObservableExpressions(),
+                config.filtersEnabledProperty() );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( getHostServices(), stage, this::open ),

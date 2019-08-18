@@ -59,9 +59,11 @@ public class HighlightOptions extends VBox {
     private final VBox expressionsBox;
 
     public HighlightOptions( SimpleObjectProperty<LogLineColors> standardLogColors,
-                             ObservableList<HighlightExpression> observableExpressions ) {
+                             ObservableList<HighlightExpression> observableExpressions,
+                             BooleanProperty isFilterEnabled ) {
         this.standardLogColors = standardLogColors;
         this.observableExpressions = observableExpressions;
+        this.isFilterEnabled = isFilterEnabled;
         this.expressionsBox = new VBox( 2 );
 
         expressionsBox.getChildren().addAll( observableExpressions.stream()
@@ -74,7 +76,7 @@ public class HighlightOptions extends VBox {
         headerLabel.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
 
         CheckBox enableFilter = new CheckBox( "Filter?" );
-        this.isFilterEnabled = enableFilter.selectedProperty();
+        enableFilter.selectedProperty().bindBidirectional( isFilterEnabled );
         enableFilter.setTooltip( new Tooltip( "Filter log lines that match selected rules" ) );
 
         Node helpIcon = createHelpIcon();

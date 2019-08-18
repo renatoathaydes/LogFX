@@ -53,6 +53,8 @@ final class ConfigParser {
                 parseStandardLogColors( lines );
             case "expressions:":
                 parseExpressions( lines );
+            case "filters:":
+                parseFilters( lines );
             case "files:":
                 parseFiles( lines );
             case "gui:":
@@ -110,6 +112,26 @@ final class ConfigParser {
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
+            }
+        }
+    }
+
+    private void parseFilters( Iterator<String> lines ) {
+        if ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                switch ( line.trim() ) {
+                    case "enable":
+                        properties.enableFilters.set( true );
+                        break;
+                    case "disable":
+                        properties.enableFilters.set( false );
+                        break;
+                    default:
+                        logInvalidProperty( "filters", "filters", line, "value must be 'enable' or 'disable'" );
+                }
+            } else if ( !line.trim().isEmpty() ) {
+                parseConfigFile( line, lines );
             }
         }
     }

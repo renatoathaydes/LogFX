@@ -7,6 +7,7 @@ import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
@@ -61,6 +62,7 @@ public class Config {
         properties.panesOrientation.addListener( listener );
         properties.paneDividerPositions.addListener( listener );
         properties.font.addListener( listener );
+        properties.enableFilters.addListener( listener );
     }
 
     public SimpleObjectProperty<LogLineColors> standardLogColorsProperty() {
@@ -87,6 +89,10 @@ public class Config {
         return properties.font;
     }
 
+    public BooleanProperty filtersEnabledProperty() {
+        return properties.enableFilters;
+    }
+
     private void readConfigFile( Path path ) {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
@@ -110,6 +116,9 @@ public class Config {
         CompletableFuture<List<HighlightExpression>> expressionsFuture = new CompletableFuture<>();
         Platform.runLater( () -> expressionsFuture.complete( new ArrayList<>( properties.observableExpressions ) ) );
 
+        CompletableFuture<Boolean> enableFiltersFuture = new CompletableFuture<>();
+        Platform.runLater( () -> enableFiltersFuture.complete( properties.enableFilters.getValue() ) );
+
         CompletableFuture<Set<File>> filesFuture = new CompletableFuture<>();
         Platform.runLater( () -> filesFuture.complete( new LinkedHashSet<>( properties.observableFiles ) ) );
 
@@ -122,19 +131,23 @@ public class Config {
         CompletableFuture<Font> fontFuture = new CompletableFuture<>();
         Platform.runLater( () -> fontFuture.complete( properties.font.getValue() ) );
 
+
         standardLogColorsFuture.thenAccept( logLineColors ->
                 expressionsFuture.thenAccept( expressions ->
-                        filesFuture.thenAccept( files ->
-                                panesOrientationFuture.thenAccept( orientation ->
-                                        paneDividersFuture.thenAccept( dividers ->
-                                                fontFuture.thenAccept( font ->
-                                                        dumpConfigToFile(
-                                                                logLineColors, expressions, files, orientation,
-                                                                dividers, font, path.toFile() ) ) ) ) ) ) );
+                        enableFiltersFuture.thenAccept( enableFilters ->
+                                filesFuture.thenAccept( files ->
+                                        panesOrientationFuture.thenAccept( orientation ->
+                                                paneDividersFuture.thenAccept( dividers ->
+                                                        fontFuture.thenAccept( font ->
+                                                                dumpConfigToFile(
+                                                                        logLineColors, expressions, enableFilters,
+                                                                        files, orientation, dividers, font, path.toFile()
+                                                                ) ) ) ) ) ) ) );
     }
 
     private static void dumpConfigToFile( LogLineColors logLineColors,
                                           List<HighlightExpression> highlightExpressions,
+                                          boolean enableFilters,
                                           Set<File> files,
                                           Orientation orientation,
                                           List<Double> dividerPositions,
@@ -160,6 +173,9 @@ public class Config {
                     writer.write( "\n" );
                 }
             }
+
+            writer.write( "filters:\n  " );
+            writer.write( enableFilters ? "enable\n" : "disable\n" );
 
             writer.write( "files:\n" );
             for ( File file : files ) {
