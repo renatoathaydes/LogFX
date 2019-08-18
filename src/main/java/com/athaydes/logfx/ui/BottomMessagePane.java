@@ -3,7 +3,6 @@ package com.athaydes.logfx.ui;
 import javafx.animation.KeyFrame;
 import javafx.animation.KeyValue;
 import javafx.animation.Timeline;
-import javafx.scene.Node;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.text.Text;
 import javafx.util.Duration;
@@ -16,13 +15,18 @@ public final class BottomMessagePane extends BorderPane {
     // in the CSS
     private double minHeight = 10.0;
 
+    private final Text text;
+    private final String originalText;
+
     public static BottomMessagePane warningIfFiltersEnabled() {
         String helpText = "Filters are enabled. Not showing full file contents.";
         return new BottomMessagePane( new Text( helpText ) );
     }
 
-    private BottomMessagePane( Node center ) {
-        super( center );
+    private BottomMessagePane( Text text ) {
+        super( text );
+        this.text = text;
+        originalText = text.getText();
         getStyleClass().add( "bottom-message-pane" );
     }
 
@@ -30,6 +34,7 @@ public final class BottomMessagePane extends BorderPane {
         double toHeight = show ? maybeUpdateMinHeight() : 0.0;
         Timeline timeline = new Timeline( new KeyFrame( ANIMATION_DURATION,
                 new KeyValue( minHeightProperty(), toHeight ) ) );
+        timeline.setOnFinished( event -> text.setText( show ? originalText : "" ) );
         timeline.play();
     }
 

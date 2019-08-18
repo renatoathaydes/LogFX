@@ -103,7 +103,7 @@ public class LogFX extends Application {
         logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
         mainBox.getChildren().addAll( menuBar, logsPane.getNode(), bottomMessagePane );
 
-        updateBottomMessagePane();
+        Platform.runLater( this::updateBottomMessagePane );
         config.filtersEnabledProperty().addListener( ( o ) -> updateBottomMessagePane() );
 
         root.getChildren().addAll( mainBox, overlay );
@@ -282,11 +282,17 @@ public class LogFX extends Application {
         font.setMnemonicParsing( true );
         bindMenuItemToDialog( font, () -> showFontPicker( config.fontProperty() ) );
 
+        CheckMenuItem filter = new CheckMenuItem( "Enable _filters" );
+        filter.setAccelerator( new KeyCodeCombination( KeyCode.F,
+                KeyCombination.SHORTCUT_DOWN ) );
+        filter.setMnemonicParsing( true );
+        filter.selectedProperty().bindBidirectional( config.filtersEnabledProperty() );
+
         MenuItem showContextMenu = new MenuItem( "Show Context Menu" );
         showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN ) );
         showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
 
-        menu.getItems().addAll( highlight, orientation, font, showContextMenu );
+        menu.getItems().addAll( highlight, orientation, font, filter, showContextMenu );
         return menu;
     }
 
