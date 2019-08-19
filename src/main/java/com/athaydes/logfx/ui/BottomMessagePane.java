@@ -15,9 +15,6 @@ public final class BottomMessagePane extends BorderPane {
     // in the CSS
     private double minHeight = 10.0;
 
-    private final Text text;
-    private final String originalText;
-
     public static BottomMessagePane warningIfFiltersEnabled() {
         String helpText = "Filters are enabled. Not showing full file contents.";
         return new BottomMessagePane( new Text( helpText ) );
@@ -25,16 +22,14 @@ public final class BottomMessagePane extends BorderPane {
 
     private BottomMessagePane( Text text ) {
         super( text );
-        this.text = text;
-        originalText = text.getText();
         getStyleClass().add( "bottom-message-pane" );
     }
 
-    public void setShow( boolean show ) {
+    public void setShow( boolean show, Runnable then ) {
         double toHeight = show ? maybeUpdateMinHeight() : 0.0;
         Timeline timeline = new Timeline( new KeyFrame( ANIMATION_DURATION,
                 new KeyValue( minHeightProperty(), toHeight ) ) );
-        timeline.setOnFinished( event -> text.setText( show ? originalText : "" ) );
+        timeline.setOnFinished( event -> then.run() );
         timeline.play();
     }
 

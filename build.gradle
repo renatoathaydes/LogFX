@@ -10,7 +10,7 @@ buildscript {
 }
 
 group 'com.athaydes.logfx'
-version '0.9.0'
+version '0.9.1'
 
 apply plugin: 'groovy'
 apply plugin: 'application'
@@ -24,6 +24,10 @@ mainClassName = "com.athaydes.logfx.LogFX"
 repositories {
     mavenLocal()
     jcenter()
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
 }
 
 final generatedJavaSources = "$buildDir/java-generated-sources"
