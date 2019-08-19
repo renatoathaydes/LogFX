@@ -101,10 +101,10 @@ public class LogFX extends Application {
 
         VBox mainBox = new VBox( 0 );
         logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
-        mainBox.getChildren().addAll( menuBar, logsPane.getNode(), bottomMessagePane );
+        mainBox.getChildren().addAll( menuBar, logsPane.getNode() );
 
-        Platform.runLater( this::updateBottomMessagePane );
-        config.filtersEnabledProperty().addListener( ( o ) -> updateBottomMessagePane() );
+        Platform.runLater( () -> updateBottomMessagePane( mainBox ) );
+        config.filtersEnabledProperty().addListener( ( o ) -> updateBottomMessagePane( mainBox ) );
 
         root.getChildren().addAll( mainBox, overlay );
 
@@ -136,9 +136,17 @@ public class LogFX extends Application {
         FxUtils.setupStylesheet( scene );
     }
 
-    private void updateBottomMessagePane() {
+    private void updateBottomMessagePane( VBox mainBox ) {
         boolean enable = config.filtersEnabledProperty().get();
-        bottomMessagePane.setShow( enable );
+        // we need to remove / add the pane because it will still show up even when its height is set to 0 on Mac
+        if ( enable ) {
+            mainBox.getChildren().add( bottomMessagePane );
+        }
+        bottomMessagePane.setShow( enable, () -> {
+            if ( !enable ) {
+                mainBox.getChildren().remove( bottomMessagePane );
+            }
+        } );
     }
 
     private void setIconsOn( Stage primaryStage ) {
