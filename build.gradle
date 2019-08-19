@@ -26,6 +26,10 @@ repositories {
     jcenter()
 }
 
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
 final generatedJavaSources = "$buildDir/java-generated-sources"
 
 sourceSets.main.java.srcDir generatedJavaSources
