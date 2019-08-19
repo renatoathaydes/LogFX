@@ -1,5 +1,11 @@
 ## LogFX Release Notes
 
+## 0.9.1
+
+> 19 Aug 2019
+
+* Fix #15 - bottom message pane always showing on Mac OS even when filter is disabled.
+
 ## 0.9.0
 
 > 18 Aug 2019
