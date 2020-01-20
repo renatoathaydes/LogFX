@@ -101,14 +101,20 @@ final class ConfigParser {
     }
 
     private void parseExpressions( Iterator<String> lines ) {
+        boolean firstLine = true;
+        String group = "";
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                try {
-                    properties.observableExpressions.add( parseHighlightExpression( line.trim(), version ) );
+                line = line.trim();
+                if ( firstLine && line.startsWith( "@name@" ) ) {
+                    group = line.substring( "@name@".length() ).trim();
+                } else try {
+                    properties.highlightGroups.add( group, parseHighlightExpression( line.trim(), version ) );
                 } catch ( IllegalArgumentException e ) {
                     logInvalidProperty( "expressions", "highlight", line, e.toString() );
                 }
+                firstLine = false;
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;

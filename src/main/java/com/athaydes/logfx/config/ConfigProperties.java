@@ -19,16 +19,16 @@ import java.util.LinkedHashSet;
 
 final class ConfigProperties {
     final SimpleObjectProperty<LogLineColors> standardLogColors;
-    final ObservableList<HighlightExpression> observableExpressions;
     final ObservableSet<File> observableFiles;
     final SimpleObjectProperty<Orientation> panesOrientation;
     final ObservableList<Double> paneDividerPositions;
     final BindableValue<Font> font;
     final BooleanProperty enableFilters;
+    final HighlightGroups highlightGroups;
 
     ConfigProperties() {
         standardLogColors = new SimpleObjectProperty<>( new LogLineColors( Color.BLACK, Color.LIGHTGREY ) );
-        observableExpressions = FXCollections.observableArrayList();
+        highlightGroups = new HighlightGroups();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
         paneDividerPositions = FXCollections.observableArrayList();

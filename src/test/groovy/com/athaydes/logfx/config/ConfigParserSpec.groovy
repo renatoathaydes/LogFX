@@ -1,5 +1,7 @@
 package com.athaydes.logfx.config
 
+import com.athaydes.logfx.text.HighlightExpression
+import javafx.geometry.Orientation
 import javafx.scene.paint.Color
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -82,6 +84,111 @@ class ConfigParserSpec extends Specification {
         V2      | 'red white ++'     | 'regular expression not specified'
         V2      | 'red white true'   | 'regular expression not specified'
         V2      | 'red white x expr' | 'invalid value for filtered property'
+    }
+
+    def "Can parse simple V2 configuration"() {
+        given: 'A simple V2 Config'
+        def sampleConfig = '''\
+        |version:
+        |  V2
+        |standard-log-colors:
+        |  0x000000ff 0xd3d3d3ff
+        |expressions:
+        |  0xbd1a80ff 0xe6e6e6ff true =====
+        |  0xe86b08ff 0x000000ff true wget
+        |  0x1a3399ff 0xffccb3ff true OFF
+        |filters:
+        |  disable
+        |files:
+        |  /android-studio/Install-Linux-tar.txt
+        |  /home/me/.logfx/config
+        |gui:
+        |  orientation HORIZONTAL
+        |  pane-dividers 0.4840163934426229
+        |  font 13.0 DejaVu Sans
+        |'''.stripMargin()
+
+        when: 'the config is parsed'
+        def config = new ConfigProperties()
+        new ConfigParser( config ).parseConfigFile( null, sampleConfig.split( '\n' ).iterator() )
+
+        then: 'all configuration is loaded'
+        config.standardLogColors.value.background == Color.BLACK
+        config.standardLogColors.value.fill == Color.LIGHTGRAY
+
+        def colorMap = config.highlightGroups.toMap()
+        colorMap.keySet() == [ '' ] as Set
+        def defaultHighlights = colorMap[ '' ]
+
+        defaultHighlights.size() == 3
+        defaultHighlights[ 0 ] == new HighlightExpression( '=====', Color.valueOf( '0xbd1a80ff' ), Color.valueOf( '0xe6e6e6ff' ), true )
+        defaultHighlights[ 1 ] == new HighlightExpression( 'wget', Color.valueOf( '0xe86b08ff' ), Color.valueOf( '0x000000ff' ), true )
+        defaultHighlights[ 2 ] == new HighlightExpression( 'OFF', Color.valueOf( '0x1a3399ff' ), Color.valueOf( '0xffccb3ff' ), true )
+
+        !config.enableFilters.get()
+        config.observableFiles.collect { it.path }.toSet() ==
+                [ '/android-studio/Install-Linux-tar.txt', '/home/me/.logfx/config' ] as Set
+
+        config.panesOrientation.get() == Orientation.HORIZONTAL
+        config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
+        config.font.value?.name == 'DejaVu Sans'
+        config.font.value?.size == 13.0 as double
+    }
+
+    def "Can parse simple V2 configuration with named highlight rules"() {
+        given: 'A V2 Config containing named highlight rules'
+        def sampleConfig = '''\
+        |version:
+        |  V2
+        |standard-log-colors:
+        |  0x000000ff 0xd3d3d3ff
+        |expressions:
+        |  0xbd1a80ff 0xe6e6e6ff true =====
+        |expressions:
+        |  @name@Extra Rules
+        |  0xe86b08ff 0x000000ff true wget
+        |filters:
+        |  disable
+        |files:
+        |  /home/me/.logfx/config
+        |gui:
+        |  orientation HORIZONTAL
+        |  pane-dividers 0.4840163934426229
+        |  font 13.0 DejaVu Sans
+        |'''.stripMargin()
+
+        when: 'the config is parsed'
+        def config = new ConfigProperties()
+        new ConfigParser( config ).parseConfigFile( null, sampleConfig.split( '\n' ).iterator() )
+
+        then: 'all configuration is loaded'
+        config.standardLogColors.value.background == Color.BLACK
+        config.standardLogColors.value.fill == Color.LIGHTGRAY
+
+        def colorMap = config.highlightGroups.toMap()
+        colorMap.keySet() == [ '', 'Extra Rules' ] as Set
+        def defaultHighlights = colorMap[ '' ]
+
+        defaultHighlights.size() == 1
+        defaultHighlights[ 0 ] == new HighlightExpression( '=====', Color.valueOf( '0xbd1a80ff' ), Color.valueOf( '0xe6e6e6ff' ), true )
+
+        def extraHighlights = colorMap[ 'Extra Rules' ]
+        extraHighlights.size() == 1
+        extraHighlights[ 0 ] == new HighlightExpression( 'wget', Color.valueOf( '0xe86b08ff' ), Color.valueOf( '0x000000ff' ), true )
+
+        !config.enableFilters.get()
+        config.observableFiles.collect { it.path }.toSet() ==
+                [ '/home/me/.logfx/config' ] as Set
+
+        config.panesOrientation.get() == Orientation.HORIZONTAL
+        config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
+        config.font.value?.name == 'DejaVu Sans'
+        config.font.value?.size == 13.0 as double
+
+        and: 'The highlightGroups can return the correct rules by group name'
+        config.highlightGroups.getDefault().observableExpressions.collect() == defaultHighlights
+        config.highlightGroups.getByName( '' ).observableExpressions.collect() == defaultHighlights
+        config.highlightGroups.getByName( 'Extra Rules' )?.observableExpressions?.collect() == extraHighlights
     }
 
 

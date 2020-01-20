@@ -23,9 +23,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
@@ -45,7 +48,9 @@ public class Config {
         if ( path.toFile().exists() ) {
             readConfigFile( path );
         } else {
-            properties.observableExpressions.add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED, false ) );
+            properties.highlightGroups.getDefault()
+                    .observableExpressions
+                    .add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED, false ) );
         }
 
         // make this a singleton object so that it can be remembered when we try to run it many times below
@@ -57,7 +62,7 @@ public class Config {
                 taskRunner.runWithMaxFrequency( updateConfigFile, 2000L );
 
         properties.standardLogColors.addListener( listener );
-        properties.observableExpressions.addListener( listener );
+        properties.highlightGroups.addListener( listener );
         properties.observableFiles.addListener( listener );
         properties.panesOrientation.addListener( listener );
         properties.paneDividerPositions.addListener( listener );
@@ -70,7 +75,12 @@ public class Config {
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
-        return properties.observableExpressions;
+        return properties.highlightGroups.getDefault().observableExpressions;
+    }
+
+    public ObservableList<HighlightExpression> getObservableExpressions( String groupName ) {
+        HighlightConfig config = properties.highlightGroups.getByName( groupName );
+        return config == null ? null : config.observableExpressions;
     }
 
     public ObservableSet<File> getObservableFiles() {
@@ -113,8 +123,8 @@ public class Config {
         CompletableFuture<LogLineColors> standardLogColorsFuture = new CompletableFuture<>();
         Platform.runLater( () -> standardLogColorsFuture.complete( properties.standardLogColors.get() ) );
 
-        CompletableFuture<List<HighlightExpression>> expressionsFuture = new CompletableFuture<>();
-        Platform.runLater( () -> expressionsFuture.complete( new ArrayList<>( properties.observableExpressions ) ) );
+        CompletableFuture<Map<String, Collection<HighlightExpression>>> expressionsFuture = new CompletableFuture<>();
+        Platform.runLater( () -> expressionsFuture.complete( new HashMap<>( properties.highlightGroups.toMap() ) ) );
 
         CompletableFuture<Boolean> enableFiltersFuture = new CompletableFuture<>();
         Platform.runLater( () -> enableFiltersFuture.complete( properties.enableFilters.getValue() ) );
@@ -146,7 +156,7 @@ public class Config {
     }
 
     private static void dumpConfigToFile( LogLineColors logLineColors,
-                                          List<HighlightExpression> highlightExpressions,
+                                          Map<String, Collection<HighlightExpression>> highlightExpressions,
                                           boolean enableFilters,
                                           Set<File> files,
                                           Orientation orientation,
@@ -163,9 +173,15 @@ public class Config {
             writer.write( "  " + logLineColors.getBackground() + " " + logLineColors.getFill() );
             writer.write( "\n" );
 
-            if ( !highlightExpressions.isEmpty() ) {
+            for ( Map.Entry<String, Collection<HighlightExpression>> entry : highlightExpressions.entrySet() ) {
+                String group = entry.getKey();
                 writer.write( "expressions:\n" );
-                for ( HighlightExpression expression : highlightExpressions ) {
+                if ( !group.isEmpty() ) {
+                    writer.write( "  @name@" );
+                    writer.write( group );
+                    writer.write( '\n' );
+                }
+                for ( HighlightExpression expression : entry.getValue() ) {
                     writer.write( "  " + expression.getBkgColor() );
                     writer.write( " " + expression.getFillColor() );
                     writer.write( " " + expression.isFiltered() );
