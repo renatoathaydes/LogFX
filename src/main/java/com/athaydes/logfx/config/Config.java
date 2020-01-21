@@ -49,7 +49,6 @@ public class Config {
             readConfigFile( path );
         } else {
             properties.highlightGroups.getDefault()
-                    .observableExpressions
                     .add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED, false ) );
         }
 
@@ -75,12 +74,11 @@ public class Config {
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions() {
-        return properties.highlightGroups.getDefault().observableExpressions;
+        return properties.highlightGroups.getDefault();
     }
 
     public ObservableList<HighlightExpression> getObservableExpressions( String groupName ) {
-        HighlightConfig config = properties.highlightGroups.getByName( groupName );
-        return config == null ? null : config.observableExpressions;
+        return properties.highlightGroups.getByName( groupName );
     }
 
     public ObservableSet<File> getObservableFiles() {

@@ -186,9 +186,9 @@ class ConfigParserSpec extends Specification {
         config.font.value?.size == 13.0 as double
 
         and: 'The highlightGroups can return the correct rules by group name'
-        config.highlightGroups.getDefault().observableExpressions.collect() == defaultHighlights
-        config.highlightGroups.getByName( '' ).observableExpressions.collect() == defaultHighlights
-        config.highlightGroups.getByName( 'Extra Rules' )?.observableExpressions?.collect() == extraHighlights
+        config.highlightGroups.getDefault().collect() == defaultHighlights
+        config.highlightGroups.getByName( '' ).collect() == defaultHighlights
+        config.highlightGroups.getByName( 'Extra Rules' )?.collect() == extraHighlights
     }
 
 

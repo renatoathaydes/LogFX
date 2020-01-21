@@ -11,40 +11,33 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-final class HighlightConfig {
-    final ObservableList<HighlightExpression> observableExpressions;
-
-    public HighlightConfig() {
-        observableExpressions = FXCollections.observableArrayList();
-    }
-}
-
 final class HighlightGroups {
-    private final ObservableMap<String, HighlightConfig> configByGroupName =
+    private final ObservableMap<String, ObservableList<HighlightExpression>> configByGroupName =
             FXCollections.observableMap( new HashMap<>( 4 ) );
 
-    HighlightConfig getByName( String name ) {
+    ObservableList<HighlightExpression> getByName( String name ) {
         return configByGroupName.get( name );
     }
 
-    HighlightConfig getDefault() {
-        return configByGroupName.get( "" );
+    ObservableList<HighlightExpression> getDefault() {
+        return configByGroupName.computeIfAbsent( "", ( ignore ) -> FXCollections.observableArrayList() );
     }
 
     void add( String groupName, HighlightExpression expression ) {
-        configByGroupName.computeIfAbsent( groupName, ( ignore ) -> new HighlightConfig() )
-                .observableExpressions.add( expression );
+        configByGroupName.computeIfAbsent( groupName,
+                ( ignore ) -> FXCollections.observableArrayList() )
+                .add( expression );
     }
 
     Map<String, Collection<HighlightExpression>> toMap() {
         Map<String, Collection<HighlightExpression>> result = new HashMap<>( configByGroupName.size() );
-        for ( Map.Entry<String, HighlightConfig> entry : configByGroupName.entrySet() ) {
-            result.put( entry.getKey(), new ArrayList<>( entry.getValue().observableExpressions ) );
+        for ( Map.Entry<String, ObservableList<HighlightExpression>> entry : configByGroupName.entrySet() ) {
+            result.put( entry.getKey(), new ArrayList<>( entry.getValue() ) );
         }
         return result;
     }
 
-    public void addListener( InvalidationListener listener ) {
+    void addListener( InvalidationListener listener ) {
         configByGroupName.addListener( listener );
     }
 }
