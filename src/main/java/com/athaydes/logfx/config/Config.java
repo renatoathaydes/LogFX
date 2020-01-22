@@ -10,6 +10,7 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
@@ -73,12 +74,8 @@ public class Config {
         return properties.standardLogColors;
     }
 
-    public ObservableList<HighlightExpression> getObservableExpressions() {
-        return properties.highlightGroups.getDefault();
-    }
-
-    public ObservableList<HighlightExpression> getObservableExpressions( String groupName ) {
-        return properties.highlightGroups.getByName( groupName );
+    public ObservableMap<String, ObservableList<HighlightExpression>> getHighlightGroups() {
+        return properties.highlightGroups.toMap();
     }
 
     public ObservableSet<File> getObservableFiles() {

@@ -111,6 +111,10 @@ public class HighlightOptions extends VBox {
                 buttonsPane );
     }
 
+    ObservableList<HighlightExpression> getHighlightOptions() {
+        return observableExpressions;
+    }
+
     private void enableFilters( boolean enable ) {
         if ( !enable ) {
             // set first if disabling because then we avoid refreshing files more than once
@@ -351,10 +355,10 @@ public class HighlightOptions extends VBox {
 
     }
 
-    public static Dialog showHighlightOptionsDialog( HighlightOptions highlightOptions ) {
-        ScrollPane pane = new ScrollPane( highlightOptions );
+    public static Dialog showHighlightOptionsDialog( HighlightGroups highlightGroups ) {
+        ScrollPane pane = new ScrollPane( highlightGroups );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
-        Dialog dialog = new Dialog( new ScrollPane( highlightOptions ) );
+        Dialog dialog = new Dialog( new ScrollPane( highlightGroups ) );
         dialog.setSize( 850.0, 260.0 );
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );

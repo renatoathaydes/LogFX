@@ -12,7 +12,7 @@ import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FileDragAndDrop;
 import com.athaydes.logfx.ui.FileOpener;
 import com.athaydes.logfx.ui.FxUtils;
-import com.athaydes.logfx.ui.HighlightOptions;
+import com.athaydes.logfx.ui.HighlightGroups;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
@@ -64,7 +64,7 @@ public class LogFX extends Application {
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
-    private final HighlightOptions highlightOptions;
+    private final HighlightGroups highlightGroups;
     private final LogViewPane logsPane;
     private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
@@ -74,10 +74,7 @@ public class LogFX extends Application {
     public LogFX() {
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner );
-        this.highlightOptions = new HighlightOptions(
-                config.standardLogColorsProperty(),
-                config.getObservableExpressions(),
-                config.filtersEnabledProperty() );
+        this.highlightGroups = new HighlightGroups( config );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( getHostServices(), stage, this::open ),
@@ -243,7 +240,7 @@ public class LogFX extends Application {
             return false;
         }
         LogView view = new LogView( config.fontProperty(), root.widthProperty(),
-                highlightOptions, fileReader, taskRunner );
+                highlightGroups.optionsFor( file ), fileReader, taskRunner );
 
         FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
             int droppedOnPaneIndex = logsPane.indexOf( view );
@@ -277,7 +274,7 @@ public class LogFX extends Application {
         highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN ) );
         highlight.setMnemonicParsing( true );
         bindMenuItemToDialog( highlight, () ->
-                showHighlightOptionsDialog( highlightOptions ) );
+                showHighlightOptionsDialog( highlightGroups ) );
 
         MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
         orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
