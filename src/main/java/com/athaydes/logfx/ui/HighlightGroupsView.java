@@ -11,8 +11,6 @@ import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.Label;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.util.StringConverter;
 
 import java.io.File;
@@ -57,6 +55,11 @@ public class HighlightGroupsView extends BorderPane {
     public HighlightOptions optionsFor( File file ) {
         // TODO map files to options
         return defaultOption;
+    }
+
+    void onShow() {
+        HighlightOptions option = ( HighlightOptions ) getCenter();
+        option.onShow();
     }
 
     private final class ChoiceBoxConverter extends StringConverter<HighlightOptions> {

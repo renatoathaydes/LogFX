@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -55,6 +56,7 @@ public class HighlightOptions extends VBox {
     private final BooleanProperty isFilterEnabled;
 
     private final VBox expressionsBox;
+    private final StandardLogColorsRow standardLogColorsRow;
 
     public HighlightOptions( SimpleObjectProperty<LogLineColors> standardLogColors,
                              ObservableList<HighlightExpression> observableExpressions,
@@ -101,11 +103,20 @@ public class HighlightOptions extends VBox {
         buttonsPane.setLeft( newRow );
         buttonsPane.setRight( filterButtons );
 
+        standardLogColorsRow = new StandardLogColorsRow( standardLogColors );
+
         getChildren().addAll(
                 headerPane,
                 expressionsBox,
-                new StandardLogColorsRow( standardLogColors ),
+                standardLogColorsRow,
                 buttonsPane );
+    }
+
+    void onShow() {
+        // try to focus on the first rule's text input
+        ObservableList<Node> expressionRows = expressionsBox.getChildren();
+        Row firstRow = expressionRows.isEmpty() ? standardLogColorsRow : ( Row ) expressionRows.get( 0 );
+        firstRow.receiveFocus();
     }
 
     ObservableList<HighlightExpression> getHighlightOptions() {
@@ -350,17 +361,21 @@ public class HighlightOptions extends VBox {
         @MustCallOnJavaFXThread
         protected abstract void update( Color bkgColor, Color fillColor, boolean isFiltered );
 
+        void receiveFocus() {
+            expressionField.requestFocus();
+        }
     }
 
     public static Dialog showHighlightOptionsDialog( HighlightGroupsView highlightGroups ) {
         ScrollPane pane = new ScrollPane( highlightGroups );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         Dialog dialog = new Dialog( new ScrollPane( highlightGroups ) );
-        dialog.setSize( 850.0, 260.0 );
+        dialog.setSize( 850.0, 320.0 );
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );
         dialog.makeTransparentWhenLoseFocus();
         dialog.show();
+        Platform.runLater( () -> highlightGroups.onShow() );
         return dialog;
     }
 
