@@ -7,8 +7,10 @@ import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
 
 import java.util.HashMap;
+import java.util.Map;
 
-final class HighlightGroups {
+public final class HighlightGroups {
+    private InvalidationListener invalidationListener;
     private final ObservableMap<String, ObservableList<HighlightExpression>> configByGroupName =
             FXCollections.observableMap( new HashMap<>( 4 ) );
 
@@ -16,21 +18,30 @@ final class HighlightGroups {
         return configByGroupName.get( name );
     }
 
-    ObservableList<HighlightExpression> getDefault() {
-        return configByGroupName.computeIfAbsent( "", ( ignore ) -> FXCollections.observableArrayList() );
+    public ObservableList<HighlightExpression> getDefault() {
+        return configByGroupName.computeIfAbsent( "", this::createNewExpressions );
     }
 
-    void add( String groupName, HighlightExpression expression ) {
+    public void add( String groupName, HighlightExpression expression ) {
         configByGroupName.computeIfAbsent( groupName,
-                ( ignore ) -> FXCollections.observableArrayList() )
+                this::createNewExpressions )
                 .add( expression );
     }
 
-    ObservableMap<String, ObservableList<HighlightExpression>> toMap() {
+    public Map<String, ObservableList<HighlightExpression>> toMap() {
         return configByGroupName;
     }
 
-    void addListener( InvalidationListener listener ) {
+    void setListener( InvalidationListener listener ) {
+        if ( invalidationListener != null ) throw new RuntimeException( "invalidation listener has already been set" );
+        invalidationListener = listener;
         configByGroupName.addListener( listener );
+        configByGroupName.values().forEach( ( v ) -> v.addListener( listener ) );
+    }
+
+    private ObservableList<HighlightExpression> createNewExpressions( Object ignore ) {
+        ObservableList<HighlightExpression> newList = FXCollections.observableArrayList();
+        if ( invalidationListener != null ) newList.addListener( invalidationListener );
+        return newList;
     }
 }

@@ -62,7 +62,7 @@ public class Config {
                 taskRunner.runWithMaxFrequency( updateConfigFile, 2000L );
 
         properties.standardLogColors.addListener( listener );
-        properties.highlightGroups.addListener( listener );
+        properties.highlightGroups.setListener( listener );
         properties.observableFiles.addListener( listener );
         properties.panesOrientation.addListener( listener );
         properties.paneDividerPositions.addListener( listener );
@@ -74,8 +74,8 @@ public class Config {
         return properties.standardLogColors;
     }
 
-    public ObservableMap<String, ObservableList<HighlightExpression>> getHighlightGroups() {
-        return properties.highlightGroups.toMap();
+    public HighlightGroups getHighlightGroups() {
+        return properties.highlightGroups;
     }
 
     public ObservableSet<File> getObservableFiles() {

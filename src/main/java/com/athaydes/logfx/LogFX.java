@@ -12,7 +12,7 @@ import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FileDragAndDrop;
 import com.athaydes.logfx.ui.FileOpener;
 import com.athaydes.logfx.ui.FxUtils;
-import com.athaydes.logfx.ui.HighlightGroups;
+import com.athaydes.logfx.ui.HighlightGroupsView;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
@@ -64,7 +64,7 @@ public class LogFX extends Application {
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
-    private final HighlightGroups highlightGroups;
+    private final HighlightGroupsView highlightGroups;
     private final LogViewPane logsPane;
     private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
@@ -74,7 +74,7 @@ public class LogFX extends Application {
     public LogFX() {
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner );
-        this.highlightGroups = new HighlightGroups( config );
+        this.highlightGroups = new HighlightGroupsView( config );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( getHostServices(), stage, this::open ),
