@@ -48,7 +48,6 @@ public class HighlightGroupsView extends BorderPane {
 
         HBox selector = new HBox( 10 );
         Label groupLabel = new Label( "Select group to edit:" );
-        groupLabel.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
         selector.getChildren().addAll( groupLabel, optionsChoiceBox );
 
         setTop( selector );

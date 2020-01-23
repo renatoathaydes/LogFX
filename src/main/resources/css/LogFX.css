@@ -7,6 +7,12 @@
     -fx-padding: 0 0 0 1;
 }
 
+Label {
+    -fx-font-family: Lucida;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
 .text-input.error {
     -fx-border-color: palevioletred;
 }

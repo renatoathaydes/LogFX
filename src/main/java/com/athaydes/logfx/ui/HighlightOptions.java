@@ -22,8 +22,6 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
 import javafx.scene.web.WebEngine;
 import javafx.scene.web.WebView;
 import javafx.stage.StageStyle;
@@ -73,7 +71,6 @@ public class HighlightOptions extends VBox {
         setSpacing( 5 );
         setPadding( new Insets( 5 ) );
         Label headerLabel = new Label( "Enter highlight expressions:" );
-        headerLabel.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
 
         CheckBox enableFilter = new CheckBox( "Filter?" );
         enableFilter.selectedProperty().bindBidirectional( isFilterEnabled );
