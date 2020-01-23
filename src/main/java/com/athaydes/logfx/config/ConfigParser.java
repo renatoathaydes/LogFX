@@ -109,6 +109,7 @@ final class ConfigParser {
                 line = line.trim();
                 if ( firstLine && line.startsWith( "@name@" ) ) {
                     group = line.substring( "@name@".length() ).trim();
+                    properties.highlightGroups.add( group );
                 } else try {
                     properties.highlightGroups.add( group, parseHighlightExpression( line.trim(), version ) );
                 } catch ( IllegalArgumentException e ) {

@@ -55,12 +55,15 @@ public class HighlightOptions extends VBox {
     private final ObservableList<HighlightExpression> observableExpressions;
     private final BooleanProperty isFilterEnabled;
 
+    private final String groupName;
     private final VBox expressionsBox;
     private final StandardLogColorsRow standardLogColorsRow;
 
-    public HighlightOptions( SimpleObjectProperty<LogLineColors> standardLogColors,
+    public HighlightOptions( String groupName,
+                             SimpleObjectProperty<LogLineColors> standardLogColors,
                              ObservableList<HighlightExpression> observableExpressions,
                              BooleanProperty isFilterEnabled ) {
+        this.groupName = groupName;
         this.standardLogColors = standardLogColors;
         this.observableExpressions = observableExpressions;
         this.isFilterEnabled = isFilterEnabled;
@@ -224,6 +227,10 @@ public class HighlightOptions extends VBox {
         } else {
             return Optional.empty();
         }
+    }
+
+    public String getGroupName() {
+        return groupName;
     }
 
     private static class StandardLogColorsRow extends Row {

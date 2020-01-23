@@ -8,13 +8,14 @@ import javafx.collections.ObservableMap;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 public final class HighlightGroups {
     private InvalidationListener invalidationListener;
     private final ObservableMap<String, ObservableList<HighlightExpression>> configByGroupName =
             FXCollections.observableMap( new HashMap<>( 4 ) );
 
-    ObservableList<HighlightExpression> getByName( String name ) {
+    public ObservableList<HighlightExpression> getByName( String name ) {
         return configByGroupName.get( name );
     }
 
@@ -22,10 +23,18 @@ public final class HighlightGroups {
         return configByGroupName.computeIfAbsent( "", this::createNewExpressions );
     }
 
-    public void add( String groupName, HighlightExpression expression ) {
+    public void add( String groupName, HighlightExpression... expression ) {
         configByGroupName.computeIfAbsent( groupName,
                 this::createNewExpressions )
-                .add( expression );
+                .addAll( expression );
+    }
+
+    public void remove( String groupName ) {
+        configByGroupName.remove( groupName );
+    }
+
+    public Set<String> groupNames() {
+        return configByGroupName.keySet();
     }
 
     public Map<String, ObservableList<HighlightExpression>> toMap() {
