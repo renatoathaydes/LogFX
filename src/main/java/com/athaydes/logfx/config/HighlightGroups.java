@@ -23,10 +23,9 @@ public final class HighlightGroups {
         return configByGroupName.computeIfAbsent( "", this::createNewExpressions );
     }
 
-    public void add( String groupName, HighlightExpression... expression ) {
-        configByGroupName.computeIfAbsent( groupName,
-                this::createNewExpressions )
-                .addAll( expression );
+    public ObservableList<HighlightExpression> add( String groupName ) {
+        return configByGroupName.computeIfAbsent( groupName,
+                this::createNewExpressions );
     }
 
     public void remove( String groupName ) {

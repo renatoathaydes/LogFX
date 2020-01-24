@@ -4,9 +4,9 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.text.HighlightExpression;
-import javafx.application.Platform;
-import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
@@ -25,45 +25,25 @@ public class HighlightGroupsView extends BorderPane {
 
     private final ChoiceBox<HighlightOptions> optionsChoiceBox;
     private final HighlightOptions defaultOption;
-    private final ObservableList<HighlightOptions> options = FXCollections.observableArrayList();
 
     public HighlightGroupsView( Config config ) {
         HighlightGroups groups = config.getHighlightGroups();
-        BindableValue<HighlightOptions> defaultHighlightOptions = new BindableValue<>( null );
 
-        groups.toMap().forEach( ( group, rules ) -> {
-            HighlightOptions opt = createHighlightOptions( config, group, rules );
-            if ( group.equals( "" ) ) defaultHighlightOptions.setValue( opt );
-            options.add( opt );
-        } );
-
-        defaultOption = defaultHighlightOptions.getValue();
-        assert defaultOption != null;
-
-        optionsChoiceBox = new ChoiceBox<>( options );
+        optionsChoiceBox = new ChoiceBox<>();
         optionsChoiceBox.setConverter( new ChoiceBoxConverter( groups.toMap() ) );
+
+        defaultOption = populateChoiceBoxAndReturnDefaultOption( config, groups );
+        assert defaultOption != null;
 
         Button deleteButton = AwesomeIcons.createIconButton( TRASH );
         deleteButton.setTooltip( new Tooltip( "Delete the selected group of highlight rules" ) );
         deleteButton.setDisable( true );
-        deleteButton.setOnAction( ( ignore ) -> {
-            HighlightOptions option = optionsChoiceBox.getSelectionModel().getSelectedItem();
-            if ( option == defaultOption ) return;
-            Platform.runLater( () -> setCenter( defaultOption ) );
-            options.remove( option );
-            groups.remove( option.getGroupName() );
-        } );
+        deleteButton.setOnAction( handleDeleteGroup( groups ) );
 
         Button addButton = new Button( "New Group" );
         addButton.setTooltip( new Tooltip( "Create a new group of highlight rules. " +
                 "Each log file can be associated with a group" ) );
-        addButton.setOnAction( ( ignore ) -> {
-            String groupName = generateGroupName( groups );
-            groups.add( groupName );
-            HighlightOptions newOptions = createHighlightOptions( config, groupName, groups.getByName( groupName ) );
-            options.add( newOptions );
-            optionsChoiceBox.setValue( newOptions );
-        } );
+        addButton.setOnAction( handleAddGroup( config, groups ) );
 
         optionsChoiceBox.setOnAction( ( ignore ) -> {
             HighlightOptions selectedItem = optionsChoiceBox.getSelectionModel().getSelectedItem();
@@ -79,9 +59,7 @@ public class HighlightGroupsView extends BorderPane {
         selector.getChildren().addAll( groupLabel, optionsChoiceBox, deleteButton, addButton );
 
         setTop( selector );
-        setCenter( defaultOption );
-
-        optionsChoiceBox.setValue( defaultOption );
+        optionsChoiceBox.getSelectionModel().select( defaultOption );
     }
 
     public HighlightOptions optionsFor( File file ) {
@@ -94,9 +72,42 @@ public class HighlightGroupsView extends BorderPane {
         option.onShow();
     }
 
-    private HighlightOptions createHighlightOptions( Config config,
-                                                     String groupName,
-                                                     ObservableList<HighlightExpression> rules ) {
+    private HighlightOptions populateChoiceBoxAndReturnDefaultOption( Config config,
+                                                                      HighlightGroups groups ) {
+        BindableValue<HighlightOptions> defaultHighlightOptions = new BindableValue<>( null );
+
+        groups.toMap().forEach( ( group, rules ) -> {
+            HighlightOptions opt = createHighlightOptions( config, group, rules );
+            if ( group.equals( "" ) ) defaultHighlightOptions.setValue( opt );
+            optionsChoiceBox.getItems().add( opt );
+        } );
+
+        return defaultHighlightOptions.getValue();
+    }
+
+    private EventHandler<ActionEvent> handleAddGroup( Config config, HighlightGroups groups ) {
+        return ( ignore ) -> {
+            String groupName = generateGroupName( groups );
+            ObservableList<HighlightExpression> rules = groups.add( groupName );
+            HighlightOptions newOptions = createHighlightOptions( config, groupName, rules );
+            optionsChoiceBox.getItems().add( newOptions );
+            optionsChoiceBox.getSelectionModel().select( newOptions );
+        };
+    }
+
+    private EventHandler<ActionEvent> handleDeleteGroup( HighlightGroups groups ) {
+        return ( ignore ) -> {
+            HighlightOptions option = optionsChoiceBox.getSelectionModel().getSelectedItem();
+            if ( option == defaultOption ) return;
+            optionsChoiceBox.getItems().remove( option );
+            groups.remove( option.getGroupName() );
+            optionsChoiceBox.getSelectionModel().select( defaultOption );
+        };
+    }
+
+    private static HighlightOptions createHighlightOptions( Config config,
+                                                            String groupName,
+                                                            ObservableList<HighlightExpression> rules ) {
         return new HighlightOptions(
                 groupName,
                 config.standardLogColorsProperty(),
@@ -105,7 +116,7 @@ public class HighlightGroupsView extends BorderPane {
     }
 
     private String generateGroupName( HighlightGroups groups ) {
-        int groupIndex = options.size() + 1;
+        int groupIndex = optionsChoiceBox.getItems().size() + 1;
         String groupName = "Group " + groupIndex;
         while ( groups.groupNames().contains( groupName ) ) {
             groupIndex++;
@@ -135,7 +146,7 @@ public class HighlightGroupsView extends BorderPane {
         public HighlightOptions fromString( String groupName ) {
             if ( groupName.equals( "Default" ) ) return defaultOption;
             ObservableList<HighlightExpression> target = groups.get( groupName );
-            return options.stream().filter( o -> o.getHighlightOptions() == target )
+            return optionsChoiceBox.getItems().stream().filter( o -> o.getHighlightOptions() == target )
                     .findFirst()
                     .orElseThrow( () -> new RuntimeException( "Unreachable" ) );
         }
