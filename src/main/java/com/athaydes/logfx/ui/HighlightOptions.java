@@ -10,6 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -381,6 +382,7 @@ public class HighlightOptions extends VBox {
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );
         dialog.makeTransparentWhenLoseFocus();
+        dialog.getBox().setAlignment( Pos.TOP_CENTER );
         dialog.show();
         Platform.runLater( () -> highlightGroups.onShow() );
         return dialog;
