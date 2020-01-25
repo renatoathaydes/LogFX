@@ -28,8 +28,8 @@ public final class HighlightGroups {
                 this::createNewExpressions );
     }
 
-    public void remove( String groupName ) {
-        configByGroupName.remove( groupName );
+    public ObservableList<HighlightExpression> remove( String groupName ) {
+        return configByGroupName.remove( groupName );
     }
 
     public Set<String> groupNames() {

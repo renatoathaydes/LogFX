@@ -56,7 +56,7 @@ public class HighlightOptions extends VBox {
     private final ObservableList<HighlightExpression> observableExpressions;
     private final BooleanProperty isFilterEnabled;
 
-    private final String groupName;
+    private String groupName;
     private final VBox expressionsBox;
     private final StandardLogColorsRow standardLogColorsRow;
 
@@ -232,6 +232,10 @@ public class HighlightOptions extends VBox {
 
     public String getGroupName() {
         return groupName;
+    }
+
+    void setGroupName( String groupName ) {
+        this.groupName = groupName;
     }
 
     private static class StandardLogColorsRow extends Row {

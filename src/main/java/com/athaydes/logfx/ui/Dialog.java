@@ -15,6 +15,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.effect.MotionBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
@@ -32,6 +34,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Consumer;
 
 /**
  * A dialog window to display other nodes vertically.
@@ -199,6 +202,24 @@ public class Dialog {
                     new Text( text ),
                     okButton );
             okButton.setOnAction( event -> dialog.hide() );
+            dialog.show();
+        } );
+    }
+
+    public static void askForInput( Scene owner,
+                                    String question, String prefilledAnswer, Consumer<String> handleAnswer ) {
+        Platform.runLater( () -> {
+            Label label = new Label( question );
+            TextField textField = new TextField( prefilledAnswer );
+            Dialog dialog = new Dialog( label, textField );
+            dialog.setStyle( StageStyle.UNDECORATED );
+            if ( owner != null ) {
+                dialog.setOwner( owner.getWindow() );
+            }
+            textField.setOnAction( ( event ) -> {
+                handleAnswer.accept( textField.getText() );
+                dialog.hide();
+            } );
             dialog.show();
         } );
     }
