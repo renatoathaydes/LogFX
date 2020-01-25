@@ -79,6 +79,7 @@ public class LogFX extends Application {
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( getHostServices(), stage, this::open ),
+                config.getHighlightGroups(),
                 config.getObservableFiles().isEmpty() );
 
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
@@ -203,7 +204,7 @@ public class LogFX extends Application {
         List<LogFile> files = new ArrayList<>( config.getObservableFiles() );
         for ( LogFile file : files ) {
             Platform.runLater( () -> {
-                boolean accepted = openViewFor( file.file, -1 );
+                boolean accepted = openViewFor( file, -1 );
                 if ( !accepted ) {
                     config.getObservableFiles().remove( file );
                 }
@@ -218,12 +219,12 @@ public class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     private void open( File file, int index ) {
-        LogFile.SimpleLogFile logFile = new LogFile.SimpleLogFile( file );
+        LogFile logFile = new LogFile( file );
         if ( config.getObservableFiles().contains( logFile ) ) {
             log.debug( "Tried to open file that is already opened, will focus on it" );
             logsPane.focusOn( file );
         } else {
-            boolean accepted = openViewFor( file, index );
+            boolean accepted = openViewFor( logFile, index );
             if ( accepted ) {
                 config.getObservableFiles().add( logFile );
             }
@@ -231,19 +232,18 @@ public class LogFX extends Application {
     }
 
     @MustCallOnJavaFXThread
-    private boolean openViewFor( File file, int index ) {
-        log.debug( "Creating file reader and view for file {}", file );
+    private boolean openViewFor( LogFile logFile, int index ) {
+        log.debug( "Creating file reader and view for file {}", logFile.file );
 
         FileContentReader fileReader;
         try {
-            fileReader = new FileReader( file, LogView.MAX_LINES );
+            fileReader = new FileReader( logFile.file, LogView.MAX_LINES );
         } catch ( IllegalStateException e ) {
             Dialog.showMessage( e.getMessage(), Dialog.MessageLevel.ERROR );
             return false;
         }
 
-        LogView view = new LogView( config.fontProperty(), root.widthProperty(),
-                highlightGroups, fileReader, taskRunner );
+        LogView view = new LogView( config, root.widthProperty(), logFile, fileReader, taskRunner );
 
         FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
             int droppedOnPaneIndex = logsPane.indexOf( view );
@@ -263,7 +263,7 @@ public class LogFX extends Application {
             }
         } );
 
-        logsPane.add( view, () -> config.getObservableFiles().remove( new LogFile.SimpleLogFile( file ) ), index );
+        logsPane.add( view, () -> config.getObservableFiles().remove( logFile ), index );
 
         return true;
     }

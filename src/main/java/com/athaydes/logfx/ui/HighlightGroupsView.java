@@ -3,10 +3,8 @@ package com.athaydes.logfx.ui;
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.HighlightGroups;
-import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableSet;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -16,31 +14,26 @@ import javafx.scene.control.Label;
 import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.util.StringConverter;
-
-import java.io.File;
-import java.util.Map;
 
 import static com.athaydes.logfx.ui.AwesomeIcons.PENCIL;
 import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
 
 public class HighlightGroupsView extends BorderPane {
-
     private final ChoiceBox<HighlightOptions> optionsChoiceBox;
     private final HighlightOptions defaultOption;
     private final HighlightGroups groups;
-    private final ObservableSet<LogFile> logFiles;
 
     public HighlightGroupsView( Config config ) {
         groups = config.getHighlightGroups();
-        logFiles = config.getObservableFiles();
 
         optionsChoiceBox = new ChoiceBox<>();
-        optionsChoiceBox.setConverter( new ChoiceBoxConverter( groups.toMap() ) );
 
-        defaultOption = populateChoiceBoxAndReturnDefaultOption( config, groups );
+        defaultOption = populateChoiceBoxAndReturnDefaultOption( config, optionsChoiceBox.getItems(), groups );
         assert defaultOption != null;
+
+        optionsChoiceBox.setConverter( new HighlightOptionsSelectorConverter(
+                optionsChoiceBox.getItems(), defaultOption, groups ) );
 
         Button deleteButton = AwesomeIcons.createIconButton( TRASH );
         deleteButton.setTooltip( new Tooltip( "Delete the selected group of highlight rules" ) );
@@ -74,28 +67,21 @@ public class HighlightGroupsView extends BorderPane {
         optionsChoiceBox.getSelectionModel().select( defaultOption );
     }
 
-    public HighlightOptions optionsFor( File file ) {
-        String groupName = logFiles.stream()
-                .filter( f -> f.file.equals( file ) )
-                .map( f -> f.use( lf -> defaultOption.getGroupName(), fg -> fg.highlighGroupName ) )
-                .findFirst()
-                .orElse( defaultOption.getGroupName() );
-        return findOptionsForGroup( groupName );
-    }
-
     void onShow() {
         HighlightOptions option = ( HighlightOptions ) getCenter();
         option.onShow();
     }
 
-    private HighlightOptions populateChoiceBoxAndReturnDefaultOption( Config config,
-                                                                      HighlightGroups groups ) {
+    static HighlightOptions populateChoiceBoxAndReturnDefaultOption(
+            Config config,
+            ObservableList<HighlightOptions> options,
+            HighlightGroups groups ) {
         BindableValue<HighlightOptions> defaultHighlightOptions = new BindableValue<>( null );
 
         groups.toMap().forEach( ( group, rules ) -> {
             HighlightOptions opt = createHighlightOptions( config, group, rules );
             if ( group.equals( "" ) ) defaultHighlightOptions.setValue( opt );
-            optionsChoiceBox.getItems().add( opt );
+            options.add( opt );
         } );
 
         return defaultHighlightOptions.getValue();
@@ -170,33 +156,4 @@ public class HighlightGroupsView extends BorderPane {
         return groupName;
     }
 
-    private HighlightOptions findOptionsForGroup( String groupName ) {
-        if ( groupName.equals( "Default" ) ) return defaultOption;
-        ObservableList<HighlightExpression> target = groups.getByName( groupName );
-        return optionsChoiceBox.getItems().stream().filter( o -> o.getHighlightOptions() == target )
-                .findFirst()
-                .orElseThrow( () -> new RuntimeException( "Unreachable" ) );
-    }
-
-    private final class ChoiceBoxConverter extends StringConverter<HighlightOptions> {
-        public static final String DEFAULT_GROUP_DISPLAY_NAME = "Default";
-
-        final Map<String, ObservableList<HighlightExpression>> groups;
-
-        private ChoiceBoxConverter( Map<String, ObservableList<HighlightExpression>> groups ) {
-            this.groups = groups;
-        }
-
-        @Override
-        public String toString( HighlightOptions option ) {
-            if ( option == defaultOption ) return DEFAULT_GROUP_DISPLAY_NAME;
-            return option.getGroupName();
-        }
-
-        @Override
-        public HighlightOptions fromString( String groupName ) {
-            if ( groupName.equals( "Default" ) ) return defaultOption;
-            return findOptionsForGroup( groupName );
-        }
-    }
 }

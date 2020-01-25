@@ -12,6 +12,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -68,6 +69,18 @@ public class Config {
         properties.paneDividerPositions.addListener( listener );
         properties.font.addListener( listener );
         properties.enableFilters.addListener( listener );
+
+        // keep track of logFiles's groups
+        properties.observableFiles.forEach( f -> f.highlightGroupProperty().addListener( listener ) );
+
+        properties.observableFiles.addListener( ( SetChangeListener<LogFile> ) change -> {
+            if ( change.wasAdded() ) {
+                change.getElementAdded().highlightGroupProperty().addListener( listener );
+            }
+            if ( change.wasRemoved() ) {
+                change.getElementRemoved().highlightGroupProperty().removeListener( listener );
+            }
+        } );
     }
 
     public SimpleObjectProperty<LogLineColors> standardLogColorsProperty() {
@@ -190,7 +203,7 @@ public class Config {
 
             writer.write( "files:\n" );
             for ( LogFile file : files ) {
-                String group = file.use( ( f ) -> "", ( fg ) -> fg.highlighGroupName );
+                String group = file.getHighlightGroup();
                 writer.write( "  " );
                 if ( !group.isEmpty() ) {
                     writer.write( '[' );

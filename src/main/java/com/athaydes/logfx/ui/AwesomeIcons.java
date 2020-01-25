@@ -69,5 +69,6 @@ public class AwesomeIcons {
     public static final String PAUSE = "\uf04c";
     public static final String PENCIL = "\uf040";
     public static final String PLUS = "\uf067";
+    public static final String LIST_UL = "\uf0ca";
 
 }

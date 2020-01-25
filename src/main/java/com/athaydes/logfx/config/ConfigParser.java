@@ -164,9 +164,8 @@ final class ConfigParser {
     static LogFile parseLogFileLine( String line ) {
         Matcher matcher = FILE_LINE_PATTERN.matcher( line );
         return matcher.matches()
-                ? new LogFile.LogFileWithHighlightGroup(
-                new File( matcher.group( 2 ) ), matcher.group( 1 ) )
-                : new LogFile.SimpleLogFile( new File( line.trim() ) );
+                ? new LogFile( new File( matcher.group( 2 ) ), matcher.group( 1 ) )
+                : new LogFile( new File( line.trim() ) );
     }
 
     private void parseGuiSection( Iterator<String> lines ) {

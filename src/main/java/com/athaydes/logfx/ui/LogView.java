@@ -1,7 +1,8 @@
 package com.athaydes.logfx.ui;
 
-import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.config.Config;
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
@@ -9,6 +10,7 @@ import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
 import com.athaydes.logfx.file.OutsideRangeQueryResult;
 import com.athaydes.logfx.text.DateTimeFormatGuess;
 import com.athaydes.logfx.text.DateTimeFormatGuesser;
+import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
@@ -22,7 +24,6 @@ import javafx.scene.Node;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
-import javafx.scene.text.Font;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +38,7 @@ import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import static java.util.stream.Collectors.toList;
 
@@ -53,12 +55,13 @@ public class LogView extends VBox {
     public static final int MAX_LINES = 100;
     private static final double DELTA_FACTOR = 10.0;
 
-    private HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
     private final BooleanProperty allowRefresh = new SimpleBooleanProperty( true );
+    private final Config config;
+    private final LogLineHighlighter highlighter;
     private final FileContentReader fileContentReader;
-    private final File file;
+    private final LogFile logFile;
     private final FileChangeWatcher fileChangeWatcher;
     private final Supplier<LogLine> logLineFactory;
     private final TaskRunner taskRunner;
@@ -72,35 +75,47 @@ public class LogView extends VBox {
 
     private DateTimeFormatGuess dateTimeFormatGuess = null;
     private final InvalidationListener expressionsChangeListener;
+    private final InvalidationListener highlightGroupChangeListener;
 
     @MustCallOnJavaFXThread
-    public LogView( BindableValue<Font> fontValue,
+    public LogView( Config config,
                     ReadOnlyDoubleProperty widthProperty,
-                    HighlightGroupsView highlightGroups,
+                    LogFile logFile,
                     FileContentReader fileContentReader,
                     TaskRunner taskRunner ) {
+        this.config = config;
         this.fileContentReader = fileContentReader;
         this.taskRunner = taskRunner;
         this.selectionHandler = new SelectionHandler( this );
-        this.file = fileContentReader.getFile();
+        this.logFile = logFile;
 
-        updateHighlightOptions( highlightGroups.optionsFor( file ) );
+        this.expressionsChangeListener = ( Observable o ) -> {
+            System.out.println( "Expressions change listener fired" );
+            immediateOnFileChange();
+        };
+        logFile.highlightGroupProperty().addListener( expressionsChangeListener );
 
-        final LogLineColors logLineColors = highlightOptions.logLineColorsFor( "" );
+        this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile.getHighlightGroup() );
+
+        this.highlightGroupChangeListener = ( Observable o ) -> {
+            System.out.println( "highligh group listener fired" );
+            highlighter.setGroup( logFile.getHighlightGroup() );
+            immediateOnFileChange();
+        };
+
+        wireListeners();
+
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
 
-        logLineFactory = () -> new LogLine( fontValue, width,
-                logLineColors.getBackground(), logLineColors.getFill() );
+        logLineFactory = () -> {
+            LogLineColors logLineColors = highlighter.logLineColorsFor( "" );
+            return new LogLine( config.fontProperty(), width,
+                    logLineColors.getBackground(), logLineColors.getFill() );
+        };
 
         for ( int i = 0; i < MAX_LINES; i++ ) {
             getChildren().add( logLineFactory.get() );
         }
-
-        this.expressionsChangeListener = ( Observable o ) -> immediateOnFileChange();
-
-        highlightOptions.getObservableExpressions().addListener( expressionsChangeListener );
-        highlightOptions.getStandardLogColors().addListener( expressionsChangeListener );
-        highlightOptions.filterEnabled().addListener( expressionsChangeListener );
 
         tailingFile.addListener( event -> {
             if ( tailingFile.get() ) {
@@ -108,12 +123,7 @@ public class LogView extends VBox {
             }
         } );
 
-        this.fileChangeWatcher = new FileChangeWatcher( file, taskRunner, this::onFileChange );
-    }
-
-    private void updateHighlightOptions( HighlightOptions options ) {
-        // TODO allow user to set options for file
-        highlightOptions = options;
+        this.fileChangeWatcher = new FileChangeWatcher( logFile.file, taskRunner, this::onFileChange );
     }
 
     BooleanProperty allowRefreshProperty() {
@@ -182,7 +192,7 @@ public class LogView extends VBox {
                 log.warn( "Could not guess date-time format from this log file, " +
                         "will not be able to find log lines by date" );
                 Dialog.showMessage( "Unable to guess date-time format in file\n" +
-                        file.getName(), Dialog.MessageLevel.INFO );
+                        logFile.file.getName(), Dialog.MessageLevel.INFO );
                 return;
             }
 
@@ -228,8 +238,8 @@ public class LogView extends VBox {
             dateTimeFormatGuess = dateTimeFormatGuesser
                     .guessDateTimeFormats( lines.get() ).orElse( null );
         } else {
-            log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", file );
-            Dialog.showMessage( "Could not be read file\n" + file.getName(), Dialog.MessageLevel.INFO );
+            log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", logFile );
+            Dialog.showMessage( "Could not be read file\n" + logFile.file.getName(), Dialog.MessageLevel.INFO );
         }
     }
 
@@ -290,7 +300,7 @@ public class LogView extends VBox {
     }
 
     private void immediateOnFileChange( Runnable andThen ) {
-        Predicate<String> filter = highlightOptions.getLineFilter().orElse( null );
+        Predicate<String> filter = highlighter.getLineFilter().orElse( null );
         fileReaderExecutor.execute( () -> {
             fileContentReader.setLineFilter( filter );
             if ( tailingFileProperty().get() ) {
@@ -331,7 +341,7 @@ public class LogView extends VBox {
 
     @MustCallOnJavaFXThread
     private void updateLine( LogLine line, String text ) {
-        LogLineColors logLineColors = highlightOptions.logLineColorsFor( text );
+        LogLineColors logLineColors = highlighter.logLineColorsFor( text );
         line.setText( text, logLineColors.getBackground(), logLineColors.getFill() );
     }
 
@@ -341,14 +351,77 @@ public class LogView extends VBox {
     }
 
     File getFile() {
-        return file;
+        return logFile.file;
+    }
+
+    LogFile getLogFile() {
+        return logFile;
     }
 
     void closeFileReader() {
         fileChangeWatcher.close();
         fileReaderExecutor.shutdown();
-        highlightOptions.getObservableExpressions().removeListener( expressionsChangeListener );
-        highlightOptions.getStandardLogColors().removeListener( expressionsChangeListener );
-        highlightOptions.filterEnabled().removeListener( expressionsChangeListener );
+        removeListeners();
+    }
+
+    private void wireListeners() {
+        logFile.highlightGroupProperty().addListener( highlightGroupChangeListener );
+        config.standardLogColorsProperty().addListener( expressionsChangeListener );
+        config.filtersEnabledProperty().addListener( expressionsChangeListener );
+    }
+
+    private void removeListeners() {
+        highlighter.unwireListeners();
+        logFile.highlightGroupProperty().removeListener( highlightGroupChangeListener );
+        config.standardLogColorsProperty().removeListener( expressionsChangeListener );
+        config.filtersEnabledProperty().removeListener( expressionsChangeListener );
+    }
+
+    private static final class LogLineHighlighter {
+
+        private final Config config;
+        private final InvalidationListener expressionsChangeListener;
+        private ObservableList<HighlightExpression> observableExpressions;
+
+        LogLineHighlighter( Config config, InvalidationListener expressionsChangeListener, String groupName ) {
+            this.config = config;
+            this.expressionsChangeListener = expressionsChangeListener;
+            setGroup( groupName );
+        }
+
+        LogLineColors logLineColorsFor( String text ) {
+            for ( HighlightExpression expression : observableExpressions ) {
+                if ( expression.matches( text ) ) {
+                    return expression.getLogLineColors();
+                }
+            }
+            return config.standardLogColorsProperty().get();
+        }
+
+        Optional<Predicate<String>> getLineFilter() {
+            if ( config.filtersEnabledProperty().get() ) {
+                List<HighlightExpression> filteredExpressions = observableExpressions.stream()
+                        .filter( HighlightExpression::isFiltered )
+                        .collect( Collectors.toList() );
+                return Optional.of( ( line ) -> filteredExpressions.stream()
+                        .anyMatch( ( exp ) -> exp.matches( line ) ) );
+            } else {
+                return Optional.empty();
+            }
+        }
+
+        void setGroup( String groupName ) {
+            System.out.println( "setting group to " + groupName );
+            if ( observableExpressions != null ) unwireListeners();
+            observableExpressions = config.getHighlightGroups().getByName( groupName );
+            if ( observableExpressions == null ) {
+                observableExpressions = config.getHighlightGroups().getDefault();
+            }
+            observableExpressions.addListener( expressionsChangeListener );
+        }
+
+        void unwireListeners() {
+            observableExpressions.removeListener( expressionsChangeListener );
+        }
     }
 }

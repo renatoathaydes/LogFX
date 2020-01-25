@@ -34,8 +34,6 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
@@ -52,7 +50,6 @@ public class HighlightOptions extends VBox {
 
     private static final Logger log = LoggerFactory.getLogger( HighlightOptions.class );
 
-    private final SimpleObjectProperty<LogLineColors> standardLogColors;
     private final ObservableList<HighlightExpression> observableExpressions;
     private final BooleanProperty isFilterEnabled;
 
@@ -65,7 +62,6 @@ public class HighlightOptions extends VBox {
                              ObservableList<HighlightExpression> observableExpressions,
                              BooleanProperty isFilterEnabled ) {
         this.groupName = groupName;
-        this.standardLogColors = standardLogColors;
         this.observableExpressions = observableExpressions;
         this.isFilterEnabled = isFilterEnabled;
         this.expressionsBox = new VBox( 2 );
@@ -194,40 +190,6 @@ public class HighlightOptions extends VBox {
 
     private static Color nextColor() {
         return Color.color( Math.random(), Math.random(), Math.random() );
-    }
-
-    ObservableList<HighlightExpression> getObservableExpressions() {
-        return observableExpressions;
-    }
-
-    SimpleObjectProperty<LogLineColors> getStandardLogColors() {
-        return standardLogColors;
-    }
-
-    LogLineColors logLineColorsFor( String text ) {
-        for ( HighlightExpression expression : observableExpressions ) {
-            if ( expression.matches( text ) ) {
-                return expression.getLogLineColors();
-            }
-        }
-
-        return standardLogColors.get();
-    }
-
-    BooleanProperty filterEnabled() {
-        return isFilterEnabled;
-    }
-
-    Optional<Predicate<String>> getLineFilter() {
-        if ( isFilterEnabled.get() ) {
-            List<HighlightExpression> filteredExpressions = observableExpressions.stream()
-                    .filter( HighlightExpression::isFiltered )
-                    .collect( Collectors.toList() );
-            return Optional.of( ( line ) -> filteredExpressions.stream()
-                    .anyMatch( ( exp ) -> exp.matches( line ) ) );
-        } else {
-            return Optional.empty();
-        }
     }
 
     public String getGroupName() {
@@ -388,7 +350,7 @@ public class HighlightOptions extends VBox {
         dialog.makeTransparentWhenLoseFocus();
         dialog.getBox().setAlignment( Pos.TOP_CENTER );
         dialog.show();
-        Platform.runLater( () -> highlightGroups.onShow() );
+        Platform.runLater( highlightGroups::onShow );
         return dialog;
     }
 

@@ -1,6 +1,7 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.config.HighlightGroups;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
@@ -11,7 +12,9 @@ import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.SeparatorMenuItem;
@@ -28,6 +31,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,6 +56,7 @@ public final class LogViewPane {
     private static final Logger log = LoggerFactory.getLogger( LogViewPane.class );
 
     private final SplitPane pane = new SplitPane();
+    private final HighlightGroups highlightGroups;
 
     // a simple observable that changes state every time a change occurs in a pane divider
     // (changes in number of dividers as well as in their positions)
@@ -60,7 +65,9 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public LogViewPane( TaskRunner taskRunner,
                         Supplier<StartUpView> startUpViewGetter,
+                        HighlightGroups highlightGroups,
                         boolean showEmptyPanel ) {
+        this.highlightGroups = highlightGroups;
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
         copyMenuItem.setOnAction( event -> getFocusedView()
@@ -235,7 +242,8 @@ public final class LogViewPane {
 
     @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile, int index ) {
-        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
+        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups,
+                this::getAllLogViews, ( wrapper ) -> {
             try {
                 pane.getItems().remove( wrapper );
             } finally {
@@ -383,6 +391,7 @@ public final class LogViewPane {
         private static final Logger log = LoggerFactory.getLogger( LogViewWrapper.class );
 
         private final LogView logView;
+        private final HighlightGroups highlightGroups;
         private final Consumer<LogViewWrapper> onCloseFile;
         private final LogViewHeader header;
         private final LogViewScrollPane scrollPane;
@@ -390,15 +399,18 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
+                        HighlightGroups highlightGroups,
                         Supplier<List<LogViewWrapper>> logViewsGetter,
                         Consumer<LogViewWrapper> onCloseFile ) {
             super( 2.0 );
 
             this.logView = logView;
+            this.highlightGroups = highlightGroups;
             this.onCloseFile = onCloseFile;
             this.logViewsGetter = logViewsGetter;
 
-            this.header = new LogViewHeader( logView, this::closeView, this::toDateTime );
+            this.header = new LogViewHeader( logView, this::closeView, this::toDateTime,
+                    this::showHighlightGroupSelector );
 
             this.scrollPane = new LogViewScrollPane( this );
 
@@ -434,6 +446,36 @@ public final class LogViewPane {
 
         private boolean isShowingFileContents() {
             return getChildren().size() > 1 && getChildren().get( 1 ) instanceof LogViewScrollPane;
+        }
+
+        @MustCallOnJavaFXThread
+        void showHighlightGroupSelector() {
+            ChoiceBox<String> optionsChoiceBox = new ChoiceBox<>();
+            Dialog dialog = new Dialog(
+                    new Label( String.format( "Select group for %s", logView.getFile().getName() ) ),
+                    optionsChoiceBox );
+
+            optionsChoiceBox.setConverter( new HighlightGroupSelectorConverter() );
+            optionsChoiceBox.getItems().addAll( highlightGroups.groupNames() );
+            optionsChoiceBox.getSelectionModel().select( logView.getLogFile().getHighlightGroup() );
+            optionsChoiceBox.setOnAction( ( event ) -> {
+                logView.getLogFile().highlightGroupProperty().setValue( optionsChoiceBox.getValue() );
+                dialog.hide();
+            } );
+            optionsChoiceBox.focusedProperty().addListener( ( obs, oldVal, newVal ) -> {
+                if ( !newVal ) dialog.hide();
+            } );
+            optionsChoiceBox.setOnKeyPressed( ( event ) -> {
+                if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE ) {
+                    dialog.hide();
+                }
+            } );
+
+            dialog.setOwner( getScene().getWindow() );
+            dialog.setStyle( StageStyle.UNDECORATED );
+            dialog.setResizable( false );
+            dialog.getBox().setMinWidth( 400.0 );
+            dialog.show( Dialog.DialogPosition.TOP_CENTER );
         }
 
         @MustCallOnJavaFXThread
@@ -530,7 +572,8 @@ public final class LogViewPane {
         private final BooleanProperty tailFile;
         private final BooleanProperty pauseRefresh;
 
-        LogViewHeader( LogView logView, Runnable closeLogView, Runnable goToDateTime ) {
+        LogViewHeader( LogView logView, Runnable closeLogView, Runnable goToDateTime,
+                       Runnable showHighlightGroupSelector ) {
             setMinWidth( 10.0 );
 
             File file = logView.getFile();
@@ -565,6 +608,10 @@ public final class LogViewPane {
 
             leftAlignedBox.getChildren().add( fileNameLabel );
 
+            Button highlightGroupButton = AwesomeIcons.createIconButton( AwesomeIcons.LIST_UL );
+            highlightGroupButton.setTooltip( new Tooltip( "Select highlight rules group for this file" ) );
+            highlightGroupButton.setOnAction( event -> showHighlightGroupSelector.run() );
+
             Button goToDateButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOCK );
             goToDateButton.setTooltip( new Tooltip( "Go to date-time" ) );
             goToDateButton.setOnAction( event -> goToDateTime.run() );
@@ -592,7 +639,8 @@ public final class LogViewPane {
                 }
             } );
 
-            rightAlignedBox.getChildren().addAll( goToDateButton, tailFileButton, pauseRefreshButton, closeButton );
+            rightAlignedBox.getChildren().addAll( highlightGroupButton, goToDateButton,
+                    tailFileButton, pauseRefreshButton, closeButton );
 
             setLeft( leftAlignedBox );
             setRight( rightAlignedBox );

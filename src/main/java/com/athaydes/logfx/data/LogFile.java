@@ -1,18 +1,30 @@
 package com.athaydes.logfx.data;
 
+import com.athaydes.logfx.binding.BindableValue;
+
 import java.io.File;
 import java.util.Objects;
-import java.util.function.Function;
 
-public abstract class LogFile {
+public final class LogFile {
     public final File file;
+    private final BindableValue<String> highlightGroup = new BindableValue<>( "" );
 
-    private LogFile( File file ) {
+    public LogFile( File file ) {
         this.file = file;
     }
 
-    public abstract <T> T use( Function<SimpleLogFile, T> useFile,
-                               Function<LogFileWithHighlightGroup, T> useFileWithGroup );
+    public LogFile( File file, String highlightGroupName ) {
+        this.file = file;
+        highlightGroup.setValue( highlightGroupName );
+    }
+
+    public BindableValue<String> highlightGroupProperty() {
+        return highlightGroup;
+    }
+
+    public String getHighlightGroup() {
+        return highlightGroup.getValue();
+    }
 
     @Override
     public boolean equals( Object other ) {
@@ -27,30 +39,4 @@ public abstract class LogFile {
         return Objects.hash( file );
     }
 
-    public static final class SimpleLogFile extends LogFile {
-        public SimpleLogFile( File file ) {
-            super( file );
-        }
-
-        @Override
-        public <T> T use( Function<SimpleLogFile, T> useFile,
-                          Function<LogFileWithHighlightGroup, T> useFileWithGroup ) {
-            return useFile.apply( this );
-        }
-    }
-
-    public static final class LogFileWithHighlightGroup extends LogFile {
-        public final String highlighGroupName;
-
-        public LogFileWithHighlightGroup( File file, String highlighGroupName ) {
-            super( file );
-            this.highlighGroupName = highlighGroupName;
-        }
-
-        @Override
-        public <T> T use( Function<SimpleLogFile, T> useFile,
-                          Function<LogFileWithHighlightGroup, T> useFileWithGroup ) {
-            return useFileWithGroup.apply( this );
-        }
-    }
 }
