@@ -53,7 +53,7 @@ public class LogView extends VBox {
     public static final int MAX_LINES = 100;
     private static final double DELTA_FACTOR = 10.0;
 
-    private final HighlightOptions highlightOptions;
+    private HighlightOptions highlightOptions;
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
     private final BooleanProperty allowRefresh = new SimpleBooleanProperty( true );
@@ -76,14 +76,15 @@ public class LogView extends VBox {
     @MustCallOnJavaFXThread
     public LogView( BindableValue<Font> fontValue,
                     ReadOnlyDoubleProperty widthProperty,
-                    HighlightOptions highlightOptions,
+                    HighlightGroupsView highlightGroups,
                     FileContentReader fileContentReader,
                     TaskRunner taskRunner ) {
-        this.highlightOptions = highlightOptions;
         this.fileContentReader = fileContentReader;
         this.taskRunner = taskRunner;
         this.selectionHandler = new SelectionHandler( this );
         this.file = fileContentReader.getFile();
+
+        updateHighlightOptions( highlightGroups.optionsFor( file ) );
 
         final LogLineColors logLineColors = highlightOptions.logLineColorsFor( "" );
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
@@ -108,6 +109,11 @@ public class LogView extends VBox {
         } );
 
         this.fileChangeWatcher = new FileChangeWatcher( file, taskRunner, this::onFileChange );
+    }
+
+    private void updateHighlightOptions( HighlightOptions options ) {
+        // TODO allow user to set options for file
+        highlightOptions = options;
     }
 
     BooleanProperty allowRefreshProperty() {

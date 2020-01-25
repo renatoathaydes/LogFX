@@ -3,8 +3,10 @@ package com.athaydes.logfx.ui;
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.HighlightGroups;
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.collections.ObservableList;
+import javafx.collections.ObservableSet;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -27,9 +29,12 @@ public class HighlightGroupsView extends BorderPane {
 
     private final ChoiceBox<HighlightOptions> optionsChoiceBox;
     private final HighlightOptions defaultOption;
+    private final HighlightGroups groups;
+    private final ObservableSet<LogFile> logFiles;
 
     public HighlightGroupsView( Config config ) {
-        HighlightGroups groups = config.getHighlightGroups();
+        groups = config.getHighlightGroups();
+        logFiles = config.getObservableFiles();
 
         optionsChoiceBox = new ChoiceBox<>();
         optionsChoiceBox.setConverter( new ChoiceBoxConverter( groups.toMap() ) );
@@ -70,8 +75,12 @@ public class HighlightGroupsView extends BorderPane {
     }
 
     public HighlightOptions optionsFor( File file ) {
-        // TODO map files to options
-        return defaultOption;
+        String groupName = logFiles.stream()
+                .filter( f -> f.file.equals( file ) )
+                .map( f -> f.use( lf -> defaultOption.getGroupName(), fg -> fg.highlighGroupName ) )
+                .findFirst()
+                .orElse( defaultOption.getGroupName() );
+        return findOptionsForGroup( groupName );
     }
 
     void onShow() {
@@ -112,9 +121,9 @@ public class HighlightGroupsView extends BorderPane {
                         if ( currentGroupName.equals( newName ) ) {
                             // nothing to do
                         } else if ( newName.isEmpty() || newName.equalsIgnoreCase( "default" ) ) {
-                            Dialog.showMessage( "Group name not allowed", Dialog.MessageLevel.ERROR );
+                            Dialog.showMessage( "Group name not allowed", Dialog.MessageLevel.WARNING );
                         } else if ( groups.groupNames().contains( newName ) ) {
-                            Dialog.showMessage( "Group name already exists", Dialog.MessageLevel.ERROR );
+                            Dialog.showMessage( "Group name already exists", Dialog.MessageLevel.WARNING );
                         } else {
                             ObservableList<HighlightExpression> rules = groups.remove( currentGroupName );
                             groups.add( newName ).addAll( rules );
@@ -161,6 +170,14 @@ public class HighlightGroupsView extends BorderPane {
         return groupName;
     }
 
+    private HighlightOptions findOptionsForGroup( String groupName ) {
+        if ( groupName.equals( "Default" ) ) return defaultOption;
+        ObservableList<HighlightExpression> target = groups.getByName( groupName );
+        return optionsChoiceBox.getItems().stream().filter( o -> o.getHighlightOptions() == target )
+                .findFirst()
+                .orElseThrow( () -> new RuntimeException( "Unreachable" ) );
+    }
+
     private final class ChoiceBoxConverter extends StringConverter<HighlightOptions> {
         public static final String DEFAULT_GROUP_DISPLAY_NAME = "Default";
 
@@ -179,10 +196,7 @@ public class HighlightGroupsView extends BorderPane {
         @Override
         public HighlightOptions fromString( String groupName ) {
             if ( groupName.equals( "Default" ) ) return defaultOption;
-            ObservableList<HighlightExpression> target = groups.get( groupName );
-            return optionsChoiceBox.getItems().stream().filter( o -> o.getHighlightOptions() == target )
-                    .findFirst()
-                    .orElseThrow( () -> new RuntimeException( "Unreachable" ) );
+            return findOptionsForGroup( groupName );
         }
     }
 }

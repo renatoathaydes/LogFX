@@ -1,8 +1,8 @@
 package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.binding.BindableValue;
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
-import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.FxUtils;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -14,12 +14,11 @@ import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 
-import java.io.File;
 import java.util.LinkedHashSet;
 
 final class ConfigProperties {
     final SimpleObjectProperty<LogLineColors> standardLogColors;
-    final ObservableSet<File> observableFiles;
+    final ObservableSet<LogFile> observableFiles;
     final SimpleObjectProperty<Orientation> panesOrientation;
     final ObservableList<Double> paneDividerPositions;
     final BindableValue<Font> font;

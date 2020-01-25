@@ -63,10 +63,9 @@ public final class LogViewPane {
                         boolean showEmptyPanel ) {
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
-        copyMenuItem.setOnAction( event -> getFocusedView().ifPresent( wrapper ->
-                wrapper.logView.getSelection().ifPresent( content -> {
-                    Clipboard.getSystemClipboard().setContent( content );
-                } ) ) );
+        copyMenuItem.setOnAction( event -> getFocusedView()
+                .flatMap( wrapper -> wrapper.logView.getSelection() )
+                .ifPresent( content -> Clipboard.getSystemClipboard().setContent( content ) ) );
 
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.SHORTCUT_DOWN ) );

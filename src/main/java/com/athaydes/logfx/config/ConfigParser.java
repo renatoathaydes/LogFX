@@ -1,5 +1,6 @@
 package com.athaydes.logfx.config;
 
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.geometry.Orientation;
@@ -12,12 +13,16 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
 final class ConfigParser {
+
+    private static final Pattern FILE_LINE_PATTERN = Pattern.compile( "\\s+\\[(.*)]\\s*(.+)\\s*" );
 
     enum ConfigVersion {
         V1, V2;
@@ -148,12 +153,20 @@ final class ConfigParser {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                properties.observableFiles.add( new File( line.trim() ) );
+                properties.observableFiles.add( parseLogFileLine( line ) );
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
             }
         }
+    }
+
+    static LogFile parseLogFileLine( String line ) {
+        Matcher matcher = FILE_LINE_PATTERN.matcher( line );
+        return matcher.matches()
+                ? new LogFile.LogFileWithHighlightGroup(
+                new File( matcher.group( 2 ) ), matcher.group( 1 ) )
+                : new LogFile.SimpleLogFile( new File( line.trim() ) );
     }
 
     private void parseGuiSection( Iterator<String> lines ) {

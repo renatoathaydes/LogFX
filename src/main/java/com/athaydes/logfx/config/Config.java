@@ -2,6 +2,7 @@ package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.ui.Dialog;
@@ -10,7 +11,6 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
-import javafx.collections.ObservableMap;
 import javafx.collections.ObservableSet;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
@@ -78,7 +78,7 @@ public class Config {
         return properties.highlightGroups;
     }
 
-    public ObservableSet<File> getObservableFiles() {
+    public ObservableSet<LogFile> getObservableFiles() {
         return properties.observableFiles;
     }
 
@@ -124,7 +124,7 @@ public class Config {
         CompletableFuture<Boolean> enableFiltersFuture = new CompletableFuture<>();
         Platform.runLater( () -> enableFiltersFuture.complete( properties.enableFilters.getValue() ) );
 
-        CompletableFuture<Set<File>> filesFuture = new CompletableFuture<>();
+        CompletableFuture<Set<LogFile>> filesFuture = new CompletableFuture<>();
         Platform.runLater( () -> filesFuture.complete( new LinkedHashSet<>( properties.observableFiles ) ) );
 
         CompletableFuture<Orientation> panesOrientationFuture = new CompletableFuture<>();
@@ -153,7 +153,7 @@ public class Config {
     private static void dumpConfigToFile( LogLineColors logLineColors,
                                           Map<String, Collection<HighlightExpression>> highlightExpressions,
                                           boolean enableFilters,
-                                          Set<File> files,
+                                          Set<LogFile> files,
                                           Orientation orientation,
                                           List<Double> dividerPositions,
                                           Font font,
@@ -189,8 +189,15 @@ public class Config {
             writer.write( enableFilters ? "enable\n" : "disable\n" );
 
             writer.write( "files:\n" );
-            for ( File file : files ) {
-                writer.write( "  " + file.getAbsolutePath() );
+            for ( LogFile file : files ) {
+                String group = file.use( ( f ) -> "", ( fg ) -> fg.highlighGroupName );
+                writer.write( "  " );
+                if ( !group.isEmpty() ) {
+                    writer.write( '[' );
+                    writer.write( group );
+                    writer.write( ']' );
+                }
+                writer.write( file.file.getAbsolutePath() );
                 writer.write( "\n" );
             }
 

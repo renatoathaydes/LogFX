@@ -3,6 +3,7 @@ package com.athaydes.logfx;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
@@ -199,10 +200,10 @@ public class LogFX extends Application {
     }
 
     private void openFilesFromConfig() {
-        List<File> files = new ArrayList<>( config.getObservableFiles() );
-        for ( File file : files ) {
+        List<LogFile> files = new ArrayList<>( config.getObservableFiles() );
+        for ( LogFile file : files ) {
             Platform.runLater( () -> {
-                boolean accepted = openViewFor( file, -1 );
+                boolean accepted = openViewFor( file.file, -1 );
                 if ( !accepted ) {
                     config.getObservableFiles().remove( file );
                 }
@@ -217,13 +218,14 @@ public class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     private void open( File file, int index ) {
-        if ( config.getObservableFiles().contains( file ) ) {
+        LogFile.SimpleLogFile logFile = new LogFile.SimpleLogFile( file );
+        if ( config.getObservableFiles().contains( logFile ) ) {
             log.debug( "Tried to open file that is already opened, will focus on it" );
             logsPane.focusOn( file );
         } else {
             boolean accepted = openViewFor( file, index );
             if ( accepted ) {
-                config.getObservableFiles().add( file );
+                config.getObservableFiles().add( logFile );
             }
         }
     }
@@ -239,8 +241,9 @@ public class LogFX extends Application {
             Dialog.showMessage( e.getMessage(), Dialog.MessageLevel.ERROR );
             return false;
         }
+
         LogView view = new LogView( config.fontProperty(), root.widthProperty(),
-                highlightGroups.optionsFor( file ), fileReader, taskRunner );
+                highlightGroups, fileReader, taskRunner );
 
         FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
             int droppedOnPaneIndex = logsPane.indexOf( view );
@@ -260,7 +263,7 @@ public class LogFX extends Application {
             }
         } );
 
-        logsPane.add( view, () -> config.getObservableFiles().remove( file ), index );
+        logsPane.add( view, () -> config.getObservableFiles().remove( new LogFile.SimpleLogFile( file ) ), index );
 
         return true;
     }

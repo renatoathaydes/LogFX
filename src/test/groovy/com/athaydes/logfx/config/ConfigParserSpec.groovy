@@ -49,6 +49,25 @@ class ConfigParserSpec extends Specification {
         'red white false  a b  c'          | 'a b  c'           | Color.RED       | Color.WHITE      | false
     }
 
+    def "Can parse log lines from config"() {
+        when: 'a log-file line is parsed'
+        def logLine = ConfigParser.parseLogFileLine( line )
+
+        then: 'the expected LogFile is obtained'
+        logLine.file == new File( expectedFile )
+        logLine.use( { f -> null }, { f -> f.highlighGroupName } ) == expectedGroup
+
+        where:
+        line                   | expectedFile        | expectedGroup
+        '  hello'              | 'hello'             | null
+        'hello  '              | 'hello'             | null
+        ' /var/log/serv.log'   | '/var/log/serv.log' | null
+        '  []hello'            | 'hello'             | ''
+        '  [my group]/var/log' | '/var/log'          | 'my group'
+        '  [gr]  /var/log'     | '/var/log'          | 'gr'
+        '  [gr]  /var/log[0]'  | '/var/log[0]'       | 'gr'
+    }
+
     def "Errors when parsing invalid highlight expressions"() {
         when:
         ConfigParser.parseHighlightExpression( expression, version )
@@ -126,7 +145,7 @@ class ConfigParserSpec extends Specification {
         defaultHighlights[ 2 ] == new HighlightExpression( 'OFF', Color.valueOf( '0x1a3399ff' ), Color.valueOf( '0xffccb3ff' ), true )
 
         !config.enableFilters.get()
-        config.observableFiles.collect { it.path }.toSet() ==
+        config.observableFiles.collect { it.file.path }.toSet() ==
                 [ '/android-studio/Install-Linux-tar.txt', '/home/me/.logfx/config' ] as Set
 
         config.panesOrientation.get() == Orientation.HORIZONTAL
@@ -177,7 +196,7 @@ class ConfigParserSpec extends Specification {
         extraHighlights[ 0 ] == new HighlightExpression( 'wget', Color.valueOf( '0xe86b08ff' ), Color.valueOf( '0x000000ff' ), true )
 
         !config.enableFilters.get()
-        config.observableFiles.collect { it.path }.toSet() ==
+        config.observableFiles.collect { it.file.path }.toSet() ==
                 [ '/home/me/.logfx/config' ] as Set
 
         config.panesOrientation.get() == Orientation.HORIZONTAL
