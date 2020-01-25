@@ -137,6 +137,17 @@ public final class LogViewPane {
             }
         } );
 
+        MenuItem changeHighlightGroup = new MenuItem( "Select highlight group" );
+        changeHighlightGroup.setAccelerator( new KeyCodeCombination( KeyCode.J, KeyCombination.SHORTCUT_DOWN ) );
+        changeHighlightGroup.setOnAction( event -> {
+            Optional<LogViewWrapper> wrapper = getFocusedView();
+            if ( wrapper.isPresent() ) {
+                wrapper.get().showHighlightGroupSelector();
+            } else {
+                Dialog.showMessage( "No file pane selected", Dialog.MessageLevel.INFO );
+            }
+        } );
+
         MenuItem toTopMenuItem = new MenuItem( "To top of file" );
         toTopMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.T,
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
@@ -158,7 +169,7 @@ public final class LogViewPane {
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
                 new SeparatorMenuItem(),
-                toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem,
+                toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
                 pauseMenuItem,
                 new SeparatorMenuItem(),
