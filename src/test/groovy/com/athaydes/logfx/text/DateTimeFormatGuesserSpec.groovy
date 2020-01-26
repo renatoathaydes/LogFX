@@ -1,5 +1,6 @@
 package com.athaydes.logfx.text
 
+import com.athaydes.logfx.text.DateTimeFormatGuesser.SingleDateTimeFormatGuess
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -58,6 +59,67 @@ class DateTimeFormatGuesserSpec extends Specification {
                 [ dateTime( thisYear() + '-09-10T03:30:20.271+00:00' ),
                   dateTime( '2015-12-21T10:48:38.037+00:00' ) ],
         ]
+    }
+
+    def "If log file has more than one date format, should guess the most common ones first"() {
+        given: 'Log lines with 2 different date-time styles, including lines without any date-time'
+        def lines = [
+                '2017-09-11T18:13:57.483+02:00 TRACE {worker-1} com.acme.Log event',
+                'This line has no date-time',
+                '2017-09-14T19:23:53.499+02:00 [pool-6-thread-1] DEBUG com',
+                '2013-02-23T05:06:07 [pool-6-thread-1] DEBUG com',
+                'INFO 2017-09-11T18:13:57.485+04:00 {worker-1} com.acme.Log event',
+                'INFO [Fri, 01 Sep 20017 22:02:55 GMT] - 22',
+                'Sun, 03 Nov 2019 14:22:00 GMT: msg',
+                'This line has no date-time',
+                'This line has no date-time',
+                'Sun, 10 Sep 2017 03:30:20 GMT <kernel> wl0',
+                '2015-12-21T10:48:38.037 INFO  [0] [Licensing]  --> This'
+        ]
+
+        and: 'A date-time format guesser with 3 formats, including the 2 present in the log'
+        String time = "\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}([:.]\\d{1,9})?(\\s{0,2}[+-]\\d{1,2}(:)?\\d{1,2})?"
+
+        def patterns = [
+                // 2017-09-11T18:13:57.483+02:00
+                "\\d{1,4}-\\d{1,4}-\\d{1,4}(T|\\s{1,2})" + time,
+
+                // Tue, 3 Jun 2008 11:05:30 GMT
+                "\\w{1,3},\\s+\\d{1,2}\\s+\\w{1,10}\\s+\\d{2,4}\\s+" + time + "(\\s+\\w{1,10})?",
+
+                // 10/Oct/2000:13:55:36 -0700
+                "\\w{1,10}[/\\-.]\\w{1,10}[/\\-.]\\d{2,4}([T\\s:]|\\s{1,2})" + time,
+        ]
+
+        def formatters = [
+                DateTimeFormatter.ISO_DATE_TIME,
+                DateTimeFormatter.RFC_1123_DATE_TIME,
+                DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" ),
+        ]
+
+        def guesser = new DateTimeFormatGuesser( patterns as String[], formatters as Set )
+
+        when: 'The guesser tries to guess the formats for a few log lines'
+        def result = guesser.guessDateTimeFormats( lines )
+
+        then: 'The guesser can find multiple results'
+        result.isPresent()
+        def guess = result.get()
+        assert guess instanceof DateTimeFormatGuesser.MultiDateTimeFormatGuess
+
+        and: 'The results are sorted by order of occurrences from more to less frequent'
+        def guessedFormatters = guess.guesses.toList()
+        guessedFormatters.size() == 2
+
+        // verify the guesses can parse the expected formats, first ISO, second RFC-1123
+        formatterName( guessedFormatters[ 0 ] ) == 'iso'
+        formatterName( guessedFormatters[ 1 ] ) == 'rfc-1123'
+    }
+
+    private String formatterName( SingleDateTimeFormatGuess guess ) {
+        if ( guess.convert( '2017-09-11T18:13:57.485+04:00' ).isPresent() ) return 'iso'
+        if ( guess.convert( 'Sun, 10 Sep 2017 03:30:20 GMT' ).isPresent() ) return 'rfc-1123'
+        return 'unknown'
     }
 
     private static thisYear() {

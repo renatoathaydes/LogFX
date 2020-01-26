@@ -9,14 +9,20 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.ToIntBiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static java.time.temporal.TemporalQueries.offset;
 import static java.time.temporal.TemporalQueries.zoneId;
@@ -29,21 +35,19 @@ public class DateTimeFormatGuesser {
 
     private static final Logger log = LoggerFactory.getLogger( DateTimeFormatGuesser.class );
     public static final int MAX_CHARS_TO_LOOK_FOR_DATE = 250;
+    private static final String DATE_TIME_GROUP = "datetime";
 
     private final Set<Pattern> logLinePatterns;
     private final Set<DateTimeFormatter> logLineDateFormatters;
 
     public static DateTimeFormatGuesser standard() {
-        Set<Pattern> patterns = new LinkedHashSet<>();
-        Set<DateTimeFormatter> formatters = new LinkedHashSet<>();
-
         String time = "\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}([:.]\\d{1,9})?(\\s{0,2}[+-]\\d{1,2}(:)?\\d{1,2})?";
 
         // 2017-09-11T18:13:57.483+02:00
         String isoDateTime = "\\d{1,4}-\\d{1,4}-\\d{1,4}(T|\\s{1,2})" + time;
 
-        // (Tue,) 3 Jun 2008 11:05:30 GMT
-        String rfc1123DateTime = "\\w{1,3}\\s+\\w{1,10}\\s+\\d{2,4}\\s+" + time + "(\\s+\\w+)?";
+        // Tue, 3 Jun 2008 11:05:30 GMT
+        String rfc1123DateTime = "\\w{1,3},\\s+\\d{1,2}\\s+\\w{1,10}\\s+\\d{2,4}\\s+" + time + "(\\s+\\w{1,10})?";
 
         // (Fri) Sep 01 22:02:57 CEST 2017
         String longDateTime = "\\w{3,10}\\s+\\d{1,2}\\s+" + time + "(\\s+(\\w+\\s+)?\\d{2,4})?";
@@ -53,10 +57,7 @@ public class DateTimeFormatGuesser {
 
         String[] formats = { isoDateTime, rfc1123DateTime, longDateTime, ncsaCommonLogFormat };
 
-        // wrap formats into a main group (maybe more complex wrappers in the future?)
-        for ( String format : formats ) {
-            patterns.add( Pattern.compile( "(" + format + ")" ) );
-        }
+        Set<DateTimeFormatter> formatters = new LinkedHashSet<>();
 
         formatters.addAll( Arrays.asList(
                 DateTimeFormatter.ISO_DATE_TIME,
@@ -69,17 +70,23 @@ public class DateTimeFormatGuesser {
                 DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" )
         ) );
 
-        return new DateTimeFormatGuesser( patterns, formatters );
+        return new DateTimeFormatGuesser( formats, formatters );
     }
 
-    public DateTimeFormatGuesser( Set<Pattern> logLinePatterns,
+    public DateTimeFormatGuesser( String[] dateTimePatterns,
                                   Set<DateTimeFormatter> logLineDateFormatters ) {
-        this.logLinePatterns = logLinePatterns;
+        this.logLinePatterns = Stream.of( dateTimePatterns )
+                .map( p -> Pattern.compile( "(?<" + DATE_TIME_GROUP + ">" + p + ")" ) )
+                .collect( Collectors.toCollection( () -> new LinkedHashSet<>( dateTimePatterns.length ) ) );
         this.logLineDateFormatters = logLineDateFormatters;
+        if ( log.isTraceEnabled() ) {
+            log.trace( "New instance with patterns:\n  - {}", String.join( "\n  - ",
+                    logLinePatterns.stream().map( Object::toString ).collect( Collectors.toList() ) ) );
+        }
     }
 
     public Optional<DateTimeFormatGuess> guessDateTimeFormats( Iterable<String> lines ) {
-        Set<SingleDateTimeFormatGuess> result = new HashSet<>( 3 );
+        Map<SingleDateTimeFormatGuess, Integer> countByGuess = new HashMap<>( 3 );
 
         log.trace( "Trying to guess date-time formats in log using {} patterns and {} date-time formatters",
                 logLinePatterns.size(), logLineDateFormatters.size() );
@@ -97,13 +104,13 @@ public class DateTimeFormatGuesser {
 
                 if ( matcher.find() ) {
                     patternFound = true;
-                    String dateTimePart = matcher.group( 1 );
+                    String dateTimePart = matcher.group( DATE_TIME_GROUP );
                     log.trace( "Line matched pattern (extracted date-time: '{}'): {}", dateTimePart, pattern );
                     for ( DateTimeFormatter formatter : logLineDateFormatters ) {
                         SingleDateTimeFormatGuess guess = new SingleDateTimeFormatGuess( pattern, formatter );
                         if ( guess.convert( line ).isPresent() ) {
                             log.debug( "Found guess: {} - for line: {}", guess, line );
-                            result.add( guess );
+                            countByGuess.merge( guess, 1, ( a, b ) -> a + b );
                             break findGuessForLine; // one success per line is all that should be possible
                         }
                     }
@@ -119,21 +126,33 @@ public class DateTimeFormatGuesser {
 
         if ( log.isInfoEnabled() ) {
             log.info( "Found {} date-time-formatter guesses in provided file sample (search took {} ms)",
-                    result.size(), System.currentTimeMillis() - start );
+                    countByGuess.size(), System.currentTimeMillis() - start );
         }
 
-        if ( result.isEmpty() ) {
+        if ( countByGuess.isEmpty() ) {
             return Optional.empty();
         }
 
-        return Optional.of( new MultiDateTimeFormatGuess( result ) );
+        return Optional.of( new MultiDateTimeFormatGuess( sortByOccurrences( countByGuess ) ) );
+    }
+
+    private static Collection<SingleDateTimeFormatGuess> sortByOccurrences(
+            Map<SingleDateTimeFormatGuess, Integer> countByGuess ) {
+        List<SingleDateTimeFormatGuess> guesses = new ArrayList<>( countByGuess.keySet() );
+        guesses.sort( ( a, b ) -> {
+            Integer aGuess = countByGuess.get( a );
+            Integer bGuess = countByGuess.get( b );
+            return bGuess.compareTo( aGuess );
+        } );
+        log.trace( "Date-time guesses sorted by occurrences: {}", guesses );
+        return guesses;
     }
 
 
-    private static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
-        private final Set<SingleDateTimeFormatGuess> guesses;
+    static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
+        private final Collection<SingleDateTimeFormatGuess> guesses;
 
-        private MultiDateTimeFormatGuess( Set<SingleDateTimeFormatGuess> guesses ) {
+        private MultiDateTimeFormatGuess( Collection<SingleDateTimeFormatGuess> guesses ) {
             this.guesses = guesses;
         }
 
@@ -148,6 +167,10 @@ public class DateTimeFormatGuesser {
                 }
             }
             return Optional.empty();
+        }
+
+        Collection<SingleDateTimeFormatGuess> getGuesses() {
+            return guesses;
         }
     }
 
@@ -168,9 +191,10 @@ public class DateTimeFormatGuesser {
             Matcher matcher = pattern.matcher( line );
             if ( matcher.find() ) {
                 try {
-                    return dateTimeFromTemporal( formatter.parse( matcher.group( 1 ) ) );
+                    return dateTimeFromTemporal( formatter.parse(
+                            matcher.group( DateTimeFormatGuesser.DATE_TIME_GROUP ) ) );
                 } catch ( Exception e ) {
-                    log.debug( "Failed to extract date from line: {}", line );
+                    log.debug( "Failed to extract date from line due to {}: {}", e.toString(), line );
                 }
             }
 
