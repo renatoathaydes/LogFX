@@ -176,7 +176,7 @@ public class Config {
         try ( FileWriter writer = new FileWriter( path ) ) {
 
             writer.write( "version:\n  " );
-            writer.write( ConfigParser.ConfigVersion.V2.name() );
+            writer.write( ConfigParser.ConfigVersion.V3.name() );
             writer.write( "\nstandard-log-colors:\n" );
             writer.write( "  " + logLineColors.getBackground() + " " + logLineColors.getFill() );
             writer.write( "\n" );

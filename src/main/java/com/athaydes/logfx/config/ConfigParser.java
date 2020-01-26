@@ -25,10 +25,10 @@ final class ConfigParser {
     private static final Pattern FILE_LINE_PATTERN = Pattern.compile( "\\s+\\[(.*)]\\s*(.+)\\s*" );
 
     enum ConfigVersion {
-        V1, V2;
+        V1, V2, V3;
 
-        public boolean isAfterV1() {
-            return this == V2;
+        public boolean isAfter( ConfigVersion version ) {
+            return ordinal() > version.ordinal();
         }
     }
 
@@ -273,7 +273,7 @@ final class ConfigParser {
 
         boolean isFiltered = false;
 
-        if ( version.isAfterV1() ) {
+        if ( version.isAfter( ConfigVersion.V1 ) ) {
             if ( line.length() > secondSpaceIndex + 1 ) {
                 line = line.substring( secondSpaceIndex + 1 ).trim();
             } else {

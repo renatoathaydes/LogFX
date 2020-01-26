@@ -154,11 +154,11 @@ class ConfigParserSpec extends Specification {
         config.font.value?.size == 13.0 as double
     }
 
-    def "Can parse simple V2 configuration with named highlight rules"() {
-        given: 'A V2 Config containing named highlight rules'
+    def "Can parse simple V3 configuration with named highlight rules"() {
+        given: 'A V3 Config containing named highlight rules'
         def sampleConfig = '''\
         |version:
-        |  V2
+        |  V3
         |standard-log-colors:
         |  0x000000ff 0xd3d3d3ff
         |expressions:
