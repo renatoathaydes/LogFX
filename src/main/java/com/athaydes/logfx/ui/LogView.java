@@ -239,7 +239,7 @@ public class LogView extends VBox {
                     .guessDateTimeFormats( lines.get() ).orElse( null );
         } else {
             log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", logFile );
-            Dialog.showMessage( "Could not be read file\n" + logFile.file.getName(), Dialog.MessageLevel.INFO );
+            Dialog.showMessage( "Could not read file\n" + logFile.file.getName(), Dialog.MessageLevel.INFO );
         }
     }
 

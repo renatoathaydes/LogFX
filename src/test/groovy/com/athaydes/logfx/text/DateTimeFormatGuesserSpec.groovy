@@ -1,6 +1,6 @@
 package com.athaydes.logfx.text
 
-import com.athaydes.logfx.text.DateTimeFormatGuesser.SingleDateTimeFormatGuess
+
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -116,7 +116,38 @@ class DateTimeFormatGuesserSpec extends Specification {
         formatterName( guessedFormatters[ 1 ] ) == 'rfc-1123'
     }
 
-    private String formatterName( SingleDateTimeFormatGuess guess ) {
+    def "A single line with a valid date-time is enough for the guesser to guess a formatter correctly"() {
+        given: 'The standard date-time format guesser'
+        def guesser = DateTimeFormatGuesser.standard()
+
+        and: 'Lots of lines, only one of which has a valid date-time'
+        def lines = generateRandomLines( 100 )
+        lines.set( 67, 'INFO [Fri, 1 Sep 2017 22:02:55 GMT] - 22' )
+
+        when: 'The guesser tries to guess the formats'
+        def result = guesser.guessDateTimeFormats( lines )
+
+        then: 'The guesser can find the correct result'
+        result.isPresent()
+        formatterName( result.get() ) == 'rfc-1123'
+
+    }
+
+    private static List<String> generateRandomLines( int count ) {
+        def rand = new Random()
+        def chars = ' '..'~'
+        def nextChar = { -> chars[ rand.nextInt( chars.size() ) ] }
+        ( 1..count ).collect {
+            def lineWords = 5 + rand.nextInt( 1000 )
+            def words = ( 1..lineWords ).collect {
+                def wordLength = 2 + rand.nextInt( 50 )
+                ( 1..wordLength ).collect { nextChar() }.join()
+            }
+            words.join( ' ' )
+        }
+    }
+
+    private String formatterName( DateTimeFormatGuess guess ) {
         if ( guess.convert( '2017-09-11T18:13:57.485+04:00' ).isPresent() ) return 'iso'
         if ( guess.convert( 'Sun, 10 Sep 2017 03:30:20 GMT' ).isPresent() ) return 'rfc-1123'
         return 'unknown'

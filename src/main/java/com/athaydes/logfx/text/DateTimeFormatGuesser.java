@@ -31,7 +31,7 @@ import static java.time.temporal.TemporalQueries.zoneId;
  * A utility class that can be used to guess the format of dates within a log file
  * by analysing a sample of lines from the file.
  */
-public class DateTimeFormatGuesser {
+public final class DateTimeFormatGuesser {
 
     private static final Logger log = LoggerFactory.getLogger( DateTimeFormatGuesser.class );
     public static final int MAX_CHARS_TO_LOOK_FOR_DATE = 250;
@@ -129,8 +129,14 @@ public class DateTimeFormatGuesser {
                     countByGuess.size(), System.currentTimeMillis() - start );
         }
 
+        log.trace( "Occurrences of date-time patterns in log file lines: {}", countByGuess );
+
         if ( countByGuess.isEmpty() ) {
             return Optional.empty();
+        }
+
+        if ( countByGuess.size() == 1 ) {
+            return Optional.of( countByGuess.keySet().iterator().next() );
         }
 
         return Optional.of( new MultiDateTimeFormatGuess( sortByOccurrences( countByGuess ) ) );
