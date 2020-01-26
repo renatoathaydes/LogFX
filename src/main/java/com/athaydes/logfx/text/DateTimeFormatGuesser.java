@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -83,6 +84,16 @@ public final class DateTimeFormatGuesser {
             log.trace( "New instance with patterns:\n  - {}", String.join( "\n  - ",
                     logLinePatterns.stream().map( Object::toString ).collect( Collectors.toList() ) ) );
         }
+    }
+
+    public DateTimeFormatGuess asGuess() {
+        List<SingleDateTimeFormatGuess> guessers = new ArrayList<>( logLineDateFormatters.size() );
+        Iterator<Pattern> patternIterator = logLinePatterns.iterator();
+        Iterator<DateTimeFormatter> formatterIterator = logLineDateFormatters.iterator();
+        while ( patternIterator.hasNext() && formatterIterator.hasNext() ) {
+            guessers.add( new SingleDateTimeFormatGuess( patternIterator.next(), formatterIterator.next() ) );
+        }
+        return new MultiDateTimeFormatGuess( guessers );
     }
 
     public Optional<DateTimeFormatGuess> guessDateTimeFormats( Iterable<String> lines ) {
