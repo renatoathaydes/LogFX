@@ -1,0 +1,10 @@
+LogFX is licensed with GNU GENERAL PUBLIC LICENSE Version 3.
+
+A copy of the license can be obtained from the LogFX source code repository:
+
+https://github.com/renatoathaydes/LogFX
+
+Other software used by LogFX are listed below. Where applicable, their licenses are included in the LogFX jar,
+under the licenses/ directory.
+
+- Awesome Fonts 5.0 https://fontawesome.com/
