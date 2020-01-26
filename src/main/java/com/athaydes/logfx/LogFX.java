@@ -333,7 +333,7 @@ public class LogFX extends Application {
             SetupMacTrayIcon.run();
         }
 
-        Font.loadFont( LogFX.class.getResource( "/fonts/fontawesome-webfont.ttf" ).toExternalForm(), 12 );
+        Font.loadFont( LogFX.class.getResource( "/fonts/Font-Awesome-5-Free-Regular-400.otf" ).toExternalForm(), 12 );
         Application.launch( LogFX.class );
     }
 
