@@ -55,13 +55,13 @@ class ConfigParserSpec extends Specification {
 
         then: 'the expected LogFile is obtained'
         logLine.file == new File( expectedFile )
-        logLine.use( { f -> null }, { f -> f.highlighGroupName } ) == expectedGroup
+        logLine.highlightGroup == expectedGroup
 
         where:
         line                   | expectedFile        | expectedGroup
-        '  hello'              | 'hello'             | null
-        'hello  '              | 'hello'             | null
-        ' /var/log/serv.log'   | '/var/log/serv.log' | null
+        '  hello'              | 'hello'             | ''
+        'hello  '              | 'hello'             | ''
+        ' /var/log/serv.log'   | '/var/log/serv.log' | ''
         '  []hello'            | 'hello'             | ''
         '  [my group]/var/log' | '/var/log'          | 'my group'
         '  [gr]  /var/log'     | '/var/log'          | 'gr'
@@ -209,6 +209,5 @@ class ConfigParserSpec extends Specification {
         config.highlightGroups.getByName( '' ).collect() == defaultHighlights
         config.highlightGroups.getByName( 'Extra Rules' )?.collect() == extraHighlights
     }
-
 
 }
