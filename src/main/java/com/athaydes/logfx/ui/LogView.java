@@ -89,16 +89,13 @@ public class LogView extends VBox {
         this.selectionHandler = new SelectionHandler( this );
         this.logFile = logFile;
 
-        this.expressionsChangeListener = ( Observable o ) -> {
-            System.out.println( "Expressions change listener fired" );
-            immediateOnFileChange();
-        };
+        this.expressionsChangeListener = ( Observable o ) -> immediateOnFileChange();
+
         logFile.highlightGroupProperty().addListener( expressionsChangeListener );
 
         this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile.getHighlightGroup() );
 
         this.highlightGroupChangeListener = ( Observable o ) -> {
-            System.out.println( "highligh group listener fired" );
             highlighter.setGroup( logFile.getHighlightGroup() );
             immediateOnFileChange();
         };
@@ -411,7 +408,6 @@ public class LogView extends VBox {
         }
 
         void setGroup( String groupName ) {
-            System.out.println( "setting group to " + groupName );
             if ( observableExpressions != null ) unwireListeners();
             observableExpressions = config.getHighlightGroups().getByName( groupName );
             if ( observableExpressions == null ) {
