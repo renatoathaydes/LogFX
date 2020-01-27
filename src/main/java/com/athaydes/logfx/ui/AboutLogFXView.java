@@ -39,11 +39,12 @@ public class AboutLogFXView {
         smallText.setPrefWidth( 500 );
         smallText.setAlignment( Pos.CENTER );
         Text version = new Text( "Version " + Constants.LOGFX_VERSION );
-        Text byRenato = new Text( "Copyright Renato Athaydes, 2017. All rights reserved." );
+        Text byRenato = new Text( "Copyright Renato Athaydes, 2017-2020. All rights reserved." );
         Text license = new Text( "Licensed under the GPLv3 License." );
+        Text awesomeFontsAttribution = new Text("Icons provided by https://fontawesome.com");
         Hyperlink link = new Hyperlink( "https://github.com/renatoathaydes/LogFX" );
         link.setOnAction( ( event ) -> hostServices.showDocument( link.getText() ) );
-        smallText.getChildren().addAll( version, byRenato, link, license );
+        smallText.getChildren().addAll( version, byRenato, link, license, awesomeFontsAttribution );
 
         contents.getChildren().addAll( textBox, smallText );
 

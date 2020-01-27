@@ -34,7 +34,9 @@ curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.9.1/logfx-0.9.
 
 > Size of the jar as of version `0.6.1`: 289 KB. *Not MB!*
 
-> UPDATE: Version 0.9.0's jar size: 320KB. 
+> UPDATE: Version 0.9.0's jar size: 320KB.
+> 
+> UPDATE: Version 1.0's jar size: 284KB. 
 
 ## Running LogFX
 
