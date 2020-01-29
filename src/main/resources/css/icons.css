@@ -1,5 +1,5 @@
 .icons {
-    -fx-font-family: FontAwesome;
+    -fx-font-family: "Font Awesome 5 Free";
     -fx-font-size: 16px;
     -fx-effect: innershadow(three-pass-box, derive(-icons-color, -70%), 0.1em, 0.0, 0.07em, 0.07em);
     -fx-text-fill: linear-gradient(to bottom, derive(-icons-color, 20%) 10%, derive(-icons-color, -40%) 80%);

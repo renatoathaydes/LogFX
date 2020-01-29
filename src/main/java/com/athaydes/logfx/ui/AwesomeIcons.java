@@ -61,13 +61,13 @@ public class AwesomeIcons {
         return label;
     }
 
-    public static final String CLOSE = "\uf2d4";
+    public static final String CLOSE = "\uf410";
     public static final String ARROW_DOWN = "\uf063";
     public static final String HELP = "\uf059";
     public static final String TRASH = "\uf1f8";
     public static final String CLOCK = "\uf017";
     public static final String PAUSE = "\uf04c";
-    public static final String PENCIL = "\uf040";
+    public static final String PENCIL = "\uf303";
     public static final String PLUS = "\uf067";
     public static final String LIST_UL = "\uf0ca";
 
