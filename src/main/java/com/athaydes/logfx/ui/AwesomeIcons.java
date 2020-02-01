@@ -61,7 +61,7 @@ public class AwesomeIcons {
         return label;
     }
 
-    public static final String CLOSE = "\uf410";
+    public static final String CLOSE = "\uf00d";
     public static final String ARROW_DOWN = "\uf063";
     public static final String HELP = "\uf059";
     public static final String TRASH = "\uf1f8";
