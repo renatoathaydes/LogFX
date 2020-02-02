@@ -123,7 +123,7 @@ class ConfigParserSpec extends Specification {
         |gui:
         |  orientation HORIZONTAL
         |  pane-dividers 0.4840163934426229
-        |  font 13.0 DejaVu Sans
+        |  font 13.0 Monospaced
         |'''.stripMargin()
 
         when: 'the config is parsed'
@@ -149,7 +149,7 @@ class ConfigParserSpec extends Specification {
 
         config.panesOrientation.get() == Orientation.HORIZONTAL
         config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
-        config.font.value?.name == 'DejaVu Sans'
+        config.font.value?.name == 'Monospaced Regular'
         config.font.value?.size == 13.0 as double
     }
 
@@ -172,7 +172,7 @@ class ConfigParserSpec extends Specification {
         |gui:
         |  orientation HORIZONTAL
         |  pane-dividers 0.4840163934426229
-        |  font 13.0 DejaVu Sans
+        |  font 13.0 Monospaced
         |'''.stripMargin()
 
         when: 'the config is parsed'
@@ -200,7 +200,7 @@ class ConfigParserSpec extends Specification {
 
         config.panesOrientation.get() == Orientation.HORIZONTAL
         config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
-        config.font.value?.name == 'DejaVu Sans'
+        config.font.value?.name == 'Monospaced Regular'
         config.font.value?.size == 13.0 as double
 
         and: 'The highlightGroups can return the correct rules by group name'
