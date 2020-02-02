@@ -27,8 +27,8 @@ final class ConfigProperties {
 
     ConfigProperties() {
         standardLogColors = new SimpleObjectProperty<>( new LogLineColors( Color.BLACK, Color.LIGHTGREY ) );
-        highlightGroups = new HighlightGroups();
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
+        highlightGroups = new HighlightGroups( observableFiles );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
         paneDividerPositions = FXCollections.observableArrayList();
         font = new BindableValue<>( Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );

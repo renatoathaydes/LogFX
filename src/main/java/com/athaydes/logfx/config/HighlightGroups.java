@@ -1,19 +1,28 @@
 package com.athaydes.logfx.config;
 
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.beans.InvalidationListener;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableMap;
+import javafx.collections.ObservableSet;
 
-import java.util.HashMap;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
 public final class HighlightGroups {
+    private final ObservableSet<LogFile> observableFiles;
+    private final ObservableMap<String, ObservableList<HighlightExpression>> configByGroupName;
+
     private InvalidationListener invalidationListener;
-    private final ObservableMap<String, ObservableList<HighlightExpression>> configByGroupName =
-            FXCollections.observableMap( new HashMap<>( 4 ) );
+
+    public HighlightGroups( ObservableSet<LogFile> observableFiles ) {
+        this.observableFiles = observableFiles;
+        configByGroupName = FXCollections.observableMap( new LinkedHashMap<>( 4 ) );
+    }
 
     public ObservableList<HighlightExpression> getByName( String name ) {
         return configByGroupName.get( name );
@@ -28,16 +37,26 @@ public final class HighlightGroups {
                 this::createNewExpressions );
     }
 
-    public ObservableList<HighlightExpression> remove( String groupName ) {
-        return configByGroupName.remove( groupName );
+    public void remove( String groupName ) {
+        configByGroupName.remove( groupName );
+        observableFiles.stream()
+                .filter( it -> groupName.equals( it.getHighlightGroup() ) )
+                .forEach( file -> file.highlightGroupProperty().setValue( "" ) );
+    }
+
+    public void renameGroup( String oldName, String newName ) {
+        configByGroupName.put( newName, configByGroupName.remove( oldName ) );
+        observableFiles.stream()
+                .filter( it -> oldName.equals( it.getHighlightGroup() ) )
+                .forEach( file -> file.highlightGroupProperty().setValue( newName ) );
     }
 
     public Set<String> groupNames() {
-        return configByGroupName.keySet();
+        return Collections.unmodifiableSet( configByGroupName.keySet() );
     }
 
     public Map<String, ObservableList<HighlightExpression>> toMap() {
-        return configByGroupName;
+        return Collections.unmodifiableMap( configByGroupName );
     }
 
     void setListener( InvalidationListener listener ) {

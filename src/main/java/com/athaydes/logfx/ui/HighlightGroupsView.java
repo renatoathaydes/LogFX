@@ -111,8 +111,7 @@ public class HighlightGroupsView extends BorderPane {
                         } else if ( groups.groupNames().contains( newName ) ) {
                             Dialog.showMessage( "Group name already exists", Dialog.MessageLevel.WARNING );
                         } else {
-                            ObservableList<HighlightExpression> rules = groups.remove( currentGroupName );
-                            groups.add( newName ).addAll( rules );
+                            groups.renameGroup( currentGroupName, newName );
 
                             HighlightOptions opt = optionsChoiceBox.getSelectionModel().getSelectedItem();
                             opt.setGroupName( newName );
