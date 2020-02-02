@@ -47,6 +47,7 @@ class ConfigParserSpec extends Specification {
         'blue   yellow true .*d.* x'       | '.*d.* x'          | Color.BLUE      | Color.YELLOW     | true
         'red white true  a b  c'           | 'a b  c'           | Color.RED       | Color.WHITE      | true
         'red white false  a b  c'          | 'a b  c'           | Color.RED       | Color.WHITE      | false
+        'red white false'                  | ''                 | Color.RED       | Color.WHITE      | false
     }
 
     def "Can parse log lines from config"() {
@@ -100,8 +101,6 @@ class ConfigParserSpec extends Specification {
         V2      | 'red white'        | 'regular expression not specified'
         V2      | 'red wrong'        | 'regular expression not specified'
         V2      | 'red wrong .*.*'   | 'invalid fill color'
-        V2      | 'red white ++'     | 'regular expression not specified'
-        V2      | 'red white true'   | 'regular expression not specified'
         V2      | 'red white x expr' | 'invalid value for filtered property'
     }
 

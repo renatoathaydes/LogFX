@@ -281,10 +281,12 @@ final class ConfigParser {
             }
 
             int thirdSpaceIndex = line.indexOf( ' ' );
+            String filteredString;
             if ( thirdSpaceIndex <= 0 ) {
-                throw highlightParseError( "regular expression not specified", line );
+                filteredString = line;
+            } else {
+                filteredString = line.substring( 0, thirdSpaceIndex );
             }
-            String filteredString = line.substring( 0, thirdSpaceIndex );
             switch ( filteredString.toLowerCase() ) {
                 case "true":
                     isFiltered = true;
@@ -296,7 +298,7 @@ final class ConfigParser {
                     throw highlightParseError( "invalid value for filtered property", line );
             }
 
-            if ( line.length() > thirdSpaceIndex + 1 ) {
+            if ( thirdSpaceIndex > 0 && line.length() > thirdSpaceIndex + 1 ) {
                 line = line.substring( thirdSpaceIndex + 1 ).trim();
             } else {
                 line = "";
@@ -307,10 +309,6 @@ final class ConfigParser {
             } else {
                 line = "";
             }
-        }
-
-        if ( line.isEmpty() ) {
-            throw highlightParseError( "regular expression not specified", line );
         }
 
         String expression = line;
