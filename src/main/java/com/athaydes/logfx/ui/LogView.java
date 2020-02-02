@@ -93,10 +93,10 @@ public class LogView extends VBox {
 
         logFile.highlightGroupProperty().addListener( expressionsChangeListener );
 
-        this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile.getHighlightGroup() );
+        this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile );
 
         this.highlightGroupChangeListener = ( Observable o ) -> {
-            highlighter.setGroup( logFile.getHighlightGroup() );
+            highlighter.updateGroupFrom( logFile );
             immediateOnFileChange();
         };
 
@@ -235,7 +235,8 @@ public class LogView extends VBox {
             dateTimeFormatGuess = dateTimeFormatGuesser
                     .guessDateTimeFormats( lines.get() ).orElse( null );
         } else {
-            log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}", logFile );
+            log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}",
+                    logFile );
             Dialog.showMessage( "Could not read file\n" + logFile.file.getName(), Dialog.MessageLevel.INFO );
         }
     }
@@ -380,10 +381,10 @@ public class LogView extends VBox {
         private final InvalidationListener expressionsChangeListener;
         private ObservableList<HighlightExpression> observableExpressions;
 
-        LogLineHighlighter( Config config, InvalidationListener expressionsChangeListener, String groupName ) {
+        LogLineHighlighter( Config config, InvalidationListener expressionsChangeListener, LogFile logFile ) {
             this.config = config;
             this.expressionsChangeListener = expressionsChangeListener;
-            setGroup( groupName );
+            updateGroupFrom( logFile );
         }
 
         LogLineColors logLineColorsFor( String text ) {
@@ -407,11 +408,15 @@ public class LogView extends VBox {
             }
         }
 
-        void setGroup( String groupName ) {
+        void updateGroupFrom( LogFile logFile ) {
             if ( observableExpressions != null ) unwireListeners();
+            String groupName = logFile.getHighlightGroup();
             observableExpressions = config.getHighlightGroups().getByName( groupName );
             if ( observableExpressions == null ) {
+                log.warn( "Trying to use highlight group that does not exist [{}] for file: {}.",
+                        groupName, logFile.file );
                 observableExpressions = config.getHighlightGroups().getDefault();
+                Platform.runLater( () -> logFile.highlightGroupProperty().setValue( "" ) );
             }
             observableExpressions.addListener( expressionsChangeListener );
         }
