@@ -103,7 +103,7 @@ public class HighlightGroupsView extends BorderPane {
             Dialog.askForInput( optionsChoiceBox.getScene(), "New group name:",
                     currentGroupName,
                     ( newName ) -> {
-                        newName = newName.trim();
+                        newName = newName.trim().replaceAll( "[\\[\\]]", "" );
                         if ( currentGroupName.equals( newName ) ) {
                             // nothing to do
                         } else if ( newName.isEmpty() || newName.equalsIgnoreCase( "default" ) ) {
