@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
+import com.athaydes.logfx.data.LinesScroller;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.file.FileChangeWatcher;
@@ -20,7 +21,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
-import javafx.scene.Node;
 import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -37,10 +37,7 @@ import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * View of a log file.
@@ -63,10 +60,10 @@ public class LogView extends VBox {
     private final FileContentReader fileContentReader;
     private final LogFile logFile;
     private final FileChangeWatcher fileChangeWatcher;
-    private final Supplier<LogLine> logLineFactory;
     private final TaskRunner taskRunner;
     private final SelectionHandler selectionHandler;
     private final DateTimeFormatGuesser dateTimeFormatGuesser = DateTimeFormatGuesser.standard();
+    private final LinesScroller linesScroller = new LinesScroller( MAX_LINES, this::lineContent, this::setLine );
 
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
     };
@@ -104,14 +101,11 @@ public class LogView extends VBox {
 
         final NumberBinding width = Bindings.max( widthProperty(), widthProperty );
 
-        logLineFactory = () -> {
-            LogLineColors logLineColors = highlighter.logLineColorsFor( "" );
-            return new LogLine( config.fontProperty(), width,
-                    logLineColors.getBackground(), logLineColors.getFill() );
-        };
+        LogLineColors logLineColors = highlighter.logLineColorsFor( "" );
 
         for ( int i = 0; i < MAX_LINES; i++ ) {
-            getChildren().add( logLineFactory.get() );
+            getChildren().add( new LogLine( config.fontProperty(), width,
+                    logLineColors.getBackground(), logLineColors.getFill() ) );
         }
 
         tailingFile.addListener( event -> {
@@ -228,6 +222,13 @@ public class LogView extends VBox {
         this.onFileUpdate = onFileUpdate;
     }
 
+    private void setLine( int index, String line ) {
+        LogLineColors logLineColors = highlighter.logLineColorsFor( line );
+        LogLine logLine = lineAt( index );
+        logLine.setText( line, logLineColors );
+
+    }
+
     // must be called from fileReaderExecutor Thread
     private void findFileDateTimeFormatterFromFileContents() {
         Optional<? extends List<String>> lines = fileContentReader.refresh();
@@ -242,42 +243,11 @@ public class LogView extends VBox {
     }
 
     private void addTopLines( List<String> topLines ) {
-        Platform.runLater( () -> {
-            ObservableList<Node> children = getChildren();
-            if ( topLines.size() >= children.size() ) {
-                children.clear();
-            } else {
-                children.remove( children.size() - topLines.size(), children.size() );
-            }
-
-            children.addAll( 0, topLines.stream()
-                    .map( lineText -> {
-                        LogLine logLine = logLineFactory.get();
-                        updateLine( logLine, lineText );
-                        return logLine;
-                    } )
-                    .collect( toList() ) );
-        } );
-
+        Platform.runLater( () -> linesScroller.setTopLines( topLines ) );
     }
 
     private void addBottomLines( List<String> bottomLines ) {
-        Platform.runLater( () -> {
-            ObservableList<Node> children = getChildren();
-            if ( bottomLines.size() >= children.size() ) {
-                children.clear();
-            } else {
-                children.remove( 0, bottomLines.size() );
-            }
-
-            children.addAll( bottomLines.stream()
-                    .map( lineText -> {
-                        LogLine logLine = logLineFactory.get();
-                        updateLine( logLine, lineText );
-                        return logLine;
-                    } )
-                    .collect( toList() ) );
-        } );
+        Platform.runLater( () -> linesScroller.setBottomLines( bottomLines ) );
     }
 
     private void onFileChange() {
@@ -340,7 +310,11 @@ public class LogView extends VBox {
     @MustCallOnJavaFXThread
     private void updateLine( LogLine line, String text ) {
         LogLineColors logLineColors = highlighter.logLineColorsFor( text );
-        line.setText( text, logLineColors.getBackground(), logLineColors.getFill() );
+        line.setText( text, logLineColors );
+    }
+
+    private String lineContent( int index ) {
+        return lineAt( index ).getText();
     }
 
     @MustCallOnJavaFXThread
