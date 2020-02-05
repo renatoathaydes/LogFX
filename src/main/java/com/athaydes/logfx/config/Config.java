@@ -13,6 +13,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
 import javafx.collections.SetChangeListener;
+import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -66,6 +67,7 @@ public class Config {
         properties.highlightGroups.setListener( listener );
         properties.observableFiles.addListener( listener );
         properties.panesOrientation.addListener( listener );
+        properties.windowBounds.addListener( listener );
         properties.paneDividerPositions.addListener( listener );
         properties.font.addListener( listener );
         properties.enableFilters.addListener( listener );
@@ -97,6 +99,10 @@ public class Config {
 
     public SimpleObjectProperty<Orientation> panesOrientationProperty() {
         return properties.panesOrientation;
+    }
+
+    public SimpleObjectProperty<Bounds> windowBoundsProperty() {
+        return properties.windowBounds;
     }
 
     public ObservableList<Double> getPaneDividerPositions() {
@@ -143,24 +149,30 @@ public class Config {
         CompletableFuture<Orientation> panesOrientationFuture = new CompletableFuture<>();
         Platform.runLater( () -> panesOrientationFuture.complete( properties.panesOrientation.get() ) );
 
+        CompletableFuture<Bounds> windowBoundsFuture = new CompletableFuture<>();
+        Platform.runLater( () -> windowBoundsFuture.complete( properties.windowBounds.get() ) );
+
         CompletableFuture<List<Double>> paneDividersFuture = new CompletableFuture<>();
         Platform.runLater( () -> paneDividersFuture.complete( new ArrayList<>( properties.paneDividerPositions ) ) );
 
         CompletableFuture<Font> fontFuture = new CompletableFuture<>();
         Platform.runLater( () -> fontFuture.complete( properties.font.getValue() ) );
 
-
         standardLogColorsFuture.thenAccept( logLineColors ->
                 expressionsFuture.thenAccept( expressions ->
                         enableFiltersFuture.thenAccept( enableFilters ->
                                 filesFuture.thenAccept( files ->
                                         panesOrientationFuture.thenAccept( orientation ->
-                                                paneDividersFuture.thenAccept( dividers ->
-                                                        fontFuture.thenAccept( font ->
-                                                                dumpConfigToFile(
-                                                                        logLineColors, expressions, enableFilters,
-                                                                        files, orientation, dividers, font, path.toFile()
-                                                                ) ) ) ) ) ) ) );
+                                                windowBoundsFuture.thenAccept( windowBounds ->
+                                                        paneDividersFuture.thenAccept( dividers ->
+                                                                fontFuture.thenAccept( font ->
+                                                                        dumpConfigToFile(
+                                                                                logLineColors, expressions,
+                                                                                enableFilters,
+                                                                                files, orientation, windowBounds,
+                                                                                dividers,
+                                                                                font, path.toFile()
+                                                                        ) ) ) ) ) ) ) ) );
     }
 
     private static void dumpConfigToFile( LogLineColors logLineColors,
@@ -168,6 +180,7 @@ public class Config {
                                           boolean enableFilters,
                                           Set<LogFile> files,
                                           Orientation orientation,
+                                          Bounds windowBounds,
                                           List<Double> dividerPositions,
                                           Font font,
                                           File path ) {
@@ -216,6 +229,11 @@ public class Config {
 
             writer.write( "gui:\n" );
             writer.write( "  orientation " + orientation.name() );
+            if ( windowBounds != null ) {
+                writer.write( String.format( "%n  window %.1f %.1f %.1f %.1f",
+                        windowBounds.getMinX(), windowBounds.getMinY(),
+                        windowBounds.getWidth(), windowBounds.getHeight() ) );
+            }
             if ( !dividerPositions.isEmpty() ) {
                 writer.write( "\n  pane-dividers " );
                 writer.write( dividerPositions.stream()

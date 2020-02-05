@@ -1,6 +1,7 @@
 package com.athaydes.logfx.config
 
 import com.athaydes.logfx.text.HighlightExpression
+import javafx.geometry.BoundingBox
 import javafx.geometry.Orientation
 import javafx.scene.paint.Color
 import spock.lang.Specification
@@ -171,6 +172,7 @@ class ConfigParserSpec extends Specification {
         |  /home/me/.logfx/config
         |gui:
         |  orientation HORIZONTAL
+        |  window 20.4 10.2 600.0 245.6
         |  pane-dividers 0.4840163934426229
         |  font 13.0 Monospaced
         |'''.stripMargin()
@@ -202,6 +204,7 @@ class ConfigParserSpec extends Specification {
         config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
         config.font.value?.name == 'Monospaced Regular'
         config.font.value?.size == 13.0 as double
+        config.windowBounds.get() == new BoundingBox( 20.4, 10.2, 600.0, 245.6 )
 
         and: 'The highlightGroups can return the correct rules by group name'
         config.highlightGroups.getDefault().collect() == defaultHighlights

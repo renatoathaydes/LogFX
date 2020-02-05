@@ -20,6 +20,9 @@ import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import com.athaydes.logfx.ui.StartUpView;
 import javafx.application.Application;
 import javafx.application.Platform;
+import javafx.beans.InvalidationListener;
+import javafx.geometry.BoundingBox;
+import javafx.geometry.Bounds;
 import javafx.scene.Scene;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
@@ -93,6 +96,7 @@ public class LogFX extends Application {
         this.stage = primaryStage;
         setPrimaryStage( primaryStage );
         setIconsOn( primaryStage );
+        setupResizeListenersAndResize( primaryStage );
 
         MenuBar menuBar = new MenuBar();
         menuBar.useSystemMenuBarProperty().set( true );
@@ -116,7 +120,6 @@ public class LogFX extends Application {
         mainBox.prefWidthProperty().bind( scene.widthProperty() );
 
         primaryStage.setScene( scene );
-        primaryStage.centerOnScreen();
         primaryStage.setTitle( TITLE );
         primaryStage.show();
 
@@ -133,6 +136,37 @@ public class LogFX extends Application {
         } );
 
         FxUtils.setupStylesheet( scene );
+    }
+
+    private void setupResizeListenersAndResize( Stage stage ) {
+        class WindowBoundsUpdater implements Runnable {
+            @Override
+            public void run() {
+                Platform.runLater( () -> config.windowBoundsProperty().set(
+                        new BoundingBox( stage.getX(), stage.getY(),
+                                stage.getWidth(), stage.getHeight() ) ) );
+            }
+        }
+
+        Bounds bounds = config.windowBoundsProperty().get();
+        if ( bounds != null ) {
+            stage.setX( bounds.getMinX() );
+            stage.setY( bounds.getMinY() );
+            stage.setWidth( bounds.getWidth() );
+            stage.setHeight( bounds.getHeight() );
+        } else {
+            stage.centerOnScreen();
+        }
+
+        WindowBoundsUpdater windowBoundsUpdater = new WindowBoundsUpdater();
+
+        InvalidationListener updateBounds = ( ignore ) ->
+                taskRunner.runWithMaxFrequency( windowBoundsUpdater, 1000L );
+
+        stage.widthProperty().addListener( updateBounds );
+        stage.heightProperty().addListener( updateBounds );
+        stage.xProperty().addListener( updateBounds );
+        stage.yProperty().addListener( updateBounds );
     }
 
     private void updateBottomMessagePane( VBox mainBox ) {

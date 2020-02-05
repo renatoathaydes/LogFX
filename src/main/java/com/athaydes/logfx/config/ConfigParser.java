@@ -3,6 +3,7 @@ package com.athaydes.logfx.config;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import javafx.geometry.BoundingBox;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -186,6 +187,19 @@ final class ConfigParser {
                             logInvalidProperty( "gui", "orientation", parts[ 1 ],
                                     "Invalid value for Orientation: " + e );
                         }
+                        break;
+                    case "window":
+                        if ( parts.length == 5 ) try {
+                            properties.windowBounds.set( new BoundingBox(
+                                    Double.parseDouble( parts[ 1 ] ), Double.parseDouble( parts[ 2 ] ),
+                                    Double.parseDouble( parts[ 3 ] ), Double.parseDouble( parts[ 4 ] )
+                            ) );
+                            break;
+                        } catch ( NumberFormatException e ) {
+                            // proceed to log error below
+                        }
+                        logInvalidProperty( "gui", "window", line.trim(),
+                                "Invalid value for window (should be 'window x y width height')" );
                         break;
                     case "pane-dividers":
                         if ( parts.length != 2 ) {
