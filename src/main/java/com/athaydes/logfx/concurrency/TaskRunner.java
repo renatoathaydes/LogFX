@@ -68,6 +68,16 @@ public class TaskRunner {
     }
 
     /**
+     * Run a task after a certain delay, asynchronously.
+     *
+     * @param task  to run
+     * @param delay to impose
+     */
+    public void runDelayed( Runnable task, Duration delay ) {
+        executor.schedule( task, delay.toMillis(), TimeUnit.MILLISECONDS );
+    }
+
+    /**
      * Run the given runnable task using the following algorithm:
      * <p>
      * * If the task has not run before or

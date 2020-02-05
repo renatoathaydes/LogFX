@@ -44,6 +44,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -97,6 +98,7 @@ public class LogFX extends Application {
         setPrimaryStage( primaryStage );
         setIconsOn( primaryStage );
         setupResizeListenersAndResize( primaryStage );
+        hackToCauseJavaFXToRedrawWholeWindowDueToJavaFXBug( primaryStage );
 
         MenuBar menuBar = new MenuBar();
         menuBar.useSystemMenuBarProperty().set( true );
@@ -167,6 +169,17 @@ public class LogFX extends Application {
         stage.heightProperty().addListener( updateBounds );
         stage.xProperty().addListener( updateBounds );
         stage.yProperty().addListener( updateBounds );
+    }
+
+    // fixes JavaFX bug: https://bugs.openjdk.java.net/browse/JDK-8189092
+    private void hackToCauseJavaFXToRedrawWholeWindowDueToJavaFXBug( Stage stage ) {
+        double h = stage.getHeight();
+        taskRunner.runDelayed( () -> {
+            Platform.runLater( () -> stage.setHeight( h + 1 ) );
+            taskRunner.runDelayed( () -> {
+                Platform.runLater( () -> stage.setHeight( h - 1 ) );
+            }, Duration.ofSeconds( 1 ) );
+        }, Duration.ofSeconds( 2 ) );
     }
 
     private void updateBottomMessagePane( VBox mainBox ) {
