@@ -380,7 +380,7 @@ public class LogFX extends Application {
             SetupMacTrayIcon.run();
         }
 
-        Font.loadFont( LogFX.class.getResource( "/fonts/fa-solid-900.woff" ).toExternalForm(), 12 );
+        Font.loadFont( LogFX.class.getResource( "/fonts/fontawesome-webfont.woff2" ).toExternalForm(), 12 );
         Application.launch( LogFX.class );
     }
 
