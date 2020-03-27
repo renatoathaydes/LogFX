@@ -199,8 +199,7 @@ public class LogFX extends Application {
         taskRunner.runAsync( () -> {
             final List<InputStream> imageStreams = Arrays.asList(
                     LogFX.class.getResourceAsStream( "/images/favicon-large.png" ),
-                    LogFX.class.getResourceAsStream( "/images/favicon-small.png" ),
-                    LogFX.class.getResourceAsStream( "/images/favicon-tiny.png" ) );
+                    LogFX.class.getResourceAsStream( "/images/favicon-small.png" ) );
 
             Platform.runLater( () -> imageStreams.stream()
                     .map( Image::new )
@@ -380,7 +379,6 @@ public class LogFX extends Application {
             SetupMacTrayIcon.run();
         }
 
-        Font.loadFont( LogFX.class.getResource( "/fonts/fontawesome-webfont.woff2" ).toExternalForm(), 12 );
         Application.launch( LogFX.class );
     }
 

@@ -161,7 +161,7 @@ public class HighlightOptions extends VBox {
             htmlText = "<div>Could not open the help file</div>";
         }
 
-        Label help = AwesomeIcons.createIconLabel( HELP );
+        Node help = AwesomeIcons.createIcon( HELP );
         Dialog helpDialog = new Dialog( htmlContent );
         helpDialog.setTitle( "Highlight Options Help" );
         helpDialog.setStyle( StageStyle.UTILITY );
@@ -272,7 +272,7 @@ public class HighlightOptions extends VBox {
         }
 
         private Node removeButton() {
-            Label removeButton = AwesomeIcons.createIconLabel( TRASH );
+            Button removeButton = AwesomeIcons.createIconButton( TRASH );
             removeButton.setTooltip( new Tooltip( "Remove rule" ) );
             removeButton.setOnMouseClicked( event -> {
                 observableExpressions.remove( expression );

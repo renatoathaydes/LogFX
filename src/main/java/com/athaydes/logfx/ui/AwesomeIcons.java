@@ -1,15 +1,11 @@
 package com.athaydes.logfx.ui;
 
+import javafx.scene.Node;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.ToggleButton;
+import javafx.scene.text.Text;
+import org.kordamp.ikonli.javafx.FontIcon;
 
-/**
- * Mapping of unicode characters to AwesomeIcons.
- * <p>
- * See http://www.jensd.de/wordpress/?p=132
- * And http://fontawesome.io/
- */
 public class AwesomeIcons {
 
     private AwesomeIcons() {
@@ -17,58 +13,33 @@ public class AwesomeIcons {
     }
 
     public static ToggleButton createToggleButton( String iconName ) {
-        return createToggleButton( iconName, 16 );
-    }
-
-    public static ToggleButton createToggleButton( String iconName, int iconSize ) {
-        Label icon = createIconLabel( iconName );
-        icon.setStyle( "-fx-font-size: " + iconSize + "px;" );
+        Node icon = createIcon( iconName );
         return new ToggleButton( "", icon );
     }
 
     public static Button createIconButton( String iconName ) {
-        return createIconButton( iconName, "", 16 );
+        return createIconButton( iconName, "" );
     }
 
     public static Button createIconButton( String iconName, String text ) {
-        return createIconButton( iconName, text, 16 );
-    }
-
-    public static Button createIconButton( String iconName, int iconSize ) {
-        return createIconButton( iconName, "", iconSize );
-    }
-
-    public static Button createIconButton( String iconName, String text, int iconSize ) {
-        Label icon = createIconLabel( iconName );
-        icon.setStyle( "-fx-font-size: " + iconSize + "px;" );
+        Node icon = createIcon( iconName );
         return new Button( text, icon );
     }
 
-    public static Label createIconLabel( String iconName, String style ) {
-        Label label = new Label( iconName );
-        label.setStyle( style );
-        return label;
+    public static Text createIcon( String iconName ) {
+        FontIcon icon = new FontIcon( iconName );
+        icon.getStyleClass().add( "icons" );
+        return icon;
     }
 
-    public static Label createIconLabel( String iconName ) {
-        return createIconLabel( iconName, 16 );
-    }
-
-    public static Label createIconLabel( String iconName, int iconSize ) {
-        Label label = new Label( iconName );
-        label.setStyle( "-fx-font-size: " + iconSize + "px;" );
-        label.getStyleClass().add( "icons" );
-        return label;
-    }
-
-    public static final String CLOSE = "\uf00d";
-    public static final String ARROW_DOWN = "\uf063";
-    public static final String HELP = "\uf059";
-    public static final String TRASH = "\uf1f8";
-    public static final String CLOCK = "\uf017";
-    public static final String PAUSE = "\uf04c";
-    public static final String PENCIL = "\uf040";
-    public static final String PLUS = "\uf067";
-    public static final String LIST_UL = "\uf0ca";
+    public static final String CLOSE = "ti-close";
+    public static final String ARROW_DOWN = "ti-download";
+    public static final String HELP = "ti-help-alt";
+    public static final String TRASH = "ti-trash";
+    public static final String CLOCK = "ti-time";
+    public static final String PAUSE = "ti-control-pause";
+    public static final String PENCIL = "ti-pencil";
+    public static final String PLUS = "ti-plus";
+    public static final String LIST_UL = "ti-align-justify";
 
 }

@@ -26,7 +26,7 @@ repositories {
     jcenter()
 }
 
-tasks.withType(JavaCompile) {
+tasks.withType( JavaCompile ) {
     options.encoding = 'UTF-8'
 }
 
@@ -36,6 +36,8 @@ sourceSets.main.java.srcDir generatedJavaSources
 
 dependencies {
     compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.12'
+    compile 'org.kordamp.ikonli:ikonli-javafx:2.4.0'
+    runtime 'org.kordamp.ikonli:ikonli-themify-pack:2.4.0'
 
     testCompile group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.4.4'
     testCompile group: 'org.spockframework', name: 'spock-core', version: '1.1-groovy-2.4', {
@@ -87,7 +89,33 @@ task fatJar( type: Jar ) {
     }
 
     classifier "all"
-    from { configurations.compile.collect { it.isDirectory() ? it : zipTree( it ) } }
+    from {
+        configurations.runtime.collect {
+            if ( it.isDirectory() ) return it
+            def zip = zipTree( it )
+            if ( it.name ==~ /ikonli-themify-pack-.+\.jar/ ) {
+                // remove unnecessary fonts and css from themify-pack
+                zip = zip.matching {
+                    exclude 'META-INF/resources/themify/1.0.1/css/themify-icons.css'
+                    exclude 'META-INF/resources/themify/1.0.1/css/themify-icons.min.css'
+                    exclude 'META-INF/resources/themify/1.0.1/fonts/themify.eot'
+                    exclude 'META-INF/resources/themify/1.0.1/fonts/themify.svg'
+                    exclude 'META-INF/resources/themify/1.0.1/fonts/themify.woff'
+                }
+            } else {
+                zip = zip.matching {
+                    // exclude any other Ikon handlers than the one from themify-pack
+                    exclude '/META-INF/services/org.kordamp.ikonli.IkonHandler'
+                    // no multi-version jar support required for now
+                    exclude 'META-INF/versions/**/*'
+                }
+            }
+            zip.matching {
+                // Licenses are acknowledged in our own license file
+                exclude 'META-INF/LICENSE'
+            }
+        }
+    }
     with jar
 }
 

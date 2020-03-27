@@ -46,7 +46,7 @@ public class ColorChooser {
             }
         } ) );
 
-        ToggleButton editButton = AwesomeIcons.createToggleButton( AwesomeIcons.PENCIL, 10 );
+        ToggleButton editButton = AwesomeIcons.createToggleButton( AwesomeIcons.PENCIL );
 
         box.getChildren().addAll( colorPicker, editButton );
 
