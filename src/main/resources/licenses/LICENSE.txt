@@ -4,7 +4,8 @@ A copy of the license can be obtained from the LogFX source code repository:
 
 https://github.com/renatoathaydes/LogFX
 
-Other software used by LogFX are listed below. Where applicable, their licenses are included in the LogFX jar,
-under the licenses/ directory.
+Other software used by LogFX are listed below, with their respective licenses.
 
-- Awesome Fonts 5.0 https://fontawesome.com/
+- Themify Icons Font: http://scripts.sil.org/OFL
+- Ikonli: Apache 2.0 (https://github.com/kordamp/ikonli/blob/master/LICENSE)
+- slf4j-api: MIT License (http://www.slf4j.org/license.html)
