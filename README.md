@@ -81,7 +81,8 @@ This allows you to store several different LogFX customizations in the same mach
 
 ### Specifying a custom stylesheet
 
-Notice that the `logfx.stylesheet.file` allows you to specify your own stylesheet to customize the looks of LogFX.
+Notice that the `logfx.stylesheet.file` system property allows you to specify your own stylesheet to customize
+the looks of LogFX.
 
 The default stylesheet can be found at [src/main/resources/css/LogFX.css](src/main/resources/css/LogFX.css).
 
