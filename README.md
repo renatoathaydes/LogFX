@@ -15,6 +15,7 @@ It is written in JavaFX so it can run in any Operating System.
 * highlight text using regular expressions rules.
 * filter content based on highlight expressions.
 * highly customizable look via JavaFX CSS (refreshes instantly).
+* group highlight expressions for different types of logs.
 * keyboard friendly (shortcuts for everything).
 
 ## Getting LogFX
