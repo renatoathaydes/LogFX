@@ -330,7 +330,7 @@ public class HighlightOptions extends VBox {
         ScrollPane pane = new ScrollPane( highlightGroups );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         Dialog dialog = new Dialog( new ScrollPane( highlightGroups ) );
-        dialog.setSize( 850.0, 320.0 );
+        dialog.setSize( 880.0, 340.0 );
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );
         dialog.makeTransparentWhenLoseFocus();
