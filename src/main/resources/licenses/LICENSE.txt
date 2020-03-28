@@ -7,5 +7,4 @@ https://github.com/renatoathaydes/LogFX
 Other software used by LogFX are listed below, with their respective licenses.
 
 - Themify Icons Font: http://scripts.sil.org/OFL
-- Ikonli: Apache 2.0 (https://github.com/kordamp/ikonli/blob/master/LICENSE)
 - slf4j-api: MIT License (http://www.slf4j.org/license.html)
