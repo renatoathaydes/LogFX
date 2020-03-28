@@ -37,6 +37,7 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -385,6 +386,8 @@ public class LogFX extends Application {
         if ( FxUtils.isMac() ) {
             SetupMacTrayIcon.run();
         }
+
+        Font.loadFont( LogFX.class.getResource( "/fonts/themify-1.0.1.ttf" ).toExternalForm(), 12 );
 
         Application.launch( LogFX.class );
     }

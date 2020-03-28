@@ -1,11 +1,13 @@
 .icons {
-    -fx-icon-color: -icons-color;
+    -fx-font-family: Themify;
+    -fx-text-fill: -icons-color;
+    -fx-min-width: 14px;
 }
 
 .icons:hover {
-    -fx-icon-color: derive(-icons-color, 20%);
+    -fx-text-fill: derive(-icons-color, 20%);
 }
 
 .toggle-button:selected .icons {
-    -fx-icon-color: derive(-icons-color, 80%);
+    -fx-text-fill: derive(-icons-color, 80%);
 }
