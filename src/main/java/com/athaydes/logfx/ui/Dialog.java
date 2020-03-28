@@ -70,7 +70,7 @@ public class Dialog {
         Dialog.primaryStage = primaryStage;
     }
 
-    private final Stage dialogStage = new Stage();
+    final Stage dialogStage = new Stage();
     private final VBox box = new VBox( 10 );
     private boolean hasBeenShown = false;
     private boolean closeWhenLoseFocus = false;

@@ -54,9 +54,6 @@ class GoToDateView {
             goToAll.setDisable( true );
         }
 
-        Button cancelButton = new Button( "Cancel" );
-        cancelButton.setOnAction( event -> dialog.hide() );
-
         Button goButton = new Button( "Go" );
         goButton.disableProperty().bind( dateTimeField.validProperty().not() );
 
@@ -80,10 +77,14 @@ class GoToDateView {
             dialog.hide();
         } );
 
-        HBox buttonBox = new HBox( 10 );
-        buttonBox.getChildren().addAll( cancelButton, goButton );
+        dialog.dialogStage.focusedProperty().addListener( ( obs, oldVal, newVal ) -> {
+            if ( !newVal ) dialog.hide();
+        } );
 
-        root.getChildren().addAll( dateLabel, dateTimeField, buttonBox, goToAll );
+        HBox buttonBox = new HBox( 10 );
+        buttonBox.getChildren().addAll(  goButton, goToAll );
+
+        root.getChildren().addAll( dateLabel, dateTimeField, buttonBox );
     }
 
     void show() {
