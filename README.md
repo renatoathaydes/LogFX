@@ -29,8 +29,11 @@ OR
 
 * download the jar from the command-line:
 
+> Find the latest version on [Bintray](https://bintray.com/renatoathaydes/maven/logfx).
+
 ```
-curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.9.1/logfx-0.9.1-all.jar -o logfx.jar
+VERSION=1.0-RC3
+curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/$VERSION/logfx-$VERSION-all.jar -o logfx.jar
 ```
 
 > Size of the jar as of version `0.6.1`: 289 KB. *Not MB!*
@@ -43,11 +46,40 @@ curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.9.1/logfx-0.9.
 
 > Java 8+ is required to run LogFX
 
-Run it with:
+Run LogFX with the following command:
 
 ```
 java -jar logfx.jar
 ```
+
+### Java 9+
+
+On Java 9+, there are two ways to run LogFX:
+
+#### Using an OpenJDK distribution that includes JavaFX
+ 
+If you use a JDK distribution that includes JavaFX (e.g. with [SDKMAN](https://sdkman.io/), `sdk use java 14.0.0.fx-librca`),
+the same command as with Java 8 can be used to run LogFX:
+
+> You can also download a OpenJDK version which includes JavaFX from [BellSoft](https://bell-sw.com/pages/java-14/)
+> or [Azul](https://www.azul.com/downloads/zulu-community/).
+
+```
+java -jar logfx.jar
+```
+
+#### Using a standard Java 9+ JVM and a separate JavaFX distribution
+
+If you want to use a standard Java 9+ JVM, as it does not include JavaFX by default since Java 9,
+you will need to download the JavaFX runtime from [openjfx.io](https://openjfx.io/).
+
+Unpack the contents of the zip file into some directoy (`JAVAFX_DIST`), then run LogFX with the following command:
+
+```
+java --module-path $JAVAFX_DIST --add-modules javafx.controls,javafx.fxml -jar logfx.jar
+```
+
+### Limit RAM used
 
 If you don't want it to use the default hundreds of MB of RAM, ask `java` to use at most 50MB and it will run fine:
 
