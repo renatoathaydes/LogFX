@@ -19,6 +19,7 @@ import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import com.athaydes.logfx.ui.StartUpView;
 import javafx.application.Application;
+import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.geometry.BoundingBox;
@@ -36,7 +37,6 @@ import javafx.scene.layout.Pane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
-import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,6 +65,8 @@ public class LogFX extends Application {
 
     private static final String TITLE = "LogFX";
 
+    private static final AtomicReference<HostServices> hostServices = new AtomicReference<>();
+
     private Stage stage;
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
@@ -77,6 +79,7 @@ public class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     public LogFX() {
+        hostServices.set( getHostServices() );
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner );
         this.highlightGroups = new HighlightGroupsView( config );
@@ -372,6 +375,10 @@ public class LogFX extends Application {
                 dialogRef.get().hide();
             }
         } );
+    }
+
+    public static HostServices hostServices() {
+        return hostServices.get();
     }
 
     public static void main( String[] args ) {

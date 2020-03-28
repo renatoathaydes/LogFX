@@ -9,6 +9,7 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
+import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -19,20 +20,17 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
 import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
+import java.io.IOException;
 import java.util.List;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
@@ -41,7 +39,6 @@ import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
-import static java.util.stream.Collectors.joining;
 
 /**
  * The highlight options screen.
@@ -145,33 +142,21 @@ public class HighlightOptions extends VBox {
     }
 
     private Node createHelpIcon() {
-        WebView htmlContent = new WebView();
-        WebEngine webEngine = htmlContent.getEngine();
-
-        String htmlText;
-        try {
-            htmlText = new BufferedReader( new InputStreamReader(
-                    getClass().getResourceAsStream( "/html/highlight-options-help.html" ),
-                    StandardCharsets.UTF_8 )
-            ).lines().collect( joining( "\n" ) );
-
-            webEngine.setUserStyleSheetLocation( getClass().getResource( "/css/web-view.css" ).toString() );
-        } catch ( Exception e ) {
-            log.warn( "Error loading HTML resources", e );
-            htmlText = "<div>Could not open the help file</div>";
-        }
-
         Node help = AwesomeIcons.createIcon( HELP );
-        Dialog helpDialog = new Dialog( htmlContent );
+
+        AnchorPane content;
+        try {
+            content = FXMLLoader.load( HighlightOptions.class.getResource( "/fxml/highlight-options-help.fxml" ) );
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
+        }
+        Dialog helpDialog = new Dialog( content );
         helpDialog.setTitle( "Highlight Options Help" );
         helpDialog.setStyle( StageStyle.UTILITY );
         helpDialog.setResizable( false );
 
-        final String html = htmlText;
-
         help.setOnMouseClicked( event -> {
             helpDialog.setOwner( getScene().getWindow() );
-            webEngine.loadContent( html );
             helpDialog.show();
         } );
 
@@ -322,7 +307,8 @@ public class HighlightOptions extends VBox {
             isFilteredBox.setTooltip( new Tooltip( "Include in filter" ) );
 
             InvalidationListener updater = ( ignore ) ->
-                    update( bkgColorPicker.getColor(), fillColorPicker.getColor(), isFilteredBox.selectedProperty().get() );
+                    update( bkgColorPicker.getColor(), fillColorPicker.getColor(),
+                            isFilteredBox.selectedProperty().get() );
 
             bkgColorPicker.addListener( updater );
             fillColorPicker.addListener( updater );

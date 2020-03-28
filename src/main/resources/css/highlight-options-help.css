@@ -1,0 +1,22 @@
+.root {
+    -fx-background-color: #1d1d1d;
+    -fx-font-family: "Lucida Grande", serif;
+    -fx-font-size: 1em;
+}
+
+Text {
+    -fx-fill: lightgray;
+}
+
+.h2 {
+    -fx-fill: #3cb3f3;
+    -fx-font-size: 2em;
+}
+
+.link {
+    -fx-fill: white;
+}
+
+.code {
+    -fx-fill: #3cb3f3;
+}
