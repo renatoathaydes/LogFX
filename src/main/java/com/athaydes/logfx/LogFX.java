@@ -85,7 +85,7 @@ public class LogFX extends Application {
         this.highlightGroups = new HighlightGroupsView( config );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
-                new StartUpView( getHostServices(), stage, this::open ),
+                new StartUpView( stage, this::open ),
                 config.getHighlightGroups(),
                 config.getObservableFiles().isEmpty() );
 
@@ -242,7 +242,7 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         MenuItem about = new MenuItem( "_About LogFX" );
-        about.setOnAction( ( event ) -> new AboutLogFXView( getHostServices() ).show() );
+        about.setOnAction( ( event ) -> new AboutLogFXView().show() );
 
         menu.getItems().addAll( about );
 

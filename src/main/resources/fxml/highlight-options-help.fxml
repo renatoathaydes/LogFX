@@ -35,7 +35,7 @@
         <Text text="To make the expression case-insensitive, start it with "/>
         <Text styleClass="code" text="(?i)"/>
         <Text text=".&#10;"/>
-        <Text text="For assistance writing Java regular expressions, check "/>
+        <Text text="For assistance writing Java regular expressions, check the "/>
         <Link url="https://docs.oracle.com/javase/tutorial/essential/regex/">Oracle Regex Tutorial</Link>
         <Text text=".&#10;&#10;"/>
         <Text styleClass="h2" text="Choosing the style for a rule&#10;"/>

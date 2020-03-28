@@ -1,16 +1,24 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.LogFX;
-import javafx.application.HostServices;
 import javafx.scene.control.Hyperlink;
 
 public class Link extends Hyperlink {
-    private final HostServices hostServices;
     private String url;
 
+    // for links created via FXML. Must set URL.
     public Link() {
-        this.hostServices = LogFX.hostServices();
-        setOnAction( ( event ) -> hostServices.showDocument( url ) );
+        this( "", "" );
+    }
+
+    public Link( String url ) {
+        this( url, url );
+    }
+
+    public Link( String url, String text ) {
+        super( text );
+        this.url = url;
+        setOnAction( ( event ) -> LogFX.hostServices().showDocument( this.url ) );
     }
 
     public String getUrl() {

@@ -1,6 +1,5 @@
 package com.athaydes.logfx.ui;
 
-import javafx.application.HostServices;
 import javafx.scene.control.Hyperlink;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
@@ -17,10 +16,9 @@ import java.util.function.Consumer;
  */
 public class StartUpView extends StackPane {
 
-    public StartUpView( HostServices hostServices,
-                        Stage stage,
+    public StartUpView( Stage stage,
                         Consumer<File> openFile ) {
-        VBox box = new AboutLogFXView( hostServices ).createNode();
+        VBox box = new AboutLogFXView().createNode();
 
         String metaKey = FxUtils.isMac() ? "⌘" : "Ctrl+";
 
@@ -32,7 +30,7 @@ public class StartUpView extends StackPane {
         dropText.getStyleClass().add( "large-background-text" );
 
         StackPane fileDropPane = new StackPane( dropText );
-        fileDropPane.getStyleClass().add("drop-file-pane");
+        fileDropPane.getStyleClass().add( "drop-file-pane" );
 
         FileDragAndDrop.install( fileDropPane, openFile );
 
