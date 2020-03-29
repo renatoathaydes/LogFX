@@ -4,3 +4,7 @@
 /build/
 /.gradle/
 /.idea/
+
+# Website sources and target
+/website2/
+/gh-pages/
