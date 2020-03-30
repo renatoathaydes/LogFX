@@ -2,9 +2,11 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.Constants;
 import javafx.geometry.Pos;
+import javafx.scene.Group;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
 
 /**
@@ -33,9 +35,11 @@ public class AboutLogFXView {
         Text version = new Text( "Version " + Constants.LOGFX_VERSION );
         Text byRenato = new Text( "Copyright Renato Athaydes, 2017-2020. All rights reserved." );
         Text license = new Text( "Licensed under the GPLv3 License." );
-        Text awesomeFontsAttribution = new Text( "Icons provided by https://fontawesome.com" );
+        Group fontsAttribution = new Group(
+                new Text( "Icons provided by " ),
+                new Link( "https://themify.me/themify-icons", "Themify.me" ) );
         Link link = new Link( "https://github.com/renatoathaydes/LogFX" );
-        smallText.getChildren().addAll( version, byRenato, link, license, awesomeFontsAttribution );
+        smallText.getChildren().addAll( version, byRenato, link, license, fontsAttribution );
 
         contents.getChildren().addAll( textBox, smallText );
 
