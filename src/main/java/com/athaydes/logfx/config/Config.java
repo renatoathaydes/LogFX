@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -230,7 +231,7 @@ public class Config {
             writer.write( "gui:\n" );
             writer.write( "  orientation " + orientation.name() );
             if ( windowBounds != null ) {
-                writer.write( String.format( "%n  window %.1f %.1f %.1f %.1f",
+                writer.write( String.format( Locale.US, "%n  window %.1f %.1f %.1f %.1f",
                         windowBounds.getMinX(), windowBounds.getMinY(),
                         windowBounds.getWidth(), windowBounds.getHeight() ) );
             }

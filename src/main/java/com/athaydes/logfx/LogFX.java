@@ -4,6 +4,7 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.data.LogFile;
+import com.athaydes.logfx.data.NaNChecker.NaNException;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.log.LogFXLogFactory;
@@ -52,6 +53,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
+import static com.athaydes.logfx.data.NaNChecker.checkNaN;
 import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
 import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
 import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
@@ -148,9 +150,16 @@ public class LogFX extends Application {
         class WindowBoundsUpdater implements Runnable {
             @Override
             public void run() {
-                Platform.runLater( () -> config.windowBoundsProperty().set(
-                        new BoundingBox( stage.getX(), stage.getY(),
-                                stage.getWidth(), stage.getHeight() ) ) );
+                Platform.runLater( () -> {
+                    // JavaFX sometimes gives NaN, avoid updating in such cases
+                    try {
+                        config.windowBoundsProperty().set(
+                                new BoundingBox( checkNaN( stage.getX() ), checkNaN( stage.getY() ),
+                                        checkNaN( stage.getWidth() ), checkNaN( stage.getHeight() ) ) );
+                    } catch ( NaNException e ) {
+                        log.warn( "Unable to update window coordinates due to one or more dimensions being unavailable" );
+                    }
+                } );
             }
         }
 
