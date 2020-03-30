@@ -1,0 +1,97 @@
+{{ define width 700 }}\
+<template id="slides-template">
+    <style>
+img {
+	width: {{eval width}}px;
+}
+
+.window {
+	width: {{eval width}}px;
+	height: 600px;
+	margin-left: auto;
+	margin-right: auto;
+	overflow: hidden;
+	text-align: center;
+}
+
+.image-container {
+	width: 2250px;
+	height: 300px;
+	position: relative;
+	transition: left 2s;
+	-webkit-transition: left 2s;
+	-moz-transition: left 2s;
+	-o-transition: left 2s;
+}
+
+.slide {
+	float: left;
+	margin: 0;
+	padding: 0;
+}
+
+.button-container {
+	top: -20px;
+	position: relative;
+}
+
+.slider-button {
+	display: inline-block;
+	height: 10px;
+	width: 10px;
+	border-radius: 5px;
+	background-color: #fff;
+}
+    </style>
+    <div class="window">
+        <div id="slides-container" class="image-container">
+{{ if slide1 != null }}{{ eval slide1 }}{{ end }}\
+{{ if slide2 != null }}{{ eval slide2 }}{{ end }}\
+{{ if slide3 != null }}{{ eval slide3 }}{{ end }}\
+{{ if slide4 != null }}{{ eval slide4 }}{{ end }}\
+{{ if slide5 != null }}{{ eval slide5 }}{{ end }}\
+{{ if slide6 != null }}{{ eval slide6 }}{{ end }}\
+{{ if slide7 != null }}{{ eval slide7 }}{{ end }}\
+{{ if slide8 != null }}{{ eval slide8 }}{{ end }}\
+{{ if slide9 != null }}{{ eval slide9 }}{{ end }}\
+{{ if slide10 != null }}{{ eval slide10 }}{{ end }}\
+        </div>
+        <div id="buttons" class="button-container">
+{{ if slide1 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide2 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide3 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide4 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide5 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide6 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide7 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide8 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide9 != null }}<span class="slider-button"></span>
+{{ end }}\
+{{ if slide10 != null }}<span class="slider-button"></span>
+{{ end }}\
+        </div>
+    </div>
+</template>
+<div id="slides-component"></div>
+<script>
+    var template = document.getElementById('slides-template').content;
+    var shadow = document.getElementById('slides-component').attachShadow({mode: 'open'});
+    shadow.appendChild(template.cloneNode(true));
+    var slidesContainer = shadow.querySelector('#slides-container');
+    var counter = 0;
+    var iid = setInterval(function() {
+        var left = {{eval width}} * counter;
+        {{ doc how to get the slide count here? Using hard-coded value for now }}\
+        counter = (counter + 1) % {{eval 3}};
+        slidesContainer.style.left = '-' + left + 'px';
+    }, 3000);
+
+</script>

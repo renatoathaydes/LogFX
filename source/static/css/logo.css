@@ -27,3 +27,10 @@
     margin-top: 1em;
   }
 }
+
+.logos {
+    max-width: 70%;
+    margin: auto;
+    padding-top: 2em;
+    min-height: 12em;
+}

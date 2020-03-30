@@ -1,59 +1,6 @@
 {{ define title "LogFX" }}
 {{ define include_logo true }}
 {{ include fragments/_header.html }}
-<style>
-
-img {
-	width: 700px;
-}
-
-.window {
-	width: 700px;
-	height: 600px;
-	margin-left: auto;
-	margin-right: auto;
-	overflow: hidden;
-	text-align: center;
-}
-
-.image-container {
-	width: 2250px;
-	height: 300px;
-	position: relative;
-	transition: left 2s;
-	-webkit-transition: left 2s;
-	-moz-transition: left 2s;
-	-o-transition: left 2s;
-}
-
-.slide {
-	float: left;
-	margin: 0;
-	padding: 0;
-}
-
-.button-container {
-	top: -20px;
-	position: relative;
-}
-
-.slider-button {
-	display: inline-block;
-	height: 10px;
-	width: 10px;
-	border-radius: 5px;
-	background-color: #fff;
-}
-
-#slide-1:target ~ .image-container {
-	left: 0;
-}
-
-#slide-2:target ~ .image-container {
-	left: -700px;
-}
-
-</style>
 
 <header>
     <div id="logo">
@@ -65,20 +12,25 @@ img {
 </header>
 <section>
     <p>LogFX is a multi-platform log viewer designed to handle very large files.</p>
-    <div class="window">
-        <span id="slide-1"></span>
-        <span id="slide-2"></span>
-        <div class="image-container">
-            <img src="https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx-1.0rc2-linux.png"
-                 alt="LogFX 1.0 running on Linux Plasma KDE" class="slide">
-            <img src="https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx1.0-rc3-windows-.png"
-                 alt="LogFX 1.0 running on Windows 10" class="slide">
-        </div>
-        <div class="button-container">
-            <a href="#slide-1" class="slider-button"></a>
-            <a href="#slide-2" class="slider-button"></a>
-        </div>
+    <div class="logos">
+        <img width="170px" height="170px" src="{{ eval baseURL }}/images/linux.svg" alt="Linux Logo">
+        <img width="170px" height="170px" src="{{ eval baseURL }}/images/apple.svg" alt="Apple Logo">
+        <img width="170px" height="170px" src="{{ eval baseURL }}/images/microsoft.svg" alt="Microsoft Logo">
     </div>
+    {{ component /processed/components/_slides.html }}
+        {{ slot slide1 }}
+        <img src="https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx-1.0rc2-linux.png"
+             alt="LogFX 1.0 running on Linux Plasma KDE" class="slide">
+        {{ end }}
+        {{ slot slide2 }}
+        <img src="https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx-1.0-rc3-mac.png"
+             alt="LogFX 1.0 running on MacOS" class="slide">
+        {{ end }}
+        {{ slot slide3 }}
+        <img src="https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx1.0-rc3-windows-.png"
+             alt="LogFX 1.0 running on Windows 10" class="slide">
+        {{ end }}
+    {{ end }}
 
     <p>LogFX is extremely lightweight but still has a lot of features:</p>
 
@@ -98,4 +50,7 @@ img {
         <a class="big-link" href="{{ eval baseURL }}/about.html">About</a>
     </div>
 </nav>
+<script>
+
+</script>
 {{ include fragments/_footer.html }}
