@@ -23,7 +23,7 @@ Future<void> generateSite({String source, String destination}) async {
   print("Removing old publication.");
   await Directory(destination).recreateEmpty();
   print("Generating website.");
-  await ['magnanimous'].execute(wrkDir: source);
+  await ['magnanimous', '-globalctx=_github_global_context'].execute(wrkDir: source);
   print("Moving website to destination: $destination.");
 
   await for (final entry in Directory("$source/target").list()) {
