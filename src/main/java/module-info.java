@@ -1,13 +1,14 @@
-import com.athaydes.logfx.log.LogFXLogFactory;
-import org.slf4j.ILoggerFactory;
+import com.athaydes.logfx.log.LogFXSlf4jProvider;
+import org.slf4j.spi.SLF4JServiceProvider;
 
 module com.athaydes.logfx {
     requires jdk.unsupported;
+    requires java.desktop;
     requires org.slf4j;
     requires javafx.controls;
     requires javafx.fxml;
     exports com.athaydes.logfx;
     exports com.athaydes.logfx.log to org.slf4j;
     opens com.athaydes.logfx.ui to javafx.fxml;
-    provides ILoggerFactory with LogFXLogFactory;
+    provides SLF4JServiceProvider with LogFXSlf4jProvider;
 }
