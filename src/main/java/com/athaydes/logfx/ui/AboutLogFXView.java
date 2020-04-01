@@ -1,13 +1,15 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.Constants;
+
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
+
+import static com.athaydes.logfx.ui.FxUtils.resourcePath;
 
 /**
  * About LogFX View.
@@ -18,7 +20,7 @@ public class AboutLogFXView {
         VBox contents = new VBox( 25 );
         contents.setPrefSize( 500, 300 );
         contents.setAlignment( Pos.CENTER );
-        contents.getStylesheets().add( "css/about.css" );
+        contents.getStylesheets().add( resourcePath( "css/about.css" ) );
 
         HBox textBox = new HBox( 0 );
         textBox.setPrefWidth( 500 );

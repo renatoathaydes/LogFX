@@ -21,7 +21,7 @@ public interface LogTarget {
         @Override
         public void write( Collection<String> messages ) {
             try {
-                Files.write( LogFXLogFactory.INSTANCE.getLogFilePath(),
+                Files.write( LogConfigFile.INSTANCE.logFilePath,
                         messages, StandardCharsets.UTF_8,
                         WRITE, CREATE, APPEND );
             } catch ( IOException e ) {

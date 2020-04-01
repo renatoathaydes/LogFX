@@ -7,7 +7,7 @@ import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.NaNChecker.NaNException;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
-import com.athaydes.logfx.log.LogFXLogFactory;
+import com.athaydes.logfx.log.LogConfigFile;
 import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.BottomMessagePane;
 import com.athaydes.logfx.ui.Dialog;
@@ -44,7 +44,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -157,7 +156,8 @@ public class LogFX extends Application {
                                 new BoundingBox( checkNaN( stage.getX() ), checkNaN( stage.getY() ),
                                         checkNaN( stage.getWidth() ), checkNaN( stage.getHeight() ) ) );
                     } catch ( NaNException e ) {
-                        log.warn( "Unable to update window coordinates due to one or more dimensions being unavailable" );
+                        log.warn( "Unable to update window coordinates due to one or more dimensions being " +
+                                "unavailable" );
                     }
                 } );
             }
@@ -210,11 +210,11 @@ public class LogFX extends Application {
 
     private void setIconsOn( Stage primaryStage ) {
         taskRunner.runAsync( () -> {
-            final List<InputStream> imageStreams = Arrays.asList(
-                    LogFX.class.getResourceAsStream( "/images/favicon-large.png" ),
-                    LogFX.class.getResourceAsStream( "/images/favicon-small.png" ) );
+            final List<String> images = Arrays.asList(
+                    FxUtils.resourcePath( "images/favicon-large.png" ),
+                    FxUtils.resourcePath( "images/favicon-small.png" ) );
 
-            Platform.runLater( () -> imageStreams.stream()
+            Platform.runLater( () -> images.stream()
                     .map( Image::new )
                     .forEach( primaryStage.getIcons()::add ) );
         } );
@@ -234,7 +234,7 @@ public class LogFX extends Application {
         showLogFxLog.setAccelerator( new KeyCodeCombination( KeyCode.O,
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         showLogFxLog.setOnAction( ( event ) ->
-                open( LogFXLogFactory.INSTANCE.getLogFilePath().toFile() ) );
+                open( LogConfigFile.INSTANCE.logFilePath.toFile() ) );
 
         MenuItem close = new MenuItem( "E_xit" );
         close.setAccelerator( new KeyCodeCombination( KeyCode.W,
@@ -396,7 +396,7 @@ public class LogFX extends Application {
             SetupMacTrayIcon.run();
         }
 
-        Font.loadFont( LogFX.class.getResource( "/fonts/themify-1.0.1.ttf" ).toExternalForm(), 12 );
+        Font.loadFont( LogFX.class.getResource( "/com/athaydes/logfx/fonts/themify-1.0.1.ttf" ).toExternalForm(), 12 );
 
         Application.launch( LogFX.class );
     }

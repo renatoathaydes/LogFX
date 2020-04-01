@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.LogFX;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
@@ -39,6 +40,7 @@ import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
+import static com.athaydes.logfx.ui.FxUtils.resourceUrl;
 
 /**
  * The highlight options screen.
@@ -146,7 +148,9 @@ public class HighlightOptions extends VBox {
 
         AnchorPane content;
         try {
-            content = FXMLLoader.load( HighlightOptions.class.getResource( "/fxml/highlight-options-help.fxml" ) );
+            FXMLLoader loader = new FXMLLoader( resourceUrl( "fxml/highlight-options-help.fxml" ) );
+            loader.setClassLoader( LogFX.class.getClassLoader() );
+            content = loader.load();
         } catch ( IOException e ) {
             throw new RuntimeException( e );
         }

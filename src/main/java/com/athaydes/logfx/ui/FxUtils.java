@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.LogFX;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.file.FileChangeWatcher;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -39,6 +41,14 @@ public class FxUtils {
                         new BackgroundFill( paint, CornerRadii.EMPTY, Insets.EMPTY ) ) );
     }
 
+    public static URL resourceUrl( String name ) {
+        return LogFX.class.getResource( name );
+    }
+
+    public static String resourcePath( String name ) {
+        return resourceUrl( name ).toExternalForm();
+    }
+
     /**
      * Setup the stylesheet for the given Scene.
      *
@@ -47,9 +57,9 @@ public class FxUtils {
     public static void setupStylesheet( Scene scene ) {
         String stylesheet = Properties.getCustomStylesheet()
                 .map( FxUtils::toAbsoluteFileUri )
-                .orElse( "css/LogFX.css" );
+                .orElse( resourcePath( "css/LogFX.css" ) );
 
-        String iconsStylesheet = "css/icons.css";
+        String iconsStylesheet = resourcePath( "css/icons.css" );
 
         Runnable resetStylesheet = () -> Platform.runLater( () -> {
             scene.getStylesheets().clear();

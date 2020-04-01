@@ -4,7 +4,7 @@
 <?import javafx.scene.layout.AnchorPane?>
 <?import javafx.scene.text.Text?>
 <?import javafx.scene.text.TextFlow?>
-<AnchorPane prefHeight="400.0" prefWidth="600.0" stylesheets="@/css/highlight-options-help.css">
+<AnchorPane prefHeight="400.0" prefWidth="600.0" stylesheets="@../css/highlight-options-help.css">
     <TextFlow>
         <Text styleClass="h2" text="Highlight Options&#10;"/>
         <Text text="This dialog allows you to set up rules for highlighting text in the logs.&#10;"/>
