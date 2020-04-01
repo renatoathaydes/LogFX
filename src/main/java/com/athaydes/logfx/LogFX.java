@@ -43,6 +43,7 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.SplashScreen;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -128,7 +129,12 @@ public class LogFX extends Application {
 
         primaryStage.setScene( scene );
         primaryStage.setTitle( TITLE );
-        primaryStage.show();
+
+        SplashScreen splashScreen = SplashScreen.getSplashScreen();
+
+        if ( splashScreen == null ) {
+            primaryStage.show();
+        }
 
         primaryStage.setOnHidden( event -> {
             logsPane.close();
@@ -140,6 +146,12 @@ public class LogFX extends Application {
             logsPane.setDividerPositions( config.getPaneDividerPositions() );
             logsPane.panesDividersProperty().addListener( observable ->
                     config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() ) );
+
+            // all done, show the stage if necessary, then hide the splash screen
+            if ( splashScreen != null ) {
+                primaryStage.show();
+                splashScreen.close();
+            }
         } );
 
         FxUtils.setupStylesheet( scene );

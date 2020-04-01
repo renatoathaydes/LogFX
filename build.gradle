@@ -26,24 +26,22 @@ tasks.withType( JavaCompile ) {
     options.encoding = 'UTF-8'
 }
 
-task deps {
-    doLast{
-        copy {
-            from configurations.runtimeClasspath
-            into "$buildDir/deps"
-        }
-    }
-}
-
 jlink {
     options = ['--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages']
     launcher{
         name = 'logfx'
+        jvmArgs = ['-Xmx60m', '-splash:$ROOTDIR/lib/app/lofx-logo.png']
     }
     addExtraDependencies("javafx")
     jpackage {
-        jvmArgs = ['-Xmx60M']
         imageOptions = ['--icon', 'src/main/resources/com/athaydes/logfx/images/favicon-small.png']
+    }
+}
+
+tasks.jpackageImage.doLast {
+    copy {
+        from "docs/images/lofx-logo.png"
+        into "build/jpackage/$project.name/lib/app/"
     }
 }
 
