@@ -119,7 +119,7 @@ public class LogFX extends Application {
 
         root.getChildren().addAll( mainBox, overlay );
 
-        Scene scene = new Scene( root, 800, 600, Color.RED );
+        Scene scene = new Scene( root, 800, 600, Color.BLACK );
 
         root.prefHeightProperty().bind( scene.heightProperty() );
         root.prefWidthProperty().bind( scene.widthProperty() );
