@@ -65,6 +65,29 @@ task jlink( type: Exec ) {
     doFirst { new File( image ).deleteDir() }
 }
 
+// this task is not currently used as it does not produce a proper Debian package
+// and other OSs have not been tested yet.
+task jpackage( type: Exec ) {
+    dependsOn jlink
+    def options = [
+            // Linux options
+            '--linux-menu-group', 'programming',
+            '--linux-deb-maintainer', 'renato@athaydes.com',
+            // Common options
+            '--name', 'logfx', '--app-image', image,
+            '--app-version', project.version,
+            '--copyright', 'Renato Athaydes, 2017-2020',
+            '--description', project.description,
+            '--type', 'deb',
+            '--vendor', 'Renato Athades',
+            // not valid with type deb
+//            '--icon', 'src/main/resources/com/athaydes/logfx/images/favicon-small.png',
+            '--license-file', 'LICENSE',
+            '--dest', buildDir ]
+    def jpackage = System.getProperty( 'java.home' ) + '/bin/jpackage'
+    commandLine( [ jpackage ] + options )
+}
+
 //final generatedJavaSources = "$buildDir/java-generated-sources"
 
 //sourceSets.main.java.srcDir generatedJavaSources
