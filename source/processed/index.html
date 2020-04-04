@@ -12,12 +12,28 @@
 </header>
 <section>
     <p>LogFX is a multi-platform log viewer designed to handle very large files.</p>
-    <div class="logos">
-        <img width="170px" height="170px" src="{{ eval baseURL }}/images/linux.svg" alt="Linux Logo">
-        <img width="170px" height="170px" src="{{ eval baseURL }}/images/apple.svg" alt="Apple Logo">
-        <img width="170px" height="170px" src="{{ eval baseURL }}/images/microsoft.svg" alt="Microsoft Logo">
+    <div id="logos" class="logos">
+        <div class="logos-wrapper">
+        {{ include /static/svg/_linux.svg }}
+        {{ include /static/svg/_apple.svg }}
+        {{ include /static/svg/_microsoft.svg }}
+        </div>
     </div>
     {{ component /processed/components/_slides.html }}
+        {{ define onTransition "onSlideChange" }}
+        {{ slot header }}
+        <script>
+            function onSlideChange(index) {
+                document.querySelectorAll('.svg-logo').forEach(function (el, el_index) {
+                    if (index === el_index) {
+                        el.classList.add('selected-logo');
+                    } else {
+                        el.classList.remove('selected-logo');
+                    }
+                });
+             }
+        </script>
+        {{ end }}
         {{ slot slide1 }}
         <img src="https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx-1.0rc2-linux.png"
              alt="LogFX 1.0 running on Linux Plasma KDE" class="slide">
