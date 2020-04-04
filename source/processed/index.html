@@ -7,11 +7,11 @@
         <span class="logo">Log</span><span class="logo logo-fx">FX</span>
     </div>
     <div class="sub-title">
-        A beautiful log viewer capable of reading large files.
+        A beautiful log viewer capable of handling very large files.
     </div>
 </header>
-<section>
-    <p>LogFX is a multi-platform log viewer designed to handle very large files.</p>
+<main>
+    <p>LogFX is a multi-platform log viewer designed to handle very large files without a performance hit.</p>
     <div id="logos" class="logos">
         <div class="logos-wrapper">
         {{ include /static/svg/_linux.svg }}
@@ -48,11 +48,11 @@
         {{ end }}
     {{ end }}
 
-    <p>LogFX is extremely lightweight but still has a lot of features:</p>
+    <p>LogFX is very lightweight, but has many useful features:</p>
 
-    <ul>
+    <ul class="log">
         <li><span>extremely fast to open and navigate large files.</span></li>
-        <li><span>tail file(s) with option to pause at any time.</span></li>
+        <li><span>tail file(s) with option to pause updates at any time.</span></li>
         <li><span>go to date-time in any log file (or all opened files).</span></li>
         <li><span>highlight text using regular expressions rules.</span></li>
         <li><span>group highlight expression for different types of logs.</span></li>
@@ -60,13 +60,13 @@
         <li><span>highly customizable look via JavaFX CSS (refreshes instantly).</span></li>
         <li><span>keyboard friendly (shortcuts for everything).</span></li>
     </ul>
-</section>
-<nav>
-    <div style="margin-top: 8em;">
-        <a class="big-link" href="{{ eval baseURL }}/about.html">About</a>
+    <div class="big-area documentation">
+        <a href="{{eval baseURL }}/docs/index.html"><div>Documentation</div></a>
+        <a href="{{eval baseURL }}/docs/index.html">{{ include /static/svg/_book.svg }}</a>
     </div>
-</nav>
-<script>
-
-</script>
+    <div class="big-area contact-me">
+        <a href="{{eval baseURL }}/contact.html"><div>Get in touch</div></a>
+        <a href="{{eval baseURL }}/contact.html">{{ include /static/svg/_comments-smiley.svg }}</a>
+    </div>
+</main>
 {{ include fragments/_footer.html }}

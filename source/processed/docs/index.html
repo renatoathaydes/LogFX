@@ -1,0 +1,143 @@
+{{ define title "LogFX" }}\
+{{ define moduleName "Docs" }}\
+{{ define path baseURL + "/docs/index.html" }}\
+{{ include /processed/fragments/_header.html }}\
+{{ slot fileButton }}\
+<div class="crop bordered" style="width: 203px; height: 30px;"><img src="{{eval baseURL}}/images/log-file-menu.png" alt="File button"></div>
+{{ end }}\
+{{ slot highlightGroupButton }}\
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -265px;" src="{{eval baseURL}}/images/log-file-menu.png" alt="Rules group button"></div>
+{{ end }}\
+{{ slot goToDateTimeButton }}\
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -301px;" src="{{eval baseURL}}/images/log-file-menu.png" alt="Go-to-date-time button"></div>
+{{ end }}\
+{{ slot tailButton }}\
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -337px;" src="{{eval baseURL}}/images/log-file-menu.png" alt="Tail button"></div>
+{{ end }}\
+{{ slot pauseButton }}\
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -373px;" src="{{eval baseURL}}/images/log-file-menu.png" alt="Pause button"></div>
+{{ end }}\
+{{ slot closeButton }}\
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -410px;" src="{{eval baseURL}}/images/log-file-menu.png" alt="Close button"></div>
+{{ end }}\
+
+<nav class="main-nav">
+    <a href="{{eval baseURL}}/index.html">Home</a>
+    <a href="{{eval baseURL}}/contact.html">Contact</a>
+</nav>
+<main>
+<div class="title">LogFX Docs</div>
+<article>
+<p>LogFX is very simple to use! But in case you're just getting started, or want to see what 
+LogFX is capable of doing, this page is for you.</p>
+<p></p>
+<div class="note">
+    <p>In this page, LogFX Menu operations are shown like this: <code class="menu">File > Open File</code>.</p>
+    <p>Keyboard Shortcuts look like this: <code class="shortcut">Meta+O</code> (where, Meta is usually Ctrl (Linux, Windows), Cmd on Mac).</p>
+</div>
+<h2>Opening a file</h2>
+<p>There are several ways to open a file in LogFX.</p>
+<ul>
+<li>In the initial screen, for example, you can drag-and-drop a file from anywhere.</li>
+<li>You can also use the menu item <code class="menu">File > Open File</code>.</li>
+<li>Finally, you can use the shortcut, <code class="shortcut">Meta+O</code>.</li>
+</ul>
+<img src="{{eval baseURL}}/images/drag-n-drop.gif" alt="Drag-and-dropping file into LogFX">
+
+<h2>Viewing multiple files</h2>
+<p>Every time you open a new file, LogFX keeps the previous file(s) open, so you can see many files at the same time.</p>
+<p>You can drag the border between different files to adjust how much space is given to each file.</p>
+<p>It is also possible to switch the panes orientation. It is vertical by default (i.e. panes are shown side-by-side),
+but you may switch to horizontal panes by clicking on the <code class="menu">View > Switch Pane Orientation</code> menu item.</p>
+<p>The shortcut to do that is <code class="shortcut">Meta+Shift+S</code>.</p>
+<img src="{{eval baseURL}}/images/split-pane.gif" alt="Opening two files in LogFX, changing split pane orientation">
+
+<h2>Changing the Font</h2>
+<p>The font used to display all files can be changed via the <code class="menu">View > Font</code> menu, or
+using the shortcut, <code class="shortcut">Meta+Shift+F</code></p>
+<img width="650px" src="{{eval baseURL}}/images/font.png" alt="Changing the font in LogFX">
+
+<h2>Tailing a file</h2>
+<p>To tail a file, i.e. follow the tail of the file as it is being written to, you can either
+click on the button shown below, or use the shortcut, <code class="shortcut">Meta+T</code>.</p>
+{{ eval tailButton }}
+<p>To go to the top of the file, press <code class="shortcut">Meta+Shift+T</code>.</p>
+
+<h2>Go to a certain date-time</h2>
+<p>To open a certain date-time on an open file, you can either
+   click on the button shown below, or use the shortcut, <code class="shortcut">Meta+G</code>, then enter the date-time you want.</p>
+{{ eval goToDateTimeButton }}
+<p>This only works if LogFX can identify the date-time in at least a few log lines at the beginning of the file.</p>
+<p>If your log file contains date-times but LogFX fails to identify them, please
+<a href="https://github.com/renatoathaydes/LogFX/issues/new">file a bug</a>.</p>
+<div class="note">Notice that LogFX will try to find the date-time only in the file under the currently selected pane. If you want
+to go to the same date-time on all open files, tick the <code>All logs</code> checkbox.</div>
+<img src="{{eval baseURL}}/images/goto-date-time.gif" alt="Open date-time in log file">
+
+<h2>Highlighting content</h2>
+<p>Highlighting content is LogFX's speciality! It makes it very easy for content you're interested in to stand out.</p>
+<p>To choose rules for highlighting content, open the <code>Hihglighting Options</code> popup by
+going to the <code class="menu">View > Highlight Options</code> Menu, or using the shortcut, <code class="shortcut">Meta+H</code>.</p>
+<p>The last rule is always the same for all highlight groups (which we will see later) and determines the default look of all file 
+contents. Changing the colors for this last rule should cause all files's contents to change color. Try that!</p>
+<p>You can highlight content by creating a new rule with the regular expression for matching the content you are interested in.
+Every line matching that regular expression will be highlighted with the colors for the rule. The first rule that matches, in order,
+is used.</p>
+<img src="{{eval baseURL}}/images/highlight-rules.gif" alt="Highlighting rules in a log file">
+
+<h3>Highlight rule groups</h3>
+<p>Because there are many different kinds of logs (e.g. request logs, app logs, event logs), LogFX lets you select a group of rules for
+each file you open. To create a new group of highlighting rules, in the Highlight Options popup, click on the <code>+</code> button.
+</p>
+<p>Add a few rules to the group, as required, then close the popup. Now, click on the button shown below, or use the shortcut,
+<code class="shortcut">Meta+J</code>.</p>
+{{ eval highlightGroupButton }}
+<p>Select the group for the currently selected file in the selection box that pops up.</p>
+
+<h2>Filtering content</h2>
+<p>Filtering is performed based on highlighting rules. Only the rules that are selected for filtering are used to filter
+content. Log lines matching rules that are not selected for filtering are NOT displayed.</p>
+<p>To toggle filtering, use the shortcut <code class="shortcut">Meta+F</code> or use the Menu <code class="menu">View > Enable/Disable filters</code>.</p>
+<img src="{{eval baseURL}}/images/highlight-with-filter.png" alt="LogFX Filter">
+<p>In the above image, only two of the four rules are selected for filtering, hence when you enable filtering (notice that there is also a checkbox
+on the top-right of the brightened area that can be used to toggle filtering), only log lines matching these two rules 
+(i.e. log lines containing the words <code>error</code> or <code>warn</code>) will be displayed.</p>
+<p>When filtering is enabled, a very prominent green bar at the bottom of the log file pane alerts of that fact, as shown below.</p>
+<img src="{{eval baseURL}}/images/filter-enabled.png" alt="LogFX Filter enabled">
+
+<h2>The context menu</h2>
+<p>To open the context menu, enter <code class="shortcut">Meta+E</code> or go to the Menu 
+<code class="menu">View > Show Context Menu</code>.</p>
+<p>This menu allows you to easily reach several actions, and reminds you of their shortcuts so you can more easily use common actions next time:</p>
+<img src="{{eval baseURL}}/images/context-menu.png" alt="LogFX Context Menu">
+<p>As with all other LogFX popups, you can close it by hitting <code>Esc</code>.</p>
+
+<h2>The buttons menu</h2>
+<p>Here is the complete buttons menu for each log file:</p>
+<img class="bordered" src="{{eval baseURL}}/images/log-file-menu.png" alt="LogFX Buttons Menu">
+<div class="button-grid">
+    {{ eval fileButton }}
+    <span>File name and size. Hover over it with the mouse to show the file's full path.</span>
+    {{ eval highlightGroupButton }}
+    <span>Select highlight rules group for the log file.</span>
+    {{ eval goToDateTimeButton }}
+    <span>Go to date-time.</span>
+    {{ eval tailButton }}
+    <span>Toggle tailing the file.</span>
+    {{ eval pauseButton }}
+    <span>Pause updates to the file.</span>
+    {{ eval closeButton }}
+    <span>Close the file.</span>
+</div>
+
+<h2>Styling LogFX's appearance</h2>
+<p>Every aspect of LogFX, including the colors of buttons, menu bar, pane background etc., can be styled with 
+<a href="https://docs.oracle.com/javafx/2/api/javafx/scene/doc-files/cssref.html">JavaFX CSS</a>.</p>
+<p>Currently, the only way to do this, is to start LogFX with the system property <code>logfx.stylesheet.file</code> set to the custom 
+CSS file. Changes to the CSS file are immediately applied to LogFX.</p>
+<p>You can make LogFX look whatever way you like, regardless of your asthetics talents and good judgement:</p>
+<img width="650px" src="https://raw.githubusercontent.com/renatoathaydes/LogFX/master/docs/images/screenshots/logfx-mac-pink.png" alt="Pink theme">
+</article>
+<p>More screenshots in the <a href="https://github.com/renatoathaydes/LogFX/wiki/Screenshots">GitHub Wiki</a>.</p>
+</main>
+{{ include /processed/fragments/_footer.html }}

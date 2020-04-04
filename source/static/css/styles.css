@@ -4,7 +4,7 @@ body {
     margin: auto;
     max-width: 60em;
     margin-top: 1em;
-    font-family:"Didact Gothic","sans serif";
+    font-family:"Didact Gothic", "Helvetica", "sans serif";
     font-size: 1.2em;
 }
 
@@ -25,31 +25,14 @@ a.big-link {
 
 .title {
     font-size: 3em;
-    margin-top: 2em;
+    margin-top: 1em;
+    margin-bottom: 1em;
 }
 
 .sub-title {
     font-size: 2em;
-}
-
-.title {
-  animation-duration: 0.5s;
-  animation-name: slidein;
-}
-
-.sub-title {
-    animation-duration: 1s;
+    animation-duration: 3s;
     animation-name: appear;
-}
-
-@keyframes slidein {
-  from {
-    margin-top: 4em;
-  }
-
-  to {
-    margin-top: 2em;
-  }
 }
 
 @keyframes appear {
@@ -81,22 +64,7 @@ pre {
     padding: 1em 0 1em 0;
 }
 
-.video-container {
-    position: relative;
-    width: 100%;
-    height: 0;
-    padding-bottom: 56.25%;
-}
-
-.video-container > iframe.video {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-}
-
-ul {
+ul.log {
   list-style-type: none;
   padding-top: 1em;
   padding-left: 0em;
@@ -105,14 +73,60 @@ ul {
   color: #ccc;
 }
 
-ul li {
+ul.log li {
   background: black;
 }
 
-li span {
+ul.log li span {
   margin-left: 1em;
 }
 
-li:nth-child(odd) {
+ul.log li:nth-child(odd) {
   background: darkblue;
+}
+
+svg {
+    fill: #ccc;
+}
+
+code {
+  color: greenyellow;
+  font-size: 1.1em;
+}
+
+.shortcut  {
+  background-color: blue;
+  color: white;
+  padding: 0.2em;
+}
+
+.menu {
+  background-color: green;
+  color: white;
+  padding: 0.2em;
+  
+}
+
+.note {
+  padding: 1em;
+  background-color: #333333;
+  color: white;
+}
+
+.crop {
+  overflow: hidden;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: 240px auto;
+  grid-template-rows: 38px 38px 38px 38px 38px;
+}
+
+.button-grid span {
+  white-space: nowrap;
+}
+
+.bordered {
+  border: solid dodgerblue 1px;
 }

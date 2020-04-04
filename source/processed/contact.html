@@ -1,0 +1,42 @@
+{{ define title "LogFX" }}
+{{ include fragments/_header.html }}
+<style>
+form label {
+  display: block;
+}
+
+.form-field > input, textarea {
+  background-color: #333333;
+  border: solid 1px;  
+  padding: 1em;
+  margin: 1em;
+  color:  greenyellow;
+  font-size: 1em;
+}
+</style>
+<nav class="main-nav">
+    <a href="{{eval baseURL}}/index.html">Home</a>
+    <a href="{{eval baseURL}}/docs/index.html">Docs</a>
+</nav>
+<header>
+    <h2>Contact</h2>
+</header>
+<main>
+    <p>Thanks for using LogFX!</p>
+    <p>Please let me know what you think about it, or just send a thank you message if you want!</p>
+    <p>I appreciate any kind of feedback.</p>
+    <form action="http://formspree.io/renato@athaydes.com" method="POST">
+        <div class="form-field">
+            <label for="_replyto">Your email:</label>
+            <input type="email" name="_replyto" size="30">
+        </div>
+        <div class="form-field">
+            <label for="body">Message:</label>
+            <textarea name="body" cols="40" rows="10"></textarea>
+        </div>
+        <div class="form-field">
+            <input type="submit" value="Send">
+        </div>
+    </form>
+</main>
+{{ include fragments/_footer.html }}
