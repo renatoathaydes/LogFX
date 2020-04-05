@@ -402,9 +402,7 @@ public class LogFX extends Application {
     }
 
     public static void main( String[] args ) {
-        if ( FxUtils.isMac() ) {
-            SetupMacTrayIcon.run();
-        }
+        SetupTrayIcon.run();
 
         Font.loadFont( LogFX.class.getResource( "/com/athaydes/logfx/fonts/themify-1.0.1.ttf" ).toExternalForm(), 12 );
 
