@@ -13,6 +13,15 @@ form label {
   color:  greenyellow;
   font-size: 1em;
 }
+
+.form-field > input:focus, textarea:focus {
+  box-shadow: 0 0 20px rgba(0,255,0,.6), inset 0 0 10px rgba(0,255,0,.4), 0 2px 0 #000;
+}
+
+.form-field >input[type=submit]:hover {
+  cursor: pointer;
+  color: lime;
+}
 </style>
 <nav class="main-nav">
     <a href="{{eval baseURL}}/index.html">Home</a>
@@ -25,14 +34,14 @@ form label {
     <p>Thanks for using LogFX!</p>
     <p>Please let me know what you think about it, or just send a thank you message if you want!</p>
     <p>I appreciate any kind of feedback.</p>
-    <form action="http://formspree.io/renato@athaydes.com" method="POST">
+    <form action="https://formspree.io/renato@athaydes.com" method="POST">
         <div class="form-field">
             <label for="_replyto">Your email:</label>
-            <input type="email" name="_replyto" size="30">
+            <input type="email" id="_replyTo" name="_replyto" size="30">
         </div>
         <div class="form-field">
             <label for="body">Message:</label>
-            <textarea name="body" cols="40" rows="10"></textarea>
+            <textarea id="body" name="body" cols="40" rows="10"></textarea>
         </div>
         <div class="form-field">
             <input type="submit" value="Send">
