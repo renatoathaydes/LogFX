@@ -343,7 +343,9 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         CheckMenuItem highlight = new CheckMenuItem( "_Highlight Options" );
-        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN ) );
+        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H,
+                // on Mac, Cmd+H hides the window, so let it use Ctrl+H instead
+                FxUtils.isMac() ? KeyCombination.CONTROL_DOWN : KeyCombination.SHORTCUT_DOWN ) );
         highlight.setMnemonicParsing( true );
         bindMenuItemToDialog( highlight, () ->
                 showHighlightOptionsDialog( new HighlightGroupsView( config ) ) );
