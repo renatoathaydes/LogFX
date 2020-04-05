@@ -74,7 +74,6 @@ public class LogFX extends Application {
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
-    private final HighlightGroupsView highlightGroups;
     private final LogViewPane logsPane;
     private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
@@ -85,7 +84,6 @@ public class LogFX extends Application {
         hostServices.set( getHostServices() );
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner );
-        this.highlightGroups = new HighlightGroupsView( config );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( stage, this::open ),
@@ -348,7 +346,7 @@ public class LogFX extends Application {
         highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN ) );
         highlight.setMnemonicParsing( true );
         bindMenuItemToDialog( highlight, () ->
-                showHighlightOptionsDialog( highlightGroups ) );
+                showHighlightOptionsDialog( new HighlightGroupsView( config ) ) );
 
         MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
         orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
