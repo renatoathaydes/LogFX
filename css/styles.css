@@ -94,39 +94,8 @@ code {
   font-size: 1.1em;
 }
 
-.shortcut  {
-  background-color: blue;
-  color: white;
-  padding: 0.2em;
-}
-
-.menu {
-  background-color: green;
-  color: white;
-  padding: 0.2em;
-  
-}
-
 .note {
   padding: 1em;
   background-color: #333333;
   color: white;
-}
-
-.crop {
-  overflow: hidden;
-}
-
-.button-grid {
-  display: grid;
-  grid-template-columns: 240px auto;
-  grid-template-rows: 38px 38px 38px 38px 38px;
-}
-
-.button-grid span {
-  white-space: nowrap;
-}
-
-.bordered {
-  border: solid dodgerblue 1px;
 }

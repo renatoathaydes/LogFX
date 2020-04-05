@@ -126,7 +126,43 @@ on the top-right of the brightened area that can be used to toggle filtering), o
 <p>Here is the complete buttons menu for each log file:</p>
 <img class="bordered" src="/LogFX/images/log-file-menu.png" alt="LogFX Buttons Menu">
 <div class="button-grid">
-    <div class="crop bordered" style="width: 203px; height: 30px;"><img src="/LogFX/images/log-file-menu.png" alt="File button"></div>
+    <style>
+body {
+    line-height: 1.7em;
+}
+
+.shortcut  {
+  background-color: blue;
+  color: white;
+  padding: 0.2em;
+}
+
+.menu {
+  background-color: green;
+  color: white;
+  padding: 0.2em;
+
+}
+
+.crop {
+  overflow: hidden;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: 240px auto;
+  grid-template-rows: 38px 38px 38px 38px 38px;
+}
+
+.button-grid span {
+  white-space: nowrap;
+}
+
+.bordered {
+  border: solid dodgerblue 1px;
+}
+</style>
+<div class="crop bordered" style="width: 203px; height: 30px;"><img src="/LogFX/images/log-file-menu.png" alt="File button"></div>
 
     <span>File name and size. Hover over it with the mouse to show the file's full path.</span>
     <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -265px;" src="/LogFX/images/log-file-menu.png" alt="Rules group button"></div>
