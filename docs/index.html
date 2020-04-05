@@ -26,7 +26,23 @@ LogFX is capable of doing, this page is for you.</p>
     <p>In this page, LogFX Menu operations are shown like this: <code class="menu">File > Open File</code>.</p>
     <p>Keyboard Shortcuts look like this: <code class="shortcut">Meta+O</code> (where, Meta is usually Ctrl (Linux, Windows), Cmd on Mac).</p>
 </div>
-<h2>Opening a file</h2>
+<h2>Table of Contents</h2>
+<div class="table-of-contents">
+    <ol>
+        <li><a href="#open-file">Opening a file</a></li>
+        <li><a href="#view-files">Viewing multiple files</a></li>
+        <li><a href="#change-font">Changing the Font</a></li>
+        <li><a href="#tail-file">Tailing a file</a></li>
+        <li><a href="#goto-date">Go to a certain date-time</a></li>
+        <li><a href="#highlight">Highlighting content</a></li>
+        <li><a href="#filter">Filtering content</a></li>
+        <li><a href="#context-menu">The context menu</a></li>
+        <li><a href="#buttons-menu">The buttons menu</a></li>
+        <li><a href="#style-logfx">Styling LogFX's appearance</a></li>
+    </ol>
+</div>
+<hr>
+<h2 id="open-file">Opening a file</h2>
 <p>There are several ways to open a file in LogFX.</p>
 <ul>
 <li>In the initial screen, for example, you can drag-and-drop a file from anywhere.</li>
@@ -35,7 +51,7 @@ LogFX is capable of doing, this page is for you.</p>
 </ul>
 <img src="/LogFX/images/drag-n-drop.gif" alt="Drag-and-dropping file into LogFX">
 
-<h2>Viewing multiple files</h2>
+<h2 id="view-files">Viewing multiple files</h2>
 <p>Every time you open a new file, LogFX keeps the previous file(s) open, so you can see many files at the same time.</p>
 <p>You can drag the border between different files to adjust how much space is given to each file.</p>
 <p>It is also possible to switch the panes orientation. It is vertical by default (i.e. panes are shown side-by-side),
@@ -43,19 +59,19 @@ but you may switch to horizontal panes by clicking on the <code class="menu">Vie
 <p>The shortcut to do that is <code class="shortcut">Meta+Shift+S</code>.</p>
 <img src="/LogFX/images/split-pane.gif" alt="Opening two files in LogFX, changing split pane orientation">
 
-<h2>Changing the Font</h2>
+<h2 id="change-font">Changing the Font</h2>
 <p>The font used to display all files can be changed via the <code class="menu">View > Font</code> menu, or
 using the shortcut, <code class="shortcut">Meta+Shift+F</code></p>
 <img width="650px" src="/LogFX/images/font.png" alt="Changing the font in LogFX">
 
-<h2>Tailing a file</h2>
+<h2 id="tail-file">Tailing a file</h2>
 <p>To tail a file, i.e. follow the tail of the file as it is being written to, you can either
 click on the button shown below, or use the shortcut, <code class="shortcut">Meta+T</code>.</p>
 <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -337px;" src="/LogFX/images/log-file-menu.png" alt="Tail button"></div>
 
 <p>To go to the top of the file, press <code class="shortcut">Meta+Shift+T</code>.</p>
 
-<h2>Go to a certain date-time</h2>
+<h2 id="goto-date">Go to a certain date-time</h2>
 <p>To open a certain date-time on an open file, you can either
    click on the button shown below, or use the shortcut, <code class="shortcut">Meta+G</code>, then enter the date-time you want.</p>
 <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -301px;" src="/LogFX/images/log-file-menu.png" alt="Go-to-date-time button"></div>
@@ -67,7 +83,7 @@ click on the button shown below, or use the shortcut, <code class="shortcut">Met
 to go to the same date-time on all open files, tick the <code>All logs</code> checkbox.</div>
 <img src="/LogFX/images/goto-date-time.gif" alt="Open date-time in log file">
 
-<h2>Highlighting content</h2>
+<h2 id="highlight">Highlighting content</h2>
 <p>Highlighting content is LogFX's speciality! It makes it very easy for content you're interested in to stand out.</p>
 <p>To choose rules for highlighting content, open the <code>Hihglighting Options</code> popup by
 going to the <code class="menu">View > Highlight Options</code> Menu, or using the shortcut, <code class="shortcut">Meta+H</code>.</p>
@@ -88,7 +104,7 @@ each file you open. To create a new group of highlighting rules, in the Highligh
 
 <p>Select the group for the currently selected file in the selection box that pops up.</p>
 
-<h2>Filtering content</h2>
+<h2 id="filter">Filtering content</h2>
 <p>Filtering is performed based on highlighting rules. Only the rules that are selected for filtering are used to filter
 content. Log lines matching rules that are not selected for filtering are NOT displayed.</p>
 <p>To toggle filtering, use the shortcut <code class="shortcut">Meta+F</code> or use the Menu <code class="menu">View > Enable/Disable filters</code>.</p>
@@ -99,14 +115,14 @@ on the top-right of the brightened area that can be used to toggle filtering), o
 <p>When filtering is enabled, a very prominent green bar at the bottom of the log file pane alerts of that fact, as shown below.</p>
 <img src="/LogFX/images/filter-enabled.png" alt="LogFX Filter enabled">
 
-<h2>The context menu</h2>
+<h2 id="context-menu">The context menu</h2>
 <p>To open the context menu, enter <code class="shortcut">Meta+E</code> or go to the Menu 
 <code class="menu">View > Show Context Menu</code>.</p>
 <p>This menu allows you to easily reach several actions, and reminds you of their shortcuts so you can more easily use common actions next time:</p>
 <img src="/LogFX/images/context-menu.png" alt="LogFX Context Menu">
 <p>As with all other LogFX popups, you can close it by hitting <code>Esc</code>.</p>
 
-<h2>The buttons menu</h2>
+<h2 id="buttons-menu">The buttons menu</h2>
 <p>Here is the complete buttons menu for each log file:</p>
 <img class="bordered" src="/LogFX/images/log-file-menu.png" alt="LogFX Buttons Menu">
 <div class="button-grid">
@@ -130,7 +146,7 @@ on the top-right of the brightened area that can be used to toggle filtering), o
     <span>Close the file.</span>
 </div>
 
-<h2>Styling LogFX's appearance</h2>
+<h2 id="style-logfx">Styling LogFX's appearance</h2>
 <p>Every aspect of LogFX, including the colors of buttons, menu bar, pane background etc., can be styled with 
 <a href="https://docs.oracle.com/javafx/2/api/javafx/scene/doc-files/cssref.html">JavaFX CSS</a>.</p>
 <p>Currently, the only way to do this, is to start LogFX with the system property <code>logfx.stylesheet.file</code> set to the custom 
