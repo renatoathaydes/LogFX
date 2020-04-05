@@ -5,16 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
     <meta name="msapplication-TileColor" content="#1d1d1d">
     <meta name="theme-color" content="#1d1d1d">
-    <link rel="shortcut icon" href="/logfx.ico" id="favicon">
+    <link rel="shortcut icon" href="/LogFX/logfx.ico" id="favicon">
     <title>LogFX</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="/LogFX/css/styles.css">
     
 </head>
 <body>
 <div class="main-body">
 <nav class="main-nav">
-    <a href="/index.html">Home</a>
-    <a href="/contact.html">Contact</a>
+    <a href="/LogFX/index.html">Home</a>
+    <a href="/LogFX/contact.html">Contact</a>
 </nav>
 <main>
 <div class="title">LogFX Docs</div>
@@ -33,7 +33,7 @@ LogFX is capable of doing, this page is for you.</p>
 <li>You can also use the menu item <code class="menu">File > Open File</code>.</li>
 <li>Finally, you can use the shortcut, <code class="shortcut">Meta+O</code>.</li>
 </ul>
-<img src="/images/drag-n-drop.gif" alt="Drag-and-dropping file into LogFX">
+<img src="/LogFX/images/drag-n-drop.gif" alt="Drag-and-dropping file into LogFX">
 
 <h2>Viewing multiple files</h2>
 <p>Every time you open a new file, LogFX keeps the previous file(s) open, so you can see many files at the same time.</p>
@@ -41,31 +41,31 @@ LogFX is capable of doing, this page is for you.</p>
 <p>It is also possible to switch the panes orientation. It is vertical by default (i.e. panes are shown side-by-side),
 but you may switch to horizontal panes by clicking on the <code class="menu">View > Switch Pane Orientation</code> menu item.</p>
 <p>The shortcut to do that is <code class="shortcut">Meta+Shift+S</code>.</p>
-<img src="/images/split-pane.gif" alt="Opening two files in LogFX, changing split pane orientation">
+<img src="/LogFX/images/split-pane.gif" alt="Opening two files in LogFX, changing split pane orientation">
 
 <h2>Changing the Font</h2>
 <p>The font used to display all files can be changed via the <code class="menu">View > Font</code> menu, or
 using the shortcut, <code class="shortcut">Meta+Shift+F</code></p>
-<img width="650px" src="/images/font.png" alt="Changing the font in LogFX">
+<img width="650px" src="/LogFX/images/font.png" alt="Changing the font in LogFX">
 
 <h2>Tailing a file</h2>
 <p>To tail a file, i.e. follow the tail of the file as it is being written to, you can either
 click on the button shown below, or use the shortcut, <code class="shortcut">Meta+T</code>.</p>
-<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -337px;" src="/images/log-file-menu.png" alt="Tail button"></div>
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -337px;" src="/LogFX/images/log-file-menu.png" alt="Tail button"></div>
 
 <p>To go to the top of the file, press <code class="shortcut">Meta+Shift+T</code>.</p>
 
 <h2>Go to a certain date-time</h2>
 <p>To open a certain date-time on an open file, you can either
    click on the button shown below, or use the shortcut, <code class="shortcut">Meta+G</code>, then enter the date-time you want.</p>
-<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -301px;" src="/images/log-file-menu.png" alt="Go-to-date-time button"></div>
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -301px;" src="/LogFX/images/log-file-menu.png" alt="Go-to-date-time button"></div>
 
 <p>This only works if LogFX can identify the date-time in at least a few log lines at the beginning of the file.</p>
 <p>If your log file contains date-times but LogFX fails to identify them, please
 <a href="https://github.com/renatoathaydes/LogFX/issues/new">file a bug</a>.</p>
 <div class="note">Notice that LogFX will try to find the date-time only in the file under the currently selected pane. If you want
 to go to the same date-time on all open files, tick the <code>All logs</code> checkbox.</div>
-<img src="/images/goto-date-time.gif" alt="Open date-time in log file">
+<img src="/LogFX/images/goto-date-time.gif" alt="Open date-time in log file">
 
 <h2>Highlighting content</h2>
 <p>Highlighting content is LogFX's speciality! It makes it very easy for content you're interested in to stand out.</p>
@@ -76,7 +76,7 @@ contents. Changing the colors for this last rule should cause all files's conten
 <p>You can highlight content by creating a new rule with the regular expression for matching the content you are interested in.
 Every line matching that regular expression will be highlighted with the colors for the rule. The first rule that matches, in order,
 is used.</p>
-<img src="/images/highlight-rules.gif" alt="Highlighting rules in a log file">
+<img src="/LogFX/images/highlight-rules.gif" alt="Highlighting rules in a log file">
 
 <h3>Highlight rule groups</h3>
 <p>Because there are many different kinds of logs (e.g. request logs, app logs, event logs), LogFX lets you select a group of rules for
@@ -84,7 +84,7 @@ each file you open. To create a new group of highlighting rules, in the Highligh
 </p>
 <p>Add a few rules to the group, as required, then close the popup. Now, click on the button shown below, or use the shortcut,
 <code class="shortcut">Meta+J</code>.</p>
-<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -265px;" src="/images/log-file-menu.png" alt="Rules group button"></div>
+<div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -265px;" src="/LogFX/images/log-file-menu.png" alt="Rules group button"></div>
 
 <p>Select the group for the currently selected file in the selection box that pops up.</p>
 
@@ -92,40 +92,40 @@ each file you open. To create a new group of highlighting rules, in the Highligh
 <p>Filtering is performed based on highlighting rules. Only the rules that are selected for filtering are used to filter
 content. Log lines matching rules that are not selected for filtering are NOT displayed.</p>
 <p>To toggle filtering, use the shortcut <code class="shortcut">Meta+F</code> or use the Menu <code class="menu">View > Enable/Disable filters</code>.</p>
-<img src="/images/highlight-with-filter.png" alt="LogFX Filter">
+<img src="/LogFX/images/highlight-with-filter.png" alt="LogFX Filter">
 <p>In the above image, only two of the four rules are selected for filtering, hence when you enable filtering (notice that there is also a checkbox
 on the top-right of the brightened area that can be used to toggle filtering), only log lines matching these two rules 
 (i.e. log lines containing the words <code>error</code> or <code>warn</code>) will be displayed.</p>
 <p>When filtering is enabled, a very prominent green bar at the bottom of the log file pane alerts of that fact, as shown below.</p>
-<img src="/images/filter-enabled.png" alt="LogFX Filter enabled">
+<img src="/LogFX/images/filter-enabled.png" alt="LogFX Filter enabled">
 
 <h2>The context menu</h2>
 <p>To open the context menu, enter <code class="shortcut">Meta+E</code> or go to the Menu 
 <code class="menu">View > Show Context Menu</code>.</p>
 <p>This menu allows you to easily reach several actions, and reminds you of their shortcuts so you can more easily use common actions next time:</p>
-<img src="/images/context-menu.png" alt="LogFX Context Menu">
+<img src="/LogFX/images/context-menu.png" alt="LogFX Context Menu">
 <p>As with all other LogFX popups, you can close it by hitting <code>Esc</code>.</p>
 
 <h2>The buttons menu</h2>
 <p>Here is the complete buttons menu for each log file:</p>
-<img class="bordered" src="/images/log-file-menu.png" alt="LogFX Buttons Menu">
+<img class="bordered" src="/LogFX/images/log-file-menu.png" alt="LogFX Buttons Menu">
 <div class="button-grid">
-    <div class="crop bordered" style="width: 203px; height: 30px;"><img src="/images/log-file-menu.png" alt="File button"></div>
+    <div class="crop bordered" style="width: 203px; height: 30px;"><img src="/LogFX/images/log-file-menu.png" alt="File button"></div>
 
     <span>File name and size. Hover over it with the mouse to show the file's full path.</span>
-    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -265px;" src="/images/log-file-menu.png" alt="Rules group button"></div>
+    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -265px;" src="/LogFX/images/log-file-menu.png" alt="Rules group button"></div>
 
     <span>Select highlight rules group for the log file.</span>
-    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -301px;" src="/images/log-file-menu.png" alt="Go-to-date-time button"></div>
+    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -301px;" src="/LogFX/images/log-file-menu.png" alt="Go-to-date-time button"></div>
 
     <span>Go to date-time.</span>
-    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -337px;" src="/images/log-file-menu.png" alt="Tail button"></div>
+    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -337px;" src="/LogFX/images/log-file-menu.png" alt="Tail button"></div>
 
     <span>Toggle tailing the file.</span>
-    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -373px;" src="/images/log-file-menu.png" alt="Pause button"></div>
+    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -373px;" src="/LogFX/images/log-file-menu.png" alt="Pause button"></div>
 
     <span>Pause updates to the file.</span>
-    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -410px;" src="/images/log-file-menu.png" alt="Close button"></div>
+    <div class="crop bordered" style="width: 36px; height: 30px;"><img style="margin-left: -410px;" src="/LogFX/images/log-file-menu.png" alt="Close button"></div>
 
     <span>Close the file.</span>
 </div>
