@@ -3,6 +3,42 @@
 {{ define path baseURL + "/docs/index.html" }}\
 {{ include /processed/fragments/_header.html }}\
 {{ slot fileButton }}\
+<style>
+body {
+    line-height: 1.7em;
+}
+
+.shortcut  {
+  background-color: blue;
+  color: white;
+  padding: 0.2em;
+}
+
+.menu {
+  background-color: green;
+  color: white;
+  padding: 0.2em;
+
+}
+
+.crop {
+  overflow: hidden;
+}
+
+.button-grid {
+  display: grid;
+  grid-template-columns: 240px auto;
+  grid-template-rows: 38px 38px 38px 38px 38px;
+}
+
+.button-grid span {
+  white-space: nowrap;
+}
+
+.bordered {
+  border: solid dodgerblue 1px;
+}
+</style>
 <div class="crop bordered" style="width: 203px; height: 30px;"><img src="{{eval baseURL}}/images/log-file-menu.png" alt="File button"></div>
 {{ end }}\
 {{ slot highlightGroupButton }}\
