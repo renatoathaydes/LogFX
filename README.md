@@ -7,16 +7,7 @@ A log viewer capable of reading large files without a performance hit.
 
 It is written in JavaFX so it can run in any Operating System.
 
-## Features
-
-* extremely fast to open and navigate large files.
-* tail file(s) with option to pause at any time.
-* go to date-time in any log file (or all opened files).
-* highlight text using regular expressions rules.
-* filter content based on highlight expressions.
-* highly customizable look via JavaFX CSS (refreshes instantly).
-* group highlight expressions for different types of logs.
-* keyboard friendly (shortcuts for everything).
+Visit the [LogFX Website](https://renatoathaydes.github.io/LogFX/) for the full documentation.
 
 ## Getting LogFX
 
