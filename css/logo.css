@@ -29,8 +29,53 @@
 }
 
 .logos {
-    max-width: 70%;
+    max-width: 600px;
+    min-width: 600px;
     margin: auto;
     padding-top: 2em;
-    min-height: 12em;
+    padding-bottom: 1em;
+}
+
+.logos-wrapper {
+    margin-left: 20px;
+}
+
+.svg-logo {
+    fill: gray;
+    transition: fill 1s linear;
+}
+
+.svg-logo.selected-logo {
+    fill: white;
+    transition: fill 1s linear;
+}
+
+.big-area {
+    height: 26em;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+}
+
+.big-area > div {
+    text-align: center;
+}
+
+.big-area a {
+    color: #ccc;
+}
+
+.big-area svg {
+    margin-top: 1em;
+    fill: #ccc;
+}
+
+.documentation {
+    background-color: dodgerblue;
+}
+
+.contact-me {
+    background-color: lightcoral;
 }
