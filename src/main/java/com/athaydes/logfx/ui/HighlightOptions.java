@@ -1,6 +1,5 @@
 package com.athaydes.logfx.ui;
 
-import com.athaydes.logfx.LogFX;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
@@ -10,7 +9,6 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
-import javafx.fxml.FXMLLoader;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Cursor;
@@ -27,12 +25,14 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
 import java.util.List;
+import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
@@ -40,7 +40,7 @@ import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
-import static com.athaydes.logfx.ui.FxUtils.resourceUrl;
+import static com.athaydes.logfx.ui.FxUtils.resourcePath;
 
 /**
  * The highlight options screen.
@@ -146,14 +146,7 @@ public class HighlightOptions extends VBox {
     private Node createHelpIcon() {
         Node help = AwesomeIcons.createIcon( HELP );
 
-        AnchorPane content;
-        try {
-            FXMLLoader loader = new FXMLLoader( resourceUrl( "fxml/highlight-options-help.fxml" ) );
-            loader.setClassLoader( LogFX.class.getClassLoader() );
-            content = loader.load();
-        } catch ( IOException e ) {
-            throw new RuntimeException( e );
-        }
+        AnchorPane content = helpScreen();
         Dialog helpDialog = new Dialog( content );
         helpDialog.setTitle( "Highlight Options Help" );
         helpDialog.setStyle( StageStyle.UTILITY );
@@ -168,6 +161,66 @@ public class HighlightOptions extends VBox {
         help.setOnMouseExited( event -> getScene().setCursor( Cursor.DEFAULT ) );
 
         return help;
+    }
+
+    private static AnchorPane helpScreen() {
+        BiFunction<String, String, Text> text = ( String value, String cssClass ) -> {
+            var t = new Text( value );
+            if ( cssClass != null ) t.getStyleClass().add( cssClass );
+            return t;
+        };
+        var pane = new AnchorPane();
+        pane.setPrefHeight( 400 );
+        pane.setPrefWidth( 600 );
+        pane.getStylesheets().add( resourcePath( "css/highlight-options-help.css" ) );
+
+        var texts = new TextFlow(
+                text.apply( "Highlight Options\n", "h2" ),
+                text.apply( "This dialog allows you to set up rules for highlighting text in the logs.\n", null ),
+                text.apply( "When a line of a log file is displayed, its contents are checked against each of these rules.\n" +
+                        "The first rule to match is applied. All rules below the matching rule are ignored.\n", null ),
+                text.apply( "The last rule is always empty, which means it always matches. Therefore, it can be used to define the standard style of the log.\n\n", null ),
+                text.apply( "Writing expressions\n", "h2" ),
+                text.apply( "Each rule defines a regular expression that is used to determine if its styles should be applied to a log line.\n", null ),
+                text.apply( "For example, to match all lines containing the word ", null ),
+                text.apply( "Error", "code" ),
+                text.apply( " just enter the ", null ),
+                text.apply( "Error", "code" ),
+                text.apply( " expression.\n", null ),
+                text.apply( "To match any line containing one or more ", null ),
+                text.apply( "A", "code" ),
+                text.apply( "'s, enter ", null ),
+                text.apply( "A+", "code" ),
+                text.apply( ".\n", null ),
+                text.apply( "To match a whole line, you can use the usual ", null ),
+                text.apply( "^", "code" ),
+                text.apply( " (start) and ", null ),
+                text.apply( "\\$", "code" ),
+                text.apply( " (end) anchors.\nSo, to mach lines starting with ", null ),
+                text.apply( "[INFO]", "code" ),
+                text.apply( ", enter ", null ),
+                text.apply( "^\\[INFO\\]", null ),
+                text.apply( " (notice that the brackets must be escaped).\n\n" +
+                        "To make the expression case-insensitive, start it with ", null ),
+                text.apply( "(?i)", "code" ),
+                text.apply( ".\n", null ),
+                text.apply( "For assistance writing Java regular expressions, check the ", null ),
+                new Link( "https://docs.oracle.com/javase/tutorial/essential/regex/", "Oracle Regex Tutorial" ),
+                text.apply( ".\n\n", null ),
+                text.apply( "Choosing the style for a rule\n", "h2" ),
+                text.apply( "If a rule matches, the background and text colors selected in the first and second color" +
+                        " pickers, respectively, are applied to the log line.\nA color may be specified by:\n\n" +
+                        "   - name: e.g. blue or yellow.\n" +
+                        "   - hex-value: e.g. 0x00ff00.\n" +
+                        "   - web-value: e.g. #C0FFEE.\n\n", null ),
+                text.apply( "See the ", null ),
+                new Link( "https://docs.oracle.com/javase/8/javafx/api/javafx/scene/paint/Color.html", "Color class" ),
+                text.apply( " for all options.", null )
+        );
+
+        pane.getChildren().add( texts );
+
+        return pane;
     }
 
     private void addRow( Object ignore ) {
