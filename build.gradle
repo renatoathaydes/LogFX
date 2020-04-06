@@ -68,6 +68,7 @@ task jlink( type: Exec ) {
 task packageImage( type: Zip ) {
     dependsOn jlink
     from image
+    into "logfx-${project.version}"
     include '**/*'
     archiveName "logfx-${project.version}.zip"
     destinationDir buildDir
