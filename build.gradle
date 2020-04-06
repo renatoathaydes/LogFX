@@ -29,6 +29,7 @@ tasks.withType( JavaCompile ) {
 
 def libs = "${buildDir}/libs"
 def image = "${buildDir}/image"
+ext.splashImage = "${image}/bin/logfx-logo.png"
 
 task deps {
     doLast {
@@ -39,11 +40,6 @@ task deps {
     }
 }
 
-task copyLogoToImage( type: Copy ) {
-    from "docs/images/lofx-logo.png"
-    into "$image/bin/"
-}
-
 task copyShellScriptToImage( type: Copy ) {
     from "src/main/sh/logfx${Os.isFamily( Os.FAMILY_WINDOWS ) ? '.bat' : ''}"
     into "$image/bin"
@@ -51,7 +47,7 @@ task copyShellScriptToImage( type: Copy ) {
 
 task jlink( type: Exec ) {
     dependsOn jar, deps
-    finalizedBy copyLogoToImage, copyShellScriptToImage
+    finalizedBy copyShellScriptToImage, project(':splash-maker').tasks.withType( JavaExec )
     inputs.files( sourceSets*.allSource )
     outputs.dir( image )
     def options = [

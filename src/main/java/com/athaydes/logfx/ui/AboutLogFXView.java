@@ -1,7 +1,6 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.Constants;
-
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.layout.HBox;
@@ -50,11 +49,14 @@ public class AboutLogFXView {
 
     @MustCallOnJavaFXThread
     public void show() {
+        createDialog().show();
+    }
+
+    public Dialog createDialog() {
         Dialog dialog = new Dialog( ( String ) null, createNode() );
         dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
         dialog.closeWhenLoseFocus();
-
-        dialog.show();
+        return dialog;
     }
 }

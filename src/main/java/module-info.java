@@ -6,6 +6,7 @@ module com.athaydes.logfx {
     requires java.desktop;
     requires org.slf4j;
     requires javafx.controls;
+    requires javafx.swing;
     exports com.athaydes.logfx;
     exports com.athaydes.logfx.log to org.slf4j;
     opens com.athaydes.logfx.ui to javafx.fxml;
