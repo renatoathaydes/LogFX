@@ -40,7 +40,7 @@ public class AboutLogFXView {
         Group fontsAttribution = new Group(
                 new Text( "Icons provided by " ),
                 new Link( "https://themify.me/themify-icons", "Themify.me" ) );
-        Link link = new Link( "https://github.com/renatoathaydes/LogFX" );
+        Link link = new Link( "https://renatoathaydes.github.io/LogFX/" );
         smallText.getChildren().addAll( version, byRenato, link, license, fontsAttribution );
 
         contents.getChildren().addAll( textBox, smallText );
