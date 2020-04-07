@@ -14,9 +14,9 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Package Java Image
-          uses: GabrielBB/xvfb-action@v1.0
-          with:
-            run: ./gradlew check packageImage
+        uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: ./gradlew check packageImage
 
       - uses: actions/upload-release-asset@v1
         env:
@@ -37,9 +37,9 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Package Java Image
-          uses: GabrielBB/xvfb-action@v1.0
-          with:
-            run: ./gradlew packageImage
+        uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: ./gradlew packageImage
 
       - uses: actions/upload-release-asset@v1
         env:
@@ -60,9 +60,9 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Package Java Image
-          uses: GabrielBB/xvfb-action@v1.0
-          with:
-            run: ./gradlew check packageImage
+        uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: ./gradlew check packageImage
 
       - uses: actions/upload-release-asset@v1
         env:
