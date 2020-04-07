@@ -13,7 +13,10 @@ jobs:
           java-version: '11'
           java-package: 'jdk+fx'
 
-      - run: ./gradlew check packageImage
+      - name: Package Java Image
+          uses: GabrielBB/xvfb-action@v1.0
+          with:
+            run: ./gradlew check packageImage
 
       - uses: actions/upload-release-asset@v1
         env:
@@ -33,7 +36,10 @@ jobs:
           java-version: '11'
           java-package: 'jdk+fx'
 
-      - run: ./gradlew packageImage
+      - name: Package Java Image
+          uses: GabrielBB/xvfb-action@v1.0
+          with:
+            run: ./gradlew packageImage
 
       - uses: actions/upload-release-asset@v1
         env:
@@ -53,7 +59,10 @@ jobs:
           java-version: '11'
           java-package: 'jdk+fx'
 
-      - run: ./gradlew check packageImage
+      - name: Package Java Image
+          uses: GabrielBB/xvfb-action@v1.0
+          with:
+            run: ./gradlew check packageImage
 
       - uses: actions/upload-release-asset@v1
         env:
