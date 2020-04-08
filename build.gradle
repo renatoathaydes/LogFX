@@ -10,7 +10,7 @@ plugins {
 }
 
 group 'com.athaydes.logfx'
-version '1.0-RC8'
+version '1.0-RC9'
 description 'A beautiful log viewer capable of handling large files'
 
 sourceCompatibility = JavaVersion.VERSION_11

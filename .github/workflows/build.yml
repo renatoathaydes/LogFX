@@ -26,11 +26,10 @@ jobs:
       - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.get_version.outputs.VERSION }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ VERSION }}.zip
-          asset_name: logfx-${{ VERSION }}-linux.zip
+          asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-linux.zip
           asset_content_type: application/zip
   build-mac:
     runs-on: macos-latest
@@ -55,11 +54,10 @@ jobs:
       - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.get_version.outputs.VERSION }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ VERSION }}.zip
-          asset_name: logfx-${{ VERSION }}-mac.zip
+          asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-mac.zip
           asset_content_type: application/zip
   build-win:
     runs-on: windows-latest
@@ -84,9 +82,8 @@ jobs:
       - uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VERSION: ${{ steps.get_version.outputs.VERSION }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ VERSION }}.zip
-          asset_name: logfx-${{ VERSION }}-windows.zip
+          asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-windows.zip
           asset_content_type: application/zip
