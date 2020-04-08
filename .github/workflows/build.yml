@@ -1,7 +1,7 @@
 name: Build Release Artifacts
 on:
   release:
-    types: [created, edited]
+    types: [created]
 jobs:
   build-linux:
     runs-on: ubuntu-latest
