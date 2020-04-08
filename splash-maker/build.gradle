@@ -18,6 +18,7 @@ dependencies {
 
 task createSplashScreen( type: JavaExec ) {
     classpath = sourceSets.main.runtimeClasspath
+    systemProperty( "java.awt.headless", "true" )
     main = 'com.athaydes.logfx.splash.SplashMaker'
     args rootProject.file( rootProject.splashImage ).absolutePath
 }
