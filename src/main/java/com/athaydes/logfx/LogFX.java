@@ -19,6 +19,7 @@ import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import com.athaydes.logfx.ui.StartUpView;
+import com.athaydes.logfx.update.LogFXUpdater;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -93,6 +94,7 @@ public class LogFX extends Application {
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
 
         openFilesFromConfig();
+        LogFXUpdater.checkForUpdates( taskRunner );
     }
 
     @Override

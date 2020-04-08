@@ -25,6 +25,15 @@ import java.util.Map;
  * Utility functions for JavaFX-related functionality.
  */
 public class FxUtils {
+    /**
+     * String values for OSs, must match the values used for releases on GitHub
+     * as these values are used to find newer releases.
+     */
+    private static class OperatingSystems {
+        static final String LINUX = "linux";
+        static final String MAC = "mac";
+        static final String WINDOWS = "windows";
+    }
 
     private static final Logger log = LoggerFactory.getLogger( FxUtils.class );
     private static final Map<Paint, Background> bkgByPaint = new HashMap<>();
@@ -89,8 +98,21 @@ public class FxUtils {
     /**
      * @return true if running on Mac OS.
      */
+    @SuppressWarnings( "StringEquality" )
     public static boolean isMac() {
-        return System.getProperty( "os.name", "" ).contains( "Mac" );
+        return getOs() == OperatingSystems.MAC;
+    }
+
+    public static String getOs() {
+        String os = System.getProperty( "os.name", "" );
+        if ( os.contains( "Mac" ) ) {
+            return OperatingSystems.MAC;
+        }
+        if ( os.contains( "Windows" ) ) {
+            return OperatingSystems.WINDOWS;
+        }
+        // we can't guess anything else
+        return OperatingSystems.LINUX;
     }
 
     private static String toAbsoluteFileUri( File file ) {

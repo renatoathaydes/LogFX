@@ -1,11 +1,19 @@
 package com.athaydes.logfx.update;
 
+import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.config.Properties;
+import com.athaydes.logfx.ui.FxUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.nio.file.attribute.FileTime;
 import java.util.Optional;
 
 import static com.athaydes.logfx.Constants.LOGFX_VERSION;
@@ -13,6 +21,7 @@ import static com.athaydes.logfx.update.Http.connect;
 
 public final class LogFXUpdater {
     private static final Logger log = LoggerFactory.getLogger( LogFXUpdater.class );
+    private static final long UPDATE_CHECK_PERIOD_MS = 24 * 60 * 60 * 1000;
 
     /**
      * @return a new version if requires update, empty otherwise
@@ -31,7 +40,7 @@ public final class LogFXUpdater {
                     if ( LOGFX_VERSION.equalsIgnoreCase( latestVersion ) ) {
                         log.debug( "Current LogFX version matches latest version: {}", latestVersion );
                     } else {
-                        log.info( "LogFX version is not the latest" );
+                        log.info( "LogFX version is not the latest. current={}, new={}", LOGFX_VERSION, latestVersion );
                         return Optional.of( latestVersion );
                     }
                 }
@@ -56,14 +65,93 @@ public final class LogFXUpdater {
         }
     }
 
-    private static void update( String newVersion ) {
+    private static void update( String newVersion ) throws Exception {
         // TODO update LogFX
-        log.info( "Downloading new LogFX version: {}", newVersion );
+        var rootDir = new File( System.getProperty( "java.home" ) );
+        if ( looksLikeLogFxRootDir( rootDir ) ) {
+            log.info( "Downloading new LogFX version: {}", newVersion );
+            var url = String.format( "https://github.com/renatoathaydes/LogFX/releases/download/%s/logfx-%s-%s.zip",
+                    newVersion, newVersion, FxUtils.getOs() );
+            var con = Http.connect( new URL( url ), "GET", true );
+            try {
+                if ( con.getResponseCode() == 200 ) {
+                    Path updatePath = Properties.LOGFX_DIR.resolve( "logfx-update.zip" );
+                    Files.copy( con.getInputStream(), updatePath, StandardCopyOption.REPLACE_EXISTING );
+                    log.info( "Successfully downloaded LogFX {} to {}", newVersion, updatePath );
+                } else {
+                    log.warn( "Unexpected status when trying to download LogFX: {}", con.getResponseCode() );
+                }
+            } finally {
+                con.disconnect();
+            }
+        } else {
+            log.warn( "The root directory does not look like LogFX home, aborting update" );
+        }
+    }
+
+    private static boolean looksLikeLogFxRootDir( File rootDir ) {
+//        if ( rootDir.isDirectory() ) {
+//            var children = rootDir.list();
+//            if ( children != null && children.length >= 4 ) {
+//                if ( Set.of( children ).containsAll( Set.of( "bin", "conf", "legal", "lib" ) ) ) {
+//                    return new File( rootDir, "bin/logfx" ).isFile();
+//                }
+//            }
+//        }
+        // FIXME
+        return true;
+    }
+
+    public static void checkForUpdates( TaskRunner taskRunner ) {
+        if ( shouldCheckForUpdates() ) {
+            log.info( "Checking for newer LogFX version" );
+            taskRunner.runAsync( () -> {
+                try {
+                    requiresUpdate().ifPresent( newVersion ->
+                            taskRunner.runAsync( () -> {
+                                try {
+                                    update( newVersion );
+                                } catch ( Exception e ) {
+                                    log.error( "Cannot update LogFX", e );
+                                }
+                            } ) );
+                } catch ( Exception e ) {
+                    log.warn( "Problem checking for updates", e );
+                }
+            } );
+        } else {
+            log.debug( "Will not check for newer LogFX versions" );
+        }
+    }
+
+    private static boolean shouldCheckForUpdates() {
+        Path updatesPath = Properties.LOGFX_DIR.resolve( "logfx-update-check" );
+        File updatesFile = updatesPath.toFile();
+        if ( updatesFile.exists() ) {
+            long lastCheck = updatesFile.lastModified();
+            long now = System.currentTimeMillis();
+            log.debug( "Last update check at {}, currently {}, diff = {}", lastCheck, now, now - lastCheck );
+            try {
+                Files.setLastModifiedTime( updatesPath, FileTime.fromMillis( now ) );
+            } catch ( IOException e ) {
+                log.warn( "Could not update logfx-update-check file timestamp" );
+            }
+            return now - lastCheck > UPDATE_CHECK_PERIOD_MS;
+        } else {
+            return false;
+        }
     }
 
     public static void main( String[] args ) {
         try {
-            requiresUpdate().ifPresent( LogFXUpdater::update );
+            requiresUpdate().ifPresent( newVersion -> {
+                try {
+                    // FIXME newVersion
+                    update( "1.0-RC9" );
+                } catch ( Exception e ) {
+                    e.printStackTrace();
+                }
+            } );
         } catch ( Exception e ) {
             log.warn( "Failure trying to check for updates", e );
         }
