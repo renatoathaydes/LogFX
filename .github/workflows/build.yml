@@ -23,8 +23,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ github.ref }}.zip
-          asset_name: logfx-${{ github.ref }}-linux.zip
+          asset_path: build/logfx-$(echo "${GITHUB_REF}" | cut -d "/" -f3).zip
+          asset_name: logfx-$(echo "${GITHUB_REF}" | cut -d "/" -f3)-linux.zip
           asset_content_type: application/zip
   build-mac:
     runs-on: macos-latest
@@ -46,8 +46,8 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ github.ref }}.zip
-          asset_name: logfx-${{ github.ref }}-macos.zip
+          asset_path: build/logfx-$(echo "${GITHUB_REF}" | cut -d "/" -f3).zip
+          asset_name: logfx-$(echo "${GITHUB_REF}" | cut -d "/" -f3)-macos.zip
           asset_content_type: application/zip
   build-win:
     runs-on: windows-latest
@@ -69,6 +69,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ github.ref }}-windows.zip
-          asset_name: logfx-${{ github.ref }}.zip
+          asset_path: build/logfx-$(echo "${GITHUB_REF}" | cut -d "/" -f3).zip
+          asset_name: logfx-$(echo "${GITHUB_REF}" | cut -d "/" -f3)-windows.zip
           asset_content_type: application/zip
