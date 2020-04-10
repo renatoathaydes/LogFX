@@ -85,6 +85,7 @@ public class Config {
             }
         } );
 
+        properties.autoUpdate.addListener( listener );
         properties.autoUpdate.addListener( ( obs ) -> {
             if ( !isAutoUpdate() ) {
                 var zip = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_ZIP ).toFile();
@@ -156,6 +157,7 @@ public class Config {
      */
     private void dumpConfigToFile( TaskRunner taskRunner ) {
         var data = new ConfigData();
+        data.path = path.toFile();
 
         Platform.runLater( () -> data.logLineColors = properties.standardLogColors.get() );
         Platform.runLater( () -> data.highlightExpressions = new HashMap<>( properties.highlightGroups.toMap() ) );
@@ -241,7 +243,7 @@ public class Config {
         }
     }
 
-    static final class ConfigData {
+    private static final class ConfigData {
         volatile LogLineColors logLineColors;
         volatile Map<String, Collection<HighlightExpression>> highlightExpressions;
         volatile boolean enableFilters;
