@@ -94,7 +94,7 @@ public class LogFX extends Application {
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
 
         openFilesFromConfig();
-        LogFXUpdater.checkForUpdates( taskRunner );
+        LogFXUpdater.checkAndDownloadUpdateIfAvailable( taskRunner );
     }
 
     @Override
