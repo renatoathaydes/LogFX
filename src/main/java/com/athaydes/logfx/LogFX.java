@@ -416,7 +416,7 @@ public class LogFX extends Application {
     public static void main( String[] args ) {
         SetupTrayIcon.run();
 
-        Font.loadFont( LogFX.class.getResource( "/com/athaydes/logfx/fonts/themify-1.0.1.ttf" ).toExternalForm(), 12 );
+        Font.loadFont( FxUtils.resourcePath( "fonts/themify-1.0.1.ttf" ), 12 );
 
         Application.launch( LogFX.class );
     }
