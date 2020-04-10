@@ -62,6 +62,7 @@ task jlink( type: Exec ) {
 }
 
 task packageImage( type: Zip ) {
+    outputs.upToDateWhen { false }
     dependsOn jlink
     from image
     into "logfx-${project.version}"
