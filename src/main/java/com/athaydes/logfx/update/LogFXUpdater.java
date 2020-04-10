@@ -2,6 +2,7 @@ package com.athaydes.logfx.update;
 
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Properties;
+import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FxUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -79,6 +80,8 @@ public final class LogFXUpdater {
                     Path updatePath = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_ZIP );
                     Files.copy( con.getInputStream(), updatePath, StandardCopyOption.REPLACE_EXISTING );
                     log.info( "Successfully downloaded LogFX {} to {}", newVersion, updatePath );
+                    Dialog.showMessage( String.format( "LogFX has been updated to version %s.\n" +
+                            "Restart LogFX to enjoy the new version.", newVersion ), Dialog.MessageLevel.INFO );
                 } else {
                     log.warn( "Unexpected status when trying to download LogFX: {}", con.getResponseCode() );
                 }
