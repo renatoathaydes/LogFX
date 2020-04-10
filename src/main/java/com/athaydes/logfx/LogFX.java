@@ -94,7 +94,10 @@ public class LogFX extends Application {
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
 
         openFilesFromConfig();
-        LogFXUpdater.checkAndDownloadUpdateIfAvailable( taskRunner );
+
+        if ( FxUtils.isRunningAsModularApp() && config.isAutoUpdate() ) {
+            LogFXUpdater.checkAndDownloadUpdateIfAvailable( taskRunner );
+        }
     }
 
     @Override
@@ -266,7 +269,7 @@ public class LogFX extends Application {
         MenuItem about = new MenuItem( "_About LogFX" );
         about.setOnAction( ( event ) -> new AboutLogFXView().show() );
 
-        CheckMenuItem autoUpdate = new CheckMenuItem( "Disable auto-update" );
+        CheckMenuItem autoUpdate = new CheckMenuItem( "Auto-update LogFX?" );
         autoUpdate.setAccelerator( new KeyCodeCombination( KeyCode.A,
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN ) );
         autoUpdate.selectedProperty().bindBidirectional( config.autoUpdateProperty() );

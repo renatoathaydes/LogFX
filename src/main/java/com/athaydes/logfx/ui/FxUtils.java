@@ -50,6 +50,13 @@ public class FxUtils {
                         new BackgroundFill( paint, CornerRadii.EMPTY, Insets.EMPTY ) ) );
     }
 
+    /**
+     * @return true if running this process as a Java modular app, false if running as a simple jar.
+     */
+    public static boolean isRunningAsModularApp() {
+        return "com.athaydes.logfx".equals( LogFX.class.getModule().getName() );
+    }
+
     public static URL resourceUrl( String name ) {
         return LogFX.class.getResource( name );
     }
