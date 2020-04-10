@@ -35,6 +35,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import static com.athaydes.logfx.update.LogFXUpdater.LOGFX_UPDATE_ZIP;
 import static java.util.stream.Collectors.joining;
 
 public class Config {
@@ -83,6 +84,16 @@ public class Config {
                 change.getElementRemoved().highlightGroupProperty().removeListener( listener );
             }
         } );
+
+        properties.autoUpdate.addListener( ( obs ) -> {
+            if ( !isAutoUpdate() ) {
+                var zip = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_ZIP ).toFile();
+                if ( zip.isFile() ) {
+                    log.debug( "Removing LogFX update file as user does not want auto-updates" );
+                    zip.delete();
+                }
+            }
+        } );
     }
 
     public SimpleObjectProperty<LogLineColors> standardLogColorsProperty() {
@@ -117,6 +128,14 @@ public class Config {
         return properties.enableFilters;
     }
 
+    public BooleanProperty autoUpdateProperty() {
+        return properties.autoUpdate;
+    }
+
+    public boolean isAutoUpdate() {
+        return properties.autoUpdate.get();
+    }
+
     private void readConfigFile( Path path ) {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
@@ -146,6 +165,7 @@ public class Config {
         Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
         Platform.runLater( () -> data.dividerPositions = new ArrayList<>( properties.paneDividerPositions ) );
         Platform.runLater( () -> data.font = properties.font.getValue() );
+        Platform.runLater( () -> data.autoUpdate = properties.autoUpdate.get() );
 
         // go to the JavaFX Thread to wait for all previous tasks to complete, then dump the file, finally.
         Platform.runLater( () -> taskRunner.runAsync( () -> dumpConfigToFile( data ) ) );
@@ -181,6 +201,9 @@ public class Config {
 
             writer.write( "filters:\n  " );
             writer.write( data.enableFilters ? "enable\n" : "disable\n" );
+
+            writer.write( "auto_update:\n  " );
+            writer.write( data.autoUpdate ? "enable\n" : "disable\n" );
 
             writer.write( "files:\n" );
             for ( LogFile file : data.files ) {

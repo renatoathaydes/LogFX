@@ -25,7 +25,8 @@ public final class LogFXUpdater {
     private static final Logger log = LoggerFactory.getLogger( LogFXUpdater.class );
     private static final long UPDATE_CHECK_PERIOD_MS = 24 * 60 * 60 * 1000;
     private static final String LOGFX_UPDATE_CHECK = "logfx-update-check";
-    static final String LOGFX_UPDATE_ZIP = "logfx-update.zip";
+
+    public static final String LOGFX_UPDATE_ZIP = "logfx-update.zip";
 
     /**
      * @return a new version if requires update, empty otherwise

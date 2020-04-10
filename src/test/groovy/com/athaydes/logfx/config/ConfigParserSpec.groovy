@@ -145,6 +145,7 @@ class ConfigParserSpec extends Specification {
         defaultHighlights[ 2 ] == new HighlightExpression( 'OFF', Color.valueOf( '0x1a3399ff' ), Color.valueOf( '0xffccb3ff' ), true )
 
         !config.enableFilters.get()
+        config.autoUpdate.get()
         config.observableFiles.collect { it.file.path }.toSet() ==
                 [ '/android-studio/Install-Linux-tar.txt', '/home/me/.logfx/config' ] as Set
 
@@ -170,6 +171,8 @@ class ConfigParserSpec extends Specification {
         |  disable
         |files:
         |  /home/me/.logfx/config
+        |auto_update:
+        |  disable
         |gui:
         |  orientation HORIZONTAL
         |  window 20.4 10.2 600.0 245.6
@@ -197,6 +200,7 @@ class ConfigParserSpec extends Specification {
         extraHighlights[ 0 ] == new HighlightExpression( 'wget', Color.valueOf( '0xe86b08ff' ), Color.valueOf( '0x000000ff' ), true )
 
         !config.enableFilters.get()
+        !config.autoUpdate.get()
         config.observableFiles.collect { it.file.path }.toSet() ==
                 [ '/home/me/.logfx/config' ] as Set
 
