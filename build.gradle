@@ -168,6 +168,8 @@ task fatJar( type: Jar ) {
             }
         }
     }
+    // include META-INF/services for logging to work in non-modular setup
+    from file('splash-maker/src/main/resources')
     with jar
 }
 
