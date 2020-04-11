@@ -19,15 +19,11 @@ Future<void> cleanup({String branch, String dir}) async {
   print('Cleaning up directory "$dir" and worktree!');
   await Directory(dir).recreateEmpty();
   ['git', 'worktree', 'prune'].execute();
-  final workTreeDir = Directory('.git/worktrees/$dir');
-  if ((await workTreeDir.exists())) {
-    await workTreeDir.delete(recursive: true);
-  }
 }
 
 Future<void> checkout({String branch, String dir}) async {
   print('Checking out branch "$branch" into directory "$dir"!');
-  ['git', 'worktree', 'add', '-B', branch, dir, 'origin/$branch'].execute();
+  await ['git', 'worktree', 'add', '-B', branch, dir, 'origin/$branch'].execute();
 }
 
 Future<String> currentBranch() {
@@ -54,10 +50,10 @@ Future<void> createEmptyBranch(String name) async {
 }
 
 extension Exec on List<String> {
-  Future<ProcessResult> execute({bool checkStatus = true, String wrkDir}) async {
-    final res =
-        await Process.run(this.first, this.skip(1).toList(),
-            runInShell: true, workingDirectory: wrkDir);
+  Future<ProcessResult> execute(
+      {bool checkStatus = true, String wrkDir}) async {
+    final res = await Process.run(this.first, this.skip(1).toList(),
+        runInShell: true, workingDirectory: wrkDir);
     if (checkStatus && res.exitCode != 0) {
       stderr.writeln('Command exited with ${res.exitCode}: $this');
       print(res.stdout);
@@ -70,9 +66,11 @@ extension Exec on List<String> {
 
 extension DirExt on Directory {
   Future<void> recreateEmpty() async {
-    if ((await exists())) {
-      await delete(recursive: true);
+    final abs = this.absolute;
+    if (await abs.exists()) {
+      print("Deleting $abs recursively");
+      await abs.delete(recursive: true);
     }
-    await create();
+    await abs.create();
   }
 }

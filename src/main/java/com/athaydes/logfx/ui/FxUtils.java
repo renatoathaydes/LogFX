@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.LogFX;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.file.FileChangeWatcher;
@@ -15,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +25,15 @@ import java.util.Map;
  * Utility functions for JavaFX-related functionality.
  */
 public class FxUtils {
+    /**
+     * String values for OSs, must match the values used for releases on GitHub
+     * as these values are used to find newer releases.
+     */
+    private static class OperatingSystems {
+        static final String LINUX = "linux";
+        static final String MAC = "mac";
+        static final String WINDOWS = "windows";
+    }
 
     private static final Logger log = LoggerFactory.getLogger( FxUtils.class );
     private static final Map<Paint, Background> bkgByPaint = new HashMap<>();
@@ -40,6 +51,21 @@ public class FxUtils {
     }
 
     /**
+     * @return true if running this process as a Java modular app, false if running as a simple jar.
+     */
+    public static boolean isRunningAsModularApp() {
+        return "com.athaydes.logfx".equals( LogFX.class.getModule().getName() );
+    }
+
+    public static URL resourceUrl( String name ) {
+        return LogFX.class.getResource( name );
+    }
+
+    public static String resourcePath( String name ) {
+        return resourceUrl( name ).toExternalForm();
+    }
+
+    /**
      * Setup the stylesheet for the given Scene.
      *
      * @param scene to setup stylesheet for
@@ -47,9 +73,9 @@ public class FxUtils {
     public static void setupStylesheet( Scene scene ) {
         String stylesheet = Properties.getCustomStylesheet()
                 .map( FxUtils::toAbsoluteFileUri )
-                .orElse( "css/LogFX.css" );
+                .orElse( resourcePath( "css/LogFX.css" ) );
 
-        String iconsStylesheet = "css/icons.css";
+        String iconsStylesheet = resourcePath( "css/icons.css" );
 
         Runnable resetStylesheet = () -> Platform.runLater( () -> {
             scene.getStylesheets().clear();
@@ -79,8 +105,21 @@ public class FxUtils {
     /**
      * @return true if running on Mac OS.
      */
+    @SuppressWarnings( "StringEquality" )
     public static boolean isMac() {
-        return System.getProperty( "os.name", "" ).contains( "Mac" );
+        return getOs() == OperatingSystems.MAC;
+    }
+
+    public static String getOs() {
+        String os = System.getProperty( "os.name", "" );
+        if ( os.contains( "Mac" ) ) {
+            return OperatingSystems.MAC;
+        }
+        if ( os.contains( "Windows" ) ) {
+            return OperatingSystems.WINDOWS;
+        }
+        // we can't guess anything else
+        return OperatingSystems.LINUX;
     }
 
     private static String toAbsoluteFileUri( File file ) {

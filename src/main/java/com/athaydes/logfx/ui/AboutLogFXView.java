@@ -6,8 +6,9 @@ import javafx.scene.Group;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
+
+import static com.athaydes.logfx.ui.FxUtils.resourcePath;
 
 /**
  * About LogFX View.
@@ -18,7 +19,7 @@ public class AboutLogFXView {
         VBox contents = new VBox( 25 );
         contents.setPrefSize( 500, 300 );
         contents.setAlignment( Pos.CENTER );
-        contents.getStylesheets().add( "css/about.css" );
+        contents.getStylesheets().add( resourcePath( "css/about.css" ) );
 
         HBox textBox = new HBox( 0 );
         textBox.setPrefWidth( 500 );
@@ -38,7 +39,7 @@ public class AboutLogFXView {
         Group fontsAttribution = new Group(
                 new Text( "Icons provided by " ),
                 new Link( "https://themify.me/themify-icons", "Themify.me" ) );
-        Link link = new Link( "https://github.com/renatoathaydes/LogFX" );
+        Link link = new Link( "https://renatoathaydes.github.io/LogFX/" );
         smallText.getChildren().addAll( version, byRenato, link, license, fontsAttribution );
 
         contents.getChildren().addAll( textBox, smallText );
@@ -48,11 +49,14 @@ public class AboutLogFXView {
 
     @MustCallOnJavaFXThread
     public void show() {
+        createDialog().show();
+    }
+
+    public Dialog createDialog() {
         Dialog dialog = new Dialog( ( String ) null, createNode() );
         dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
         dialog.closeWhenLoseFocus();
-
-        dialog.show();
+        return dialog;
     }
 }

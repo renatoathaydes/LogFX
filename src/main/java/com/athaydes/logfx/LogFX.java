@@ -7,7 +7,7 @@ import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.NaNChecker.NaNException;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
-import com.athaydes.logfx.log.LogFXLogFactory;
+import com.athaydes.logfx.log.LogConfigFile;
 import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.BottomMessagePane;
 import com.athaydes.logfx.ui.Dialog;
@@ -19,6 +19,7 @@ import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import com.athaydes.logfx.ui.StartUpView;
+import com.athaydes.logfx.update.LogFXUpdater;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -43,8 +44,8 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.awt.SplashScreen;
 import java.io.File;
-import java.io.InputStream;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -74,7 +75,6 @@ public class LogFX extends Application {
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
-    private final HighlightGroupsView highlightGroups;
     private final LogViewPane logsPane;
     private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
@@ -85,7 +85,6 @@ public class LogFX extends Application {
         hostServices.set( getHostServices() );
         Path configFile = Properties.LOGFX_DIR.resolve( "config" );
         this.config = new Config( configFile, taskRunner );
-        this.highlightGroups = new HighlightGroupsView( config );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( stage, this::open ),
@@ -95,6 +94,10 @@ public class LogFX extends Application {
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
 
         openFilesFromConfig();
+
+        if ( FxUtils.isRunningAsModularApp() && config.isAutoUpdate() ) {
+            LogFXUpdater.checkAndDownloadUpdateIfAvailable( taskRunner );
+        }
     }
 
     @Override
@@ -119,7 +122,7 @@ public class LogFX extends Application {
 
         root.getChildren().addAll( mainBox, overlay );
 
-        Scene scene = new Scene( root, 800, 600, Color.RED );
+        Scene scene = new Scene( root, 800, 600, Color.BLACK );
 
         root.prefHeightProperty().bind( scene.heightProperty() );
         root.prefWidthProperty().bind( scene.widthProperty() );
@@ -129,7 +132,12 @@ public class LogFX extends Application {
 
         primaryStage.setScene( scene );
         primaryStage.setTitle( TITLE );
-        primaryStage.show();
+
+        SplashScreen splashScreen = SplashScreen.getSplashScreen();
+
+        if ( splashScreen == null ) {
+            primaryStage.show();
+        }
 
         primaryStage.setOnHidden( event -> {
             logsPane.close();
@@ -141,6 +149,12 @@ public class LogFX extends Application {
             logsPane.setDividerPositions( config.getPaneDividerPositions() );
             logsPane.panesDividersProperty().addListener( observable ->
                     config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() ) );
+
+            // all done, show the stage if necessary, then hide the splash screen
+            if ( splashScreen != null ) {
+                primaryStage.show();
+                splashScreen.close();
+            }
         } );
 
         FxUtils.setupStylesheet( scene );
@@ -157,7 +171,8 @@ public class LogFX extends Application {
                                 new BoundingBox( checkNaN( stage.getX() ), checkNaN( stage.getY() ),
                                         checkNaN( stage.getWidth() ), checkNaN( stage.getHeight() ) ) );
                     } catch ( NaNException e ) {
-                        log.warn( "Unable to update window coordinates due to one or more dimensions being unavailable" );
+                        log.warn( "Unable to update window coordinates due to one or more dimensions being " +
+                                "unavailable" );
                     }
                 } );
             }
@@ -210,11 +225,11 @@ public class LogFX extends Application {
 
     private void setIconsOn( Stage primaryStage ) {
         taskRunner.runAsync( () -> {
-            final List<InputStream> imageStreams = Arrays.asList(
-                    LogFX.class.getResourceAsStream( "/images/favicon-large.png" ),
-                    LogFX.class.getResourceAsStream( "/images/favicon-small.png" ) );
+            final List<String> images = Arrays.asList(
+                    FxUtils.resourcePath( "images/favicon-large.png" ),
+                    FxUtils.resourcePath( "images/favicon-small.png" ) );
 
-            Platform.runLater( () -> imageStreams.stream()
+            Platform.runLater( () -> images.stream()
                     .map( Image::new )
                     .forEach( primaryStage.getIcons()::add ) );
         } );
@@ -234,7 +249,7 @@ public class LogFX extends Application {
         showLogFxLog.setAccelerator( new KeyCodeCombination( KeyCode.O,
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         showLogFxLog.setOnAction( ( event ) ->
-                open( LogFXLogFactory.INSTANCE.getLogFilePath().toFile() ) );
+                open( LogConfigFile.INSTANCE.logFilePath.toFile() ) );
 
         MenuItem close = new MenuItem( "E_xit" );
         close.setAccelerator( new KeyCodeCombination( KeyCode.W,
@@ -253,8 +268,15 @@ public class LogFX extends Application {
 
         MenuItem about = new MenuItem( "_About LogFX" );
         about.setOnAction( ( event ) -> new AboutLogFXView().show() );
+        menu.getItems().add( about );
 
-        menu.getItems().addAll( about );
+        if ( FxUtils.isRunningAsModularApp() ) {
+            CheckMenuItem autoUpdate = new CheckMenuItem( "Auto-update LogFX?" );
+            autoUpdate.setAccelerator( new KeyCodeCombination( KeyCode.A,
+                    KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN ) );
+            autoUpdate.selectedProperty().bindBidirectional( config.autoUpdateProperty() );
+            menu.getItems().add( autoUpdate );
+        }
 
         return menu;
     }
@@ -333,10 +355,12 @@ public class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         CheckMenuItem highlight = new CheckMenuItem( "_Highlight Options" );
-        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN ) );
+        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H,
+                // on Mac, Cmd+H hides the window, so let it use Ctrl+H instead
+                FxUtils.isMac() ? KeyCombination.CONTROL_DOWN : KeyCombination.SHORTCUT_DOWN ) );
         highlight.setMnemonicParsing( true );
         bindMenuItemToDialog( highlight, () ->
-                showHighlightOptionsDialog( highlightGroups ) );
+                showHighlightOptionsDialog( new HighlightGroupsView( config ) ) );
 
         MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
         orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
@@ -392,11 +416,9 @@ public class LogFX extends Application {
     }
 
     public static void main( String[] args ) {
-        if ( FxUtils.isMac() ) {
-            SetupMacTrayIcon.run();
-        }
+        SetupTrayIcon.run();
 
-        Font.loadFont( LogFX.class.getResource( "/fonts/themify-1.0.1.ttf" ).toExternalForm(), 12 );
+        Font.loadFont( FxUtils.resourcePath( "fonts/themify-1.0.1.ttf" ), 12 );
 
         Application.launch( LogFX.class );
     }

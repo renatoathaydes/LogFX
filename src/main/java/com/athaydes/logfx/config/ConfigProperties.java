@@ -26,6 +26,7 @@ final class ConfigProperties {
     final BindableValue<Font> font;
     final BooleanProperty enableFilters;
     final HighlightGroups highlightGroups;
+    final BooleanProperty autoUpdate;
 
     ConfigProperties() {
         standardLogColors = new SimpleObjectProperty<>( new LogLineColors( Color.BLACK, Color.LIGHTGREY ) );
@@ -36,5 +37,6 @@ final class ConfigProperties {
         paneDividerPositions = FXCollections.observableArrayList();
         font = new BindableValue<>( Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
         enableFilters = new SimpleBooleanProperty( false );
+        autoUpdate = new SimpleBooleanProperty( true );
     }
 }

@@ -34,8 +34,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
+import static com.athaydes.logfx.update.LogFXUpdater.LOGFX_UPDATE_ZIP;
 import static java.util.stream.Collectors.joining;
 
 public class Config {
@@ -57,7 +57,7 @@ public class Config {
         }
 
         // make this a singleton object so that it can be remembered when we try to run it many times below
-        final Runnable updateConfigFile = this::dumpConfigToFile;
+        final Runnable updateConfigFile = () -> dumpConfigToFile( taskRunner );
 
         log.debug( "Listening to changes on observable Lists" );
 
@@ -82,6 +82,17 @@ public class Config {
             }
             if ( change.wasRemoved() ) {
                 change.getElementRemoved().highlightGroupProperty().removeListener( listener );
+            }
+        } );
+
+        properties.autoUpdate.addListener( listener );
+        properties.autoUpdate.addListener( ( obs ) -> {
+            if ( !isAutoUpdate() ) {
+                var zip = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_ZIP ).toFile();
+                if ( zip.isFile() ) {
+                    log.debug( "Removing LogFX update file as user does not want auto-updates" );
+                    zip.delete();
+                }
             }
         } );
     }
@@ -118,6 +129,14 @@ public class Config {
         return properties.enableFilters;
     }
 
+    public BooleanProperty autoUpdateProperty() {
+        return properties.autoUpdate;
+    }
+
+    public boolean isAutoUpdate() {
+        return properties.autoUpdate.get();
+    }
+
     private void readConfigFile( Path path ) {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
@@ -133,69 +152,39 @@ public class Config {
      * The properties are all set in the JavaFX Thread, therefore we need to make copies of everything
      * in the JavaFX Thread before being able to safely use them in another Thread,
      * where we write the config file.
+     *
+     * @param taskRunner
      */
-    private void dumpConfigToFile() {
-        CompletableFuture<LogLineColors> standardLogColorsFuture = new CompletableFuture<>();
-        Platform.runLater( () -> standardLogColorsFuture.complete( properties.standardLogColors.get() ) );
+    private void dumpConfigToFile( TaskRunner taskRunner ) {
+        var data = new ConfigData();
+        data.path = path.toFile();
 
-        CompletableFuture<Map<String, Collection<HighlightExpression>>> expressionsFuture = new CompletableFuture<>();
-        Platform.runLater( () -> expressionsFuture.complete( new HashMap<>( properties.highlightGroups.toMap() ) ) );
+        Platform.runLater( () -> data.logLineColors = properties.standardLogColors.get() );
+        Platform.runLater( () -> data.highlightExpressions = new HashMap<>( properties.highlightGroups.toMap() ) );
+        Platform.runLater( () -> data.enableFilters = properties.enableFilters.getValue() );
+        Platform.runLater( () -> data.files = new LinkedHashSet<>( properties.observableFiles ) );
+        Platform.runLater( () -> data.orientation = properties.panesOrientation.get() );
+        Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
+        Platform.runLater( () -> data.dividerPositions = new ArrayList<>( properties.paneDividerPositions ) );
+        Platform.runLater( () -> data.font = properties.font.getValue() );
+        Platform.runLater( () -> data.autoUpdate = properties.autoUpdate.get() );
 
-        CompletableFuture<Boolean> enableFiltersFuture = new CompletableFuture<>();
-        Platform.runLater( () -> enableFiltersFuture.complete( properties.enableFilters.getValue() ) );
-
-        CompletableFuture<Set<LogFile>> filesFuture = new CompletableFuture<>();
-        Platform.runLater( () -> filesFuture.complete( new LinkedHashSet<>( properties.observableFiles ) ) );
-
-        CompletableFuture<Orientation> panesOrientationFuture = new CompletableFuture<>();
-        Platform.runLater( () -> panesOrientationFuture.complete( properties.panesOrientation.get() ) );
-
-        CompletableFuture<Bounds> windowBoundsFuture = new CompletableFuture<>();
-        Platform.runLater( () -> windowBoundsFuture.complete( properties.windowBounds.get() ) );
-
-        CompletableFuture<List<Double>> paneDividersFuture = new CompletableFuture<>();
-        Platform.runLater( () -> paneDividersFuture.complete( new ArrayList<>( properties.paneDividerPositions ) ) );
-
-        CompletableFuture<Font> fontFuture = new CompletableFuture<>();
-        Platform.runLater( () -> fontFuture.complete( properties.font.getValue() ) );
-
-        standardLogColorsFuture.thenAccept( logLineColors ->
-                expressionsFuture.thenAccept( expressions ->
-                        enableFiltersFuture.thenAccept( enableFilters ->
-                                filesFuture.thenAccept( files ->
-                                        panesOrientationFuture.thenAccept( orientation ->
-                                                windowBoundsFuture.thenAccept( windowBounds ->
-                                                        paneDividersFuture.thenAccept( dividers ->
-                                                                fontFuture.thenAccept( font ->
-                                                                        dumpConfigToFile(
-                                                                                logLineColors, expressions,
-                                                                                enableFilters,
-                                                                                files, orientation, windowBounds,
-                                                                                dividers,
-                                                                                font, path.toFile()
-                                                                        ) ) ) ) ) ) ) ) );
+        // go to the JavaFX Thread to wait for all previous tasks to complete, then dump the file, finally.
+        Platform.runLater( () -> taskRunner.runAsync( () -> dumpConfigToFile( data ) ) );
     }
 
-    private static void dumpConfigToFile( LogLineColors logLineColors,
-                                          Map<String, Collection<HighlightExpression>> highlightExpressions,
-                                          boolean enableFilters,
-                                          Set<LogFile> files,
-                                          Orientation orientation,
-                                          Bounds windowBounds,
-                                          List<Double> dividerPositions,
-                                          Font font,
-                                          File path ) {
-        log.debug( "Writing config to {}", path );
+    private static void dumpConfigToFile( ConfigData data ) {
+        log.debug( "Writing config to {}", data.path );
 
-        try ( FileWriter writer = new FileWriter( path ) ) {
+        try ( FileWriter writer = new FileWriter( data.path ) ) {
 
             writer.write( "version:\n  " );
             writer.write( ConfigParser.ConfigVersion.V3.name() );
             writer.write( "\nstandard-log-colors:\n" );
-            writer.write( "  " + logLineColors.getBackground() + " " + logLineColors.getFill() );
+            writer.write( "  " + data.logLineColors.getBackground() + " " + data.logLineColors.getFill() );
             writer.write( "\n" );
 
-            for ( Map.Entry<String, Collection<HighlightExpression>> entry : highlightExpressions.entrySet() ) {
+            for ( Map.Entry<String, Collection<HighlightExpression>> entry : data.highlightExpressions.entrySet() ) {
                 String group = entry.getKey();
                 writer.write( "expressions:\n" );
                 if ( !group.isEmpty() ) {
@@ -213,10 +202,13 @@ public class Config {
             }
 
             writer.write( "filters:\n  " );
-            writer.write( enableFilters ? "enable\n" : "disable\n" );
+            writer.write( data.enableFilters ? "enable\n" : "disable\n" );
+
+            writer.write( "auto_update:\n  " );
+            writer.write( data.autoUpdate ? "enable\n" : "disable\n" );
 
             writer.write( "files:\n" );
-            for ( LogFile file : files ) {
+            for ( LogFile file : data.files ) {
                 String group = file.getHighlightGroup();
                 writer.write( "  " );
                 if ( !group.isEmpty() ) {
@@ -229,26 +221,38 @@ public class Config {
             }
 
             writer.write( "gui:\n" );
-            writer.write( "  orientation " + orientation.name() );
-            if ( windowBounds != null ) {
+            writer.write( "  orientation " + data.orientation.name() );
+            if ( data.windowBounds != null ) {
                 writer.write( String.format( Locale.US, "%n  window %.1f %.1f %.1f %.1f",
-                        windowBounds.getMinX(), windowBounds.getMinY(),
-                        windowBounds.getWidth(), windowBounds.getHeight() ) );
+                        data.windowBounds.getMinX(), data.windowBounds.getMinY(),
+                        data.windowBounds.getWidth(), data.windowBounds.getHeight() ) );
             }
-            if ( !dividerPositions.isEmpty() ) {
+            if ( !data.dividerPositions.isEmpty() ) {
                 writer.write( "\n  pane-dividers " );
-                writer.write( dividerPositions.stream()
+                writer.write( data.dividerPositions.stream()
                         .map( n -> Double.toString( n ) )
                         .collect( joining( "," ) ) );
             }
-            writer.write( "\n  font " + font.getSize() );
-            writer.write( " " + font.getFamily() );
+            writer.write( "\n  font " + data.font.getSize() );
+            writer.write( " " + data.font.getFamily() );
 
             writer.write( "\n" );
         } catch ( IOException e ) {
-            Dialog.showConfirmDialog( "Could not write config file: " + path +
+            Dialog.showConfirmDialog( "Could not write config file: " + data.path +
                     "\n\n" + e );
         }
     }
 
+    private static final class ConfigData {
+        volatile LogLineColors logLineColors;
+        volatile Map<String, Collection<HighlightExpression>> highlightExpressions;
+        volatile boolean enableFilters;
+        volatile boolean autoUpdate;
+        volatile Set<LogFile> files;
+        volatile Orientation orientation;
+        volatile Bounds windowBounds;
+        volatile List<Double> dividerPositions;
+        volatile Font font;
+        volatile File path;
+    }
 }

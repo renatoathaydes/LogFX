@@ -226,10 +226,12 @@ public class Dialog {
 
     public static void showMessage( String text, MessageLevel level ) {
         Platform.runLater( () -> {
+            double width = Math.min( 600, Math.max( 100, primaryStage.getWidth() - 20 ) );
             Text messageText = new Text( text );
-            messageText.setWrappingWidth( Math.max( 100, primaryStage.getWidth() - 20 ) );
+            messageText.setWrappingWidth( width );
 
             Dialog dialog = new Dialog( messageText );
+            dialog.getBox().setMaxWidth( width );
             dialog.setStyle( StageStyle.TRANSPARENT );
             dialog.getBox().setSpacing( 0 );
             dialog.getBox().getStyleClass().addAll( "message", level.name().toLowerCase() );

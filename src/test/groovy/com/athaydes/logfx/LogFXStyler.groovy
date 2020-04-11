@@ -15,7 +15,7 @@ class LogFXStyler extends Application {
 
     @Override
     void start( Stage primaryStage ) throws Exception {
-        def root = new HBox( 10.0 )
+        def root = new HBox( 10.0D )
 
         def button = new Button( 'Close' )
         button.background = FxUtils.simpleBackground( Color.DARKGRAY )
