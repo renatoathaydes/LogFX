@@ -36,6 +36,33 @@
     padding-bottom: 1em;
 }
 
+.download-button {
+    display: block;
+    max-width: 10em;
+    min-width: 10em;
+    margin: auto;
+    cursor: pointer;
+    border: 0;
+    line-height: 2.5;
+    padding: 0 20px;
+    font-size: 1.3em;
+    text-align: center;
+    text-shadow: 2px 2px 2px darkgreen;
+    border-radius: 10px;
+    background-color: rgba(0, 200, 0, 1);
+    color: lightgreen;
+    background-image: linear-gradient(to top left,
+                                      rgba(0, 0, 0, .2),
+                                      rgba(0, 0, 0, .2) 30%,
+                                      rgba(0, 0, 0, 0));
+    box-shadow: inset 2px 2px 3px rgba(255, 255, 255, .6),
+                inset -2px -2px 3px rgba(0, 0, 0, .6);
+}
+
+.download-button:hover {
+    background-color: rgba(0, 200, 0, .8);
+}
+
 .logos-wrapper {
     margin-left: 20px;
 }
