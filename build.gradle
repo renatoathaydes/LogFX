@@ -65,7 +65,7 @@ task packageImage( type: Zip ) {
     outputs.upToDateWhen { false }
     dependsOn jlink
     from image
-    into "logfx-${project.version}"
+    into "logfx"
     include '**/*'
     archiveName "logfx-${project.version}.zip"
     destinationDir buildDir
