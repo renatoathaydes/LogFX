@@ -19,10 +19,6 @@ Future<void> cleanup({String branch, String dir}) async {
   print('Cleaning up directory "$dir" and worktree!');
   await Directory(dir).recreateEmpty();
   ['git', 'worktree', 'prune'].execute();
-  final workTreeDir = Directory('.git/worktrees/$dir');
-  if ((await workTreeDir.exists())) {
-    await workTreeDir.delete(recursive: true);
-  }
 }
 
 Future<void> checkout({String branch, String dir}) async {
