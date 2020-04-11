@@ -23,7 +23,7 @@ import static com.athaydes.logfx.update.Http.connect;
 
 public final class LogFXUpdater {
     private static final Logger log = LoggerFactory.getLogger( LogFXUpdater.class );
-    private static final long UPDATE_CHECK_PERIOD_MS = 24 * 60 * 60 * 1000;
+
     private static final String LOGFX_UPDATE_CHECK = "logfx-update-check";
 
     public static final String LOGFX_UPDATE_ZIP = "logfx-update.zip";
@@ -118,7 +118,7 @@ public final class LogFXUpdater {
             } catch ( IOException e ) {
                 log.warn( "Could not update logfx-update-check file timestamp" );
             }
-            return now - lastCheck > UPDATE_CHECK_PERIOD_MS;
+            return now - lastCheck > Properties.UPDATE_CHECK_PERIOD_MS;
         } else {
             log.info( "Creating logfx-update-check file. Will check for LogFX updates daily." );
             try {
