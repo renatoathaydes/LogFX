@@ -38,6 +38,12 @@ body {
 .bordered {
   border: solid dodgerblue 1px;
 }
+
+summary {
+    font-size: 1.3em;
+    font-weight: bold;
+    cursor: pointer;
+}
 </style>
 <div class="crop bordered" style="width: 203px; height: 30px;"><img src="{{eval baseURL}}/images/log-file-menu.png" alt="File button"></div>
 {{ end }}\
@@ -74,6 +80,7 @@ LogFX is capable of doing, this page is for you.</p>
 <h2>Table of Contents</h2>
 <div class="table-of-contents">
     <ol>
+        <li><a href="#getting-started">Getting started</a></li>
         <li><a href="#open-file">Opening a file</a></li>
         <li><a href="#view-files">Viewing multiple files</a></li>
         <li><a href="#change-font">Changing the Font</a></li>
@@ -83,10 +90,56 @@ LogFX is capable of doing, this page is for you.</p>
         <li><a href="#filter">Filtering content</a></li>
         <li><a href="#context-menu">The context menu</a></li>
         <li><a href="#buttons-menu">The buttons menu</a></li>
+        <li><a href="#auto-update">Controlling LogFX auto-updates</a></li>
+        <li><a href="#system-properties">Customizing LogFX with system properties</a></li>
         <li><a href="#style-logfx">Styling LogFX's appearance</a></li>
     </ol>
 </div>
 <hr>
+
+<h2 id="getting-started">Getting Started</h2>
+<p>The easiest way to get LogFX is via the self-contained installation, as it imposes basically no requirements on your system
+other than around 100MB of available RAM.</p>
+<p>Simply go to the <a href="https://github.com/renatoathaydes/LogFX/releases/latest">LogFX Releases</a> page on GitHub
+    and select which zip to download for your platform.</p>
+<p>There are three options available:</p>
+<ul>
+    <li>logfx-xxx.yyy-linux.zip <em>(Linux)</em></li>
+    <li>logfx-xxx.yyy-mac.zip <em>(Mac)</em></li>
+    <li>logfx-xxx.yyy-windows.zip <em>(Windows)</em></li>
+</ul>
+<p>Click on the appropriate version for your Operating System to download it, then unzip the file in some directory you
+can find it easily later on.
+</p>
+<p>The zip contains a top-level directory called <code>logfx/</code>.</p>
+<p>To start LogFX, run the <code>bin/logfx</code> file on Linux and Mac, or <code>bin/logfx.bat</code> on Windows,
+within that directory.
+</p>
+<p>LogFX can also be downloaded as an executable (and tiny) jar. Open the section below for details:</p>
+<details>
+    <summary>Running LogFX from a Jar (for Java users)</summary>
+    <section>
+    <p>For Java users, it may be nicer to manually download the tiny jar (around 300KB) and run it directly with
+        <code>java -jar logfx-all.jar</code>.</p>
+    <p>Get the jar with this command (change VERSION to the latest LogFX version):</p>
+    <pre><code>
+VERSION="1.0" && \\
+curl -sSfLv https://jcenter.bintray.com/com/athaydes/logfx/logfx/$VERSION/logfx-$VERSION-all.jar -o logfx.jar
+    </code></pre>
+    <p>This works! But you must have Java 11+ with the JavaFX modules available by default.</p>
+    <p>An easy way to get an appropriate, free JVM which includes JavaFX, is to download a
+        <code>JDK FX package</code> from <a href="https://www.azul.com/downloads/zulu-community/?version=java-11-lts&architecture=x86-64-bit&package=jdk-fx">
+            Azul (Zulu Community)</a>, or <code>Liberica JDK</code> from <a href="https://bell-sw.com/">BellSoft</a>.</p>
+    <div class="note">
+        <p>Both Azul and BellSoft make their JavaFX-friendly JVM distributions available on <a href="https://sdkman.io/">SDKMAN!</a>.</p>
+        <p>Installing them with SDKMAN! is as easy as running <code>sdk use java 11.0.5.fx-zulu</code> or
+            <code>sdk use java 14.0.0.fx</code> on the terminal.</p>
+    </div>
+    <p>Another option is to use a standard JDK11+ distribution, and download the JavaFX modules separately from
+        <a href="https://openjfx.io/">openjfx.io</a>.</p>
+    </section>
+</details>
+
 <h2 id="open-file">Opening a file</h2>
 <p>There are several ways to open a file in LogFX.</p>
 <ul>
@@ -181,6 +234,32 @@ on the top-right of the brightened area that can be used to toggle filtering), o
     {{ eval closeButton }}
     <span>Close the file.</span>
 </div>
+
+<h2 id="auto-update">Controlling LogFX auto-updates</h2>
+<p>LogFX, by default, will check for a new release at most once a day, and only on startup.</p>
+<p>If there is a new version available, its assets will be downloaded in the background. A message informs the user
+when the new version is ready to be installed - which currently requires a restart.</p>
+<p>If you would like to opt-out from auto-updates, just unselect the option in the
+<code class="menu">Help > Auto-update LogFX?</code> Menu, or use the shortcut <code class="shortcut">Meta+Alt+A</code>.
+</p>
+<div class="note">
+    <p>To change how often LogFX checks for updates when starting up, use a system property,
+        as explained in the next section.
+    </p>
+</div>
+
+<h2 id="system-properties">Customizing LogFX with system properties</h2>
+<p>The following system properties are supported:</p>
+<ul>
+    <li><code>logfx.home</code> - home directory (<code>$HOME/.logfx</code> by default).</li>
+    <li><code>logfx.stylesheet.file</code> - custom stylesheet file (see next section).</li>
+    <li><code>logfx.stylesheet.norefresh</code> - set this to avoid LogFX refreshing the stylesheet on changes.</li>
+    <li><code>logfx.log.target</code> - where to send LogFX's own log (<code>file|sysout|syserr</code>).</li>
+    <li><code>logfx.log.level</code> - log level for LogFX's own log (<code>trace|debug|info|warn|error</code>).</li>
+    <li><code>logfx.auto_update.check_period</code> - minimum period, in milli-seconds, between auto-update checks.</li>
+</ul>
+<p>To set system properties, edit the launcher script in the <code>bin/</code> directory and use Java system property
+syntax (e.g. <code>-Dlogfx.log.target=sysout</code>).</p>
 
 <h2 id="style-logfx">Styling LogFX's appearance</h2>
 <p>Every aspect of LogFX, including the colors of buttons, menu bar, pane background etc., can be styled with 
