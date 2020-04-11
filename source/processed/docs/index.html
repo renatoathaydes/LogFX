@@ -211,7 +211,7 @@ on the top-right of the brightened area that can be used to toggle filtering), o
 <img src="{{eval baseURL}}/images/filter-enabled.png" alt="LogFX Filter enabled">
 
 <h2 id="context-menu">The context menu</h2>
-<p>To open the context menu, enter <code class="shortcut">Meta+E</code> or go to the Menu 
+<p>To open the context menu, right-click on a log, enter <code class="shortcut">Meta+E</code> or go to the Menu
 <code class="menu">View > Show Context Menu</code>.</p>
 <p>This menu allows you to easily reach several actions, and reminds you of their shortcuts so you can more easily use common actions next time:</p>
 <img src="{{eval baseURL}}/images/context-menu.png" alt="LogFX Context Menu">
@@ -266,6 +266,24 @@ syntax (e.g. <code>-Dlogfx.log.target=sysout</code>).</p>
 <a href="https://docs.oracle.com/javafx/2/api/javafx/scene/doc-files/cssref.html">JavaFX CSS</a>.</p>
 <p>Currently, the only way to do this, is to start LogFX with the system property <code>logfx.stylesheet.file</code> set to the custom 
 CSS file. Changes to the CSS file are immediately applied to LogFX.</p>
+<p>The default stylesheet can be found at <a href="https://github.com/renatoathaydes/LogFX/blob/master/src/main/resources/css/LogFX.css">src/main/resources/css/LogFX.css</a>.</p>
+<p>The most interesting element is the <code>.root</code>, which lets you set the theme-colour as well as the UI icons' colours:</p>
+<pre>
+<code>
+.root {
+    -fx-base: #1d1d1d;
+    -icons-color: rgb(61, 114, 144);
+}
+</code>
+</pre>
+<p>You can also increase the padding between log lines, as another example:</p>
+<pre>
+<code>
+.log-line {
+    -fx-padding: 2, 5, 2, 5;
+}
+</code>
+</pre>
 <p>You can make LogFX look whatever way you like, regardless of your asthetics talents and good judgement:</p>
 <img width="650px" src="https://raw.githubusercontent.com/renatoathaydes/LogFX/master/docs/images/screenshots/logfx-mac-pink.png" alt="Pink theme">
 </article>
