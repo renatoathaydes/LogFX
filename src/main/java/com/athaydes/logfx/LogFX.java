@@ -268,13 +268,15 @@ public class LogFX extends Application {
 
         MenuItem about = new MenuItem( "_About LogFX" );
         about.setOnAction( ( event ) -> new AboutLogFXView().show() );
+        menu.getItems().add( about );
 
-        CheckMenuItem autoUpdate = new CheckMenuItem( "Auto-update LogFX?" );
-        autoUpdate.setAccelerator( new KeyCodeCombination( KeyCode.A,
-                KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN ) );
-        autoUpdate.selectedProperty().bindBidirectional( config.autoUpdateProperty() );
-
-        menu.getItems().addAll( about, autoUpdate );
+        if ( FxUtils.isRunningAsModularApp() ) {
+            CheckMenuItem autoUpdate = new CheckMenuItem( "Auto-update LogFX?" );
+            autoUpdate.setAccelerator( new KeyCodeCombination( KeyCode.A,
+                    KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN ) );
+            autoUpdate.selectedProperty().bindBidirectional( config.autoUpdateProperty() );
+            menu.getItems().add( autoUpdate );
+        }
 
         return menu;
     }
