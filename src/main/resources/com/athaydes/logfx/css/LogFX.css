@@ -23,6 +23,10 @@ Button:hover, ToggleButton:hover {
     -fx-background-color: derive(-fx-base, 20%);
 }
 
+.favourite-button {
+    -fx-background-color: green;
+}
+
 Label {
     -fx-font-family: Lucida;
     -fx-font-size: 14px;

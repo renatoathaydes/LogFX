@@ -17,7 +17,7 @@ import java.nio.file.StandardOpenOption;
 import java.nio.file.attribute.FileTime;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Map;
+import java.util.LinkedHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -87,25 +87,26 @@ public final class LogFXUpdater {
             log.info( "Latest LogFX version is {}, current version is {}", newVersion, LOGFX_VERSION );
             if ( !LOGFX_VERSION.equals( newVersion ) && !isRejectedVersion( newVersion ) ) {
                 var future = new CompletableFuture<Boolean>();
+                var options = new LinkedHashMap<String, Runnable>( 3 );
+                options.put( "Yes", () -> future.complete( true ) );
+                options.put( "No, skip this version", () -> {
+                    Path updatesPath = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_CHECK );
+                    try {
+                        Files.writeString( updatesPath, newVersion + "\n",
+                                StandardOpenOption.CREATE, StandardOpenOption.APPEND );
+                        log.info( "Permanently skipped update to version {}", newVersion );
+                    } catch ( IOException e ) {
+                        log.warn( "Unable to write to updates file", e );
+                    }
+                    future.complete( false );
+                } );
+                options.put( "Ask later", () -> {
+                    log.debug( "Will ask to update again later" );
+                    future.complete( false );
+                } );
+
                 Dialog.askForDecision( "A new LogFX version is available: " + newVersion + ".\n" +
-                        "Would you like to update?", Map.of(
-                        "Yes", () -> future.complete( true ),
-                        "No, skip this version", () -> {
-                            Path updatesPath = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_CHECK );
-                            try {
-                                Files.writeString( updatesPath, newVersion + "\n",
-                                        StandardOpenOption.CREATE, StandardOpenOption.APPEND );
-                                log.info( "Permanently skipped update to version {}", newVersion );
-                            } catch ( IOException e ) {
-                                log.warn( "Unable to write to updates file", e );
-                            }
-                            future.complete( false );
-                        },
-                        "Ask later", () -> {
-                            log.debug( "Will ask to update again later" );
-                            future.complete( false );
-                        }
-                ) );
+                                "Would you like to update?", options, "Yes" );
                 return future;
             } else {
                 return CompletableFuture.completedFuture( false );
@@ -132,8 +133,9 @@ public final class LogFXUpdater {
 
     private static void askUserToInstallNewVersion( UpgradeInstaller installer ) {
         log.info( "Update obtained successfully." );
-        Dialog.askForDecision( "LogFX has been updated!\nWhat would you like to do?", Map.of(
-                "Restart LogFX", installer::quitAndLaunchUpdatedApp,
-                "I will restart later", installer::installUpdateOnExit ) );
+        var options = new LinkedHashMap<String, Runnable>( 2 );
+        options.put( "Restart LogFX", installer::quitAndLaunchUpdatedApp );
+        options.put( "I will restart later", installer::installUpdateOnExit );
+        Dialog.askForDecision( "LogFX has been updated!\nWhat would you like to do?", options, null );
     }
 }

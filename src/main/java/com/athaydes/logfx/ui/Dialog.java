@@ -230,7 +230,8 @@ public class Dialog {
     }
 
     public static void askForDecision( String question,
-                                       Map<String, Runnable> options ) {
+                                       Map<String, Runnable> options,
+                                       String favouriteOption ) {
         Platform.runLater( () -> {
             var label = new Label( question );
             var optionsBox = new HBox( 10 );
@@ -239,6 +240,9 @@ public class Dialog {
             dialog.setStyle( StageStyle.UNDECORATED );
             options.forEach( ( opt, action ) -> {
                 var button = new Button( opt );
+                if ( favouriteOption != null && opt.equals( favouriteOption ) ) {
+                    button.getStyleClass().add( "favourite-button" );
+                }
                 button.setOnAction( ( e ) -> {
                     dialog.hide();
                     action.run();
