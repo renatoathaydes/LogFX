@@ -20,6 +20,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.effect.MotionBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -76,6 +77,7 @@ public class Dialog {
     private final VBox box = new VBox( 10 );
     private boolean hasBeenShown = false;
     private boolean closeWhenLoseFocus = false;
+    private boolean closeOnEscapePressed = true;
     private boolean transparentWhenNoFocus = false;
 
     public Dialog( Node top, Node... others ) {
@@ -92,7 +94,7 @@ public class Dialog {
         dialogStage.setScene( new Scene( box ) );
         dialogStage.getScene().setFill( Color.TRANSPARENT );
         dialogStage.addEventHandler( KeyEvent.KEY_RELEASED, ( KeyEvent event ) -> {
-            if ( KeyCode.ESCAPE == event.getCode() ) {
+            if ( closeOnEscapePressed && KeyCode.ESCAPE == event.getCode() ) {
                 dialogStage.close();
             }
         } );
@@ -117,6 +119,10 @@ public class Dialog {
             } );
             closeWhenLoseFocus = true;
         }
+    }
+
+    public void doNotCloseOnEscapePressed() {
+        closeOnEscapePressed = false;
     }
 
     public void setResizable( boolean resizable ) {
@@ -235,12 +241,14 @@ public class Dialog {
         Platform.runLater( () -> {
             var label = new Label( question );
             var optionsBox = new HBox( 10 );
-            var dialog = new Dialog( label, optionsBox );
+            optionsBox.setAlignment( Pos.CENTER );
+            var dialog = new Dialog( label, new BorderPane( optionsBox ) );
             dialog.getBox().setMinWidth( 500 );
             dialog.setStyle( StageStyle.UNDECORATED );
+            dialog.doNotCloseOnEscapePressed();
             options.forEach( ( opt, action ) -> {
                 var button = new Button( opt );
-                if ( favouriteOption != null && opt.equals( favouriteOption ) ) {
+                if ( opt.equals( favouriteOption ) ) {
                     button.getStyleClass().add( "favourite-button" );
                 }
                 button.setOnAction( ( e ) -> {
