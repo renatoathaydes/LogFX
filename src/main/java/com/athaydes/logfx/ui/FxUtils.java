@@ -30,12 +30,14 @@ public class FxUtils {
      * as these values are used to find newer releases.
      */
     private static class OperatingSystems {
+
         static final String LINUX = "linux";
         static final String MAC = "mac";
         static final String WINDOWS = "windows";
     }
 
     private static final Logger log = LoggerFactory.getLogger( FxUtils.class );
+
     private static final Map<Paint, Background> bkgByPaint = new HashMap<>();
 
     /**
@@ -108,6 +110,14 @@ public class FxUtils {
     @SuppressWarnings( "StringEquality" )
     public static boolean isMac() {
         return getOs() == OperatingSystems.MAC;
+    }
+
+    /**
+     * @return true if running on Windows.
+     */
+    @SuppressWarnings( "StringEquality" )
+    public static boolean isWindows() {
+        return getOs() == OperatingSystems.WINDOWS;
     }
 
     public static String getOs() {

@@ -35,7 +35,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static com.athaydes.logfx.update.LogFXUpdater.LOGFX_UPDATE_ZIP;
 import static java.util.stream.Collectors.joining;
 
 public class Config {
@@ -86,15 +85,6 @@ public class Config {
         } );
 
         properties.autoUpdate.addListener( listener );
-        properties.autoUpdate.addListener( ( obs ) -> {
-            if ( !isAutoUpdate() ) {
-                var zip = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_ZIP ).toFile();
-                if ( zip.isFile() ) {
-                    log.debug( "Removing LogFX update file as user does not want auto-updates" );
-                    zip.delete();
-                }
-            }
-        } );
     }
 
     public SimpleObjectProperty<LogLineColors> standardLogColorsProperty() {

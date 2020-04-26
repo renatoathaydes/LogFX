@@ -7,6 +7,11 @@
     -fx-padding: 0 0 0 1;
 }
 
+.progress-bar > .bar {
+    -fx-background-color: cyan;
+    -fx-border-style: none;
+}
+
 Button, ToggleButton {
     -fx-background-color: derive(-fx-base, 10%);
     -fx-background-insets: 0,0,0;

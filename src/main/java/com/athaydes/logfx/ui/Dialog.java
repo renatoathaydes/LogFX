@@ -20,6 +20,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.effect.MotionBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
@@ -34,6 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Consumer;
 
 /**
@@ -207,11 +209,14 @@ public class Dialog {
     }
 
     public static void askForInput( Scene owner,
-                                    String question, String prefilledAnswer, Consumer<String> handleAnswer ) {
+                                    String question,
+                                    String prefilledAnswer,
+                                    Consumer<String> handleAnswer ) {
         Platform.runLater( () -> {
             Label label = new Label( question );
             TextField textField = new TextField( prefilledAnswer );
             Dialog dialog = new Dialog( label, textField );
+            dialog.getBox().setMinWidth( 500 );
             dialog.setStyle( StageStyle.UNDECORATED );
             if ( owner != null ) {
                 dialog.setOwner( owner.getWindow() );
@@ -219,6 +224,26 @@ public class Dialog {
             textField.setOnAction( ( event ) -> {
                 handleAnswer.accept( textField.getText() );
                 dialog.hide();
+            } );
+            dialog.show();
+        } );
+    }
+
+    public static void askForDecision( String question,
+                                       Map<String, Runnable> options ) {
+        Platform.runLater( () -> {
+            var label = new Label( question );
+            var optionsBox = new HBox( 10 );
+            var dialog = new Dialog( label, optionsBox );
+            dialog.getBox().setMinWidth( 500 );
+            dialog.setStyle( StageStyle.UNDECORATED );
+            options.forEach( ( opt, action ) -> {
+                var button = new Button( opt );
+                button.setOnAction( ( e ) -> {
+                    dialog.hide();
+                    action.run();
+                } );
+                optionsBox.getChildren().add( button );
             } );
             dialog.show();
         } );

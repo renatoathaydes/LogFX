@@ -13,7 +13,7 @@ import java.util.Optional;
 public class Properties {
 
     public static final Path LOGFX_DIR;
-    public static final long UPDATE_CHECK_PERIOD_MS;
+    public static final long UPDATE_CHECK_PERIOD_SECONDS;
 
     private static volatile LogLevel logLevel = null;
     private static volatile LogTarget logTarget = null;
@@ -80,16 +80,16 @@ public class Properties {
         refreshStylesheet = System.getProperty( "logfx.stylesheet.norefresh" ) == null;
 
         String autoUpdatePeriod = System.getProperty( "logfx.auto_update.check_period" );
-        Long autoUpdatePeriodMs = null;
+        Long autoUpdatePeriodSecs = null;
         if ( autoUpdatePeriod != null ) {
             try {
-                autoUpdatePeriodMs = Long.parseLong( autoUpdatePeriod );
+                autoUpdatePeriodSecs = Long.parseLong( autoUpdatePeriod );
             } catch ( NumberFormatException e ) {
                 System.err.printf( "Invalid value for system property logfx.auto_update.check_period: %s (%s)\n",
                         autoUpdatePeriod, e.toString() );
             }
         }
-        UPDATE_CHECK_PERIOD_MS = autoUpdatePeriodMs == null ? 24 * 60 * 60 * 1000 : autoUpdatePeriodMs;
+        UPDATE_CHECK_PERIOD_SECONDS = autoUpdatePeriodSecs == null ? 24 * 60 * 60 : autoUpdatePeriodSecs;
     }
 
     public static Optional<LogLevel> getLogLevel() {

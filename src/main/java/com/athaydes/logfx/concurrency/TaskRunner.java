@@ -186,6 +186,10 @@ public class TaskRunner {
         return () -> future.cancel( false );
     }
 
+    public ScheduledExecutorService getExecutor() {
+        return executor;
+    }
+
     public void shutdown() {
         log.debug( "Shutting down TaskRunner" );
         executor.shutdown();

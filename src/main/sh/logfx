@@ -2,20 +2,5 @@
 
 DIR=$(dirname "$0")
 
-NEW_VERSION_ZIP=$HOME/.logfx/logfx-update.zip
-
-if test -f "$NEW_VERSION_ZIP"; then
-  echo "Updating LogFX..."
-  TMP_LOCATION=$("$DIR"/java -m com.athaydes.logfx/com.athaydes.logfx.update.LogFXReplacer)
-  LOGFX_DIR="$(cd "$DIR"/.. && pwd)"
-  rm -r --interactive=never "${LOGFX_DIR:?}"/*
-  mv "$TMP_LOCATION"/* "$LOGFX_DIR"
-  chmod +x "$DIR/java"
-  chmod +x "$DIR/keytool"
-  chmod +x "$DIR/logfx"
-  rm "$NEW_VERSION_ZIP"
-  echo "LogFX updated successfully!"
-fi
-
 VM_OPTIONS="-splash:$DIR/logfx-logo.png -Xms32m -XX:+UseSerialGC"
 $DIR/java $VM_OPTIONS -m com.athaydes.logfx/com.athaydes.logfx.LogFX "$@"
