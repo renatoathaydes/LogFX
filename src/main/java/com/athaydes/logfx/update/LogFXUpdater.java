@@ -82,13 +82,17 @@ public final class LogFXUpdater {
         }
     }
 
-    private static Function<String, CompletionStage<Boolean>> askUserWhetherToUpdate() {
+    private static Function<String, CompletionStage<Boolean>> askUserWhetherToUpdate(
+            ProgressIndicator progressIndicator ) {
         return ( newVersion ) -> {
             log.info( "Latest LogFX version is {}, current version is {}", newVersion, LOGFX_VERSION );
             if ( !LOGFX_VERSION.equals( newVersion ) && !isRejectedVersion( newVersion ) ) {
                 var future = new CompletableFuture<Boolean>();
                 var options = new LinkedHashMap<String, Runnable>( 3 );
-                options.put( "Yes", () -> future.complete( true ) );
+                options.put( "Yes", () -> {
+                    progressIndicator.start();
+                    future.complete( true );
+                } );
                 options.put( "No, skip this version", () -> {
                     Path updatesPath = Properties.LOGFX_DIR.resolve( LOGFX_UPDATE_CHECK );
                     try {
@@ -116,15 +120,22 @@ public final class LogFXUpdater {
 
     public static void checkAndDownloadUpdateIfAvailable( TaskRunner taskRunner ) {
         if ( shouldCheckForUpdates() ) {
+            var progressIndicator = new ProgressIndicator( taskRunner );
             var keepup = new Keepup( new LogFXKeepupConfig(
                     taskRunner.getExecutor(),
-                    askUserWhetherToUpdate() ) );
+                    askUserWhetherToUpdate( progressIndicator ) ) );
             keepup.onNoUpdateRequired( () -> log.info( "No update available" ) )
                     .onError( ( error ) -> {
                         log.warn( "Problem updating LogFX", error );
                         Dialog.showMessage( "Problem updating LogFX: " + error, ERROR );
                     } )
-                    .onDone( Keepup.NO_OP, LogFXUpdater::askUserToInstallNewVersion )
+                    .onDone( progressIndicator::done, ( installer ) -> {
+                        progressIndicator.done();
+                        // let the indicator get to 100%
+                        taskRunner.runDelayed(
+                                () -> askUserToInstallNewVersion( installer ),
+                                Duration.ofMillis( 250 ) );
+                    } )
                     .createUpdater().checkForUpdate();
         } else {
             log.debug( "Will not check for newer LogFX versions" );
