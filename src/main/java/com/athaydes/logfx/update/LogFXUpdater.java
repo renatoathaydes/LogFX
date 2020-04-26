@@ -1,7 +1,7 @@
 package com.athaydes.logfx.update;
 
 import com.athaydes.keepup.api.Keepup;
-import com.athaydes.keepup.api.UpgradeInstaller;
+import com.athaydes.keepup.api.UpdateInstaller;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Properties;
 import com.athaydes.logfx.ui.Dialog;
@@ -106,7 +106,7 @@ public final class LogFXUpdater {
                 } );
 
                 Dialog.askForDecision( "A new LogFX version is available: " + newVersion + ".\n" +
-                                "Would you like to update?", options, "Yes" );
+                        "Would you like to update?", options, "Yes" );
                 return future;
             } else {
                 return CompletableFuture.completedFuture( false );
@@ -131,7 +131,7 @@ public final class LogFXUpdater {
         }
     }
 
-    private static void askUserToInstallNewVersion( UpgradeInstaller installer ) {
+    private static void askUserToInstallNewVersion( UpdateInstaller installer ) {
         log.info( "Update obtained successfully." );
         var options = new LinkedHashMap<String, Runnable>( 2 );
         options.put( "Restart LogFX", installer::quitAndLaunchUpdatedApp );
