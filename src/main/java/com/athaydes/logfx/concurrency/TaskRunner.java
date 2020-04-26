@@ -42,7 +42,7 @@ public class TaskRunner {
     }
 
     public TaskRunner( boolean daemon ) {
-        this.executor = Executors.newScheduledThreadPool( 2, ( runnable ) -> {
+        this.executor = Executors.newScheduledThreadPool( 4, ( runnable ) -> {
             Thread thread = new Thread( threadGroup, runnable );
             thread.setDaemon( daemon );
             return thread;
