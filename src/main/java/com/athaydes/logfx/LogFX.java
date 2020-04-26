@@ -416,7 +416,9 @@ public class LogFX extends Application {
     }
 
     public static void main( String[] args ) {
-        SetupTrayIcon.run();
+        if ( FxUtils.isMac() ) {
+            SetupTrayIcon.run();
+        }
 
         Font.loadFont( FxUtils.resourcePath( "fonts/themify-1.0.1.ttf" ), 12 );
 
