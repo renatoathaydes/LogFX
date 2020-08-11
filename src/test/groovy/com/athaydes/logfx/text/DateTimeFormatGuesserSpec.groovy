@@ -13,6 +13,16 @@ import java.time.format.DateTimeParseException
 
 class DateTimeFormatGuesserSpec extends Specification {
 
+    static final Locale systemDefaultLocale = Locale.getDefault()
+
+    def setupSpec() {
+        Locale.setDefault( Locale.ENGLISH )
+    }
+
+    def cleanupSpec() {
+        Locale.setDefault( systemDefaultLocale )
+    }
+
     @Unroll
     def "Should be able to guess the format of most logs"() {
         given: 'The standard date-time format guesser'
@@ -94,7 +104,7 @@ class DateTimeFormatGuesserSpec extends Specification {
         def formatters = [
                 DateTimeFormatter.ISO_DATE_TIME,
                 DateTimeFormatter.RFC_1123_DATE_TIME,
-                DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" ),
+                DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]", Locale.ENGLISH ),
         ]
 
         def guesser = new DateTimeFormatGuesser( patterns as String[], formatters as Set )
