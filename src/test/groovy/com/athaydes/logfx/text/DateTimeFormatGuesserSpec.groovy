@@ -1,6 +1,6 @@
 package com.athaydes.logfx.text
 
-
+import groovy.transform.CompileStatic
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -143,18 +143,25 @@ class DateTimeFormatGuesserSpec extends Specification {
 
     }
 
+    @CompileStatic
     private static List<String> generateRandomLines( int count ) {
-        def rand = new Random()
-        def chars = ' '..'~'
-        def nextChar = { -> chars[ rand.nextInt( chars.size() ) ] }
-        ( 1..count ).collect {
-            def lineWords = 5 + rand.nextInt( 1000 )
-            def words = ( 1..lineWords ).collect {
+        Random rand = new Random()
+        char[] chars = ' '..'~' as char[]
+        def result = new ArrayList<String>( count )
+        for ( int line = 1; line <= count; line++ ) {
+            int lineWords = 5 + rand.nextInt( 1000 )
+            def words = new ArrayList<CharSequence>( lineWords )
+            for ( int w = 1; w <= lineWords; w++ ) {
                 def wordLength = 2 + rand.nextInt( 50 )
-                ( 1..wordLength ).collect { nextChar() }.join()
+                def sb = new StringBuilder( wordLength )
+                for ( int i = 1; i <= wordLength; i++ ) {
+                    sb.append( chars[ rand.nextInt( chars.size() ) ] )
+                }
+                words.add( sb )
             }
-            words.join( ' ' )
+            result.add( words.join( ' ' ) )
         }
+        return result
     }
 
     private String formatterName( DateTimeFormatGuess guess ) {
