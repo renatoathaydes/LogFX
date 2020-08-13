@@ -94,7 +94,7 @@ class GoToDateView {
     private static class DateTimeTextField extends TextField {
 
         private static String lastValidDateTimeText = null;
-        private static DateTimeFormatGuess guesser = DateTimeFormatGuesser.standard().asGuess();
+        private static final DateTimeFormatGuess guesser = DateTimeFormatGuesser.standard().asGuess();
 
         private final BooleanProperty valid = new SimpleBooleanProperty( true );
 
@@ -102,7 +102,7 @@ class GoToDateView {
 
         DateTimeTextField() {
             textProperty().addListener( ( observable, oldValue, newValue ) -> {
-                Optional<ZonedDateTime> guess = guesser.convert( newValue );
+                Optional<ZonedDateTime> guess = guesser.guessDateTime( newValue );
                 if ( guess.isPresent() ) {
                     this.dateTime = guess.get();
                     valid.set( true );

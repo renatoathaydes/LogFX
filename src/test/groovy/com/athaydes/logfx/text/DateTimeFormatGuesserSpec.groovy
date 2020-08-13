@@ -26,7 +26,7 @@ class DateTimeFormatGuesserSpec extends Specification {
     @Unroll
     def "Should be able to guess the format of most logs"() {
         given: 'The standard date-time format guesser'
-        def guesser = DateTimeFormatGuesser.standard()
+        def guesser = DateTimeFormatGuesser.createStandard()
 
         when: 'The guesser tries to guess the formats for a few log lines'
         def result = guesser.guessDateTimeFormats( lines )
@@ -36,7 +36,7 @@ class DateTimeFormatGuesserSpec extends Specification {
 
         and: 'All lines can be correctly parsed to date-times'
         [ lines, expectedDateTimes ].transpose().each { line, Instant instant ->
-            def parsedDate = result.get().convert( line as String )
+            def parsedDate = result.get().guessDateTime( line as String )
             assert line && parsedDate.isPresent()
             assert line && parsedDate.get().toInstant() == instant
         }
@@ -107,7 +107,7 @@ class DateTimeFormatGuesserSpec extends Specification {
                 DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]", Locale.ENGLISH ),
         ]
 
-        def guesser = new DateTimeFormatGuesser( patterns as String[], formatters as Set )
+        def guesser = new DateTimeFormatGuesser( patterns, formatters )
 
         when: 'The guesser tries to guess the formats for a few log lines'
         def result = guesser.guessDateTimeFormats( lines )
@@ -128,7 +128,7 @@ class DateTimeFormatGuesserSpec extends Specification {
 
     def "A single line with a valid date-time is enough for the guesser to guess a formatter correctly"() {
         given: 'The standard date-time format guesser'
-        def guesser = DateTimeFormatGuesser.standard()
+        def guesser = DateTimeFormatGuesser.createStandard()
 
         and: 'Lots of lines, only one of which has a valid date-time'
         def lines = generateRandomLines( 100 )
@@ -164,9 +164,9 @@ class DateTimeFormatGuesserSpec extends Specification {
         return result
     }
 
-    private String formatterName( DateTimeFormatGuess guess ) {
-        if ( guess.convert( '2017-09-11T18:13:57.485+04:00' ).isPresent() ) return 'iso'
-        if ( guess.convert( 'Sun, 10 Sep 2017 03:30:20 GMT' ).isPresent() ) return 'rfc-1123'
+    private static String formatterName( DateTimeFormatGuess guess ) {
+        if ( guess.guessDateTime( '2017-09-11T18:13:57.485+04:00' ).isPresent() ) return 'iso'
+        if ( guess.guessDateTime( 'Sun, 10 Sep 2017 03:30:20 GMT' ).isPresent() ) return 'rfc-1123'
         return 'unknown'
     }
 

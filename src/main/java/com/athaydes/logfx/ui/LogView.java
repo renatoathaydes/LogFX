@@ -189,7 +189,7 @@ public class LogView extends VBox {
 
             long startTime = System.currentTimeMillis();
 
-            FileQueryResult result = fileContentReader.moveTo( dateTime, dateTimeFormatGuess::convert );
+            FileQueryResult result = fileContentReader.moveTo( dateTime, dateTimeFormatGuess::guessDateTime );
             if ( result.isSuccess() ) {
                 if ( log.isInfoEnabled() ) {
                     log.info( "Successfully found date (in {} ms): {}, result: {}",

@@ -14,19 +14,16 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.function.ToIntBiFunction;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static java.time.temporal.TemporalQueries.offset;
 import static java.time.temporal.TemporalQueries.zoneId;
+import static java.util.stream.Collectors.joining;
 
 /**
  * A utility class that can be used to guess the format of dates within a log file
@@ -38,69 +35,111 @@ public final class DateTimeFormatGuesser {
     public static final int MAX_CHARS_TO_LOOK_FOR_DATE = 250;
     private static final String DATE_TIME_GROUP = "datetime";
 
-    private final Set<Pattern> logLinePatterns;
-    private final Set<DateTimeFormatter> logLineDateFormatters;
+    private final Collection<SingleDateTimeFormatGuess> dateTimeFormatGuesses;
+    private final MultiDateTimeFormatGuess multiGuess;
 
-    public static DateTimeFormatGuesser standard() {
+    private static DateTimeFormatGuesser STANDARD_INSTANCE;
+
+    static DateTimeFormatGuesser createStandard() {
         String time = "\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}([:.]\\d{1,9})?(\\s{0,2}[+-]\\d{1,2}(:)?\\d{1,2})?";
 
         // 2017-09-11T18:13:57.483+02:00
-        String isoDateTime = "\\d{1,4}-\\d{1,4}-\\d{1,4}(T|\\s{1,2})" + time;
+        String isoDateTime = "\\d{1,4}-\\d{1,4}-\\d{1,4}T" + time;
+
+        // 2015-12-21 10:48:38.037
+        String isoDateTime1 = "\\d{1,4}-\\d{1,4}-\\d{1,4}\\s+" + time;
 
         // Tue, 3 Jun 2008 11:05:30 GMT
         String rfc1123DateTime = "\\w{1,3},\\s+\\d{1,2}\\s+\\w{1,10}\\s+\\d{2,4}\\s+" + time + "(\\s+\\w{1,10})?";
 
-        // (Fri) Sep 01 22:02:57 CEST 2017
-        String longDateTime = "\\w{3,10}\\s+\\d{1,2}\\s+" + time + "(\\s+(\\w+\\s+)?\\d{2,4})?";
+        // Tue Aug 11 21:55:22 CEST 2020
+        String commonDateTime = "(\\w{3}\\s+)?\\w{3}\\s+\\d{1,2}\\s+" + time + "(\\s+\\w{1,10}\\s+\\d{2,4})?";
 
         // 10/Oct/2000:13:55:36 -0700
         String ncsaCommonLogFormat = "\\w{1,10}[/\\-.]\\w{1,10}[/\\-.]\\d{2,4}([T\\s:]|\\s{1,2})" + time;
 
-        String[] formats = { isoDateTime, rfc1123DateTime, longDateTime, ncsaCommonLogFormat };
+        List<String> patterns = Arrays.asList(
+                isoDateTime, // 1
+                rfc1123DateTime, // 2
+                isoDateTime, // 3
+                isoDateTime, // 4
+                isoDateTime1, // 5
+                commonDateTime, // 6
+                ncsaCommonLogFormat // 7
+        );
 
-        Set<DateTimeFormatter> formatters = new LinkedHashSet<>();
+        List<DateTimeFormatter> formatters = Arrays.asList(
+                DateTimeFormatter.ISO_DATE_TIME, // 1
+                DateTimeFormatter.RFC_1123_DATE_TIME, // 2
+                DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][Z]" ), // 3
+                DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][z]" ), // 4
+                DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][Z]" ), // 5
+                DateTimeFormatter.ofPattern( "[EE ]MMM dd HH:mm:ss[.SSS][ zzz][ yyyy]" ), // 6
+                DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" ) // 7
+        );
 
-        formatters.addAll( Arrays.asList(
-                DateTimeFormatter.ISO_DATE_TIME,
-                DateTimeFormatter.RFC_1123_DATE_TIME,
-                DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][z]" ),
-                DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][Z]" ),
-                DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][Z]" ),
-                DateTimeFormatter.ofPattern( "MMM dd H:m:s[.SSS][ z][ yyyy]" ),
-                DateTimeFormatter.ofPattern( "MMM dd[ yyyy] H:m:s[.SSS][ z]" ),
-                DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" )
-        ) );
-
-        return new DateTimeFormatGuesser( formats, formatters );
+        return new DateTimeFormatGuesser( patterns, formatters );
     }
 
-    public DateTimeFormatGuesser( String[] dateTimePatterns,
-                                  Set<DateTimeFormatter> logLineDateFormatters ) {
-        this.logLinePatterns = Stream.of( dateTimePatterns )
+    public static DateTimeFormatGuesser standard() {
+        if ( STANDARD_INSTANCE == null ) {
+            synchronized ( DateTimeFormatGuesser.class ) {
+                if ( STANDARD_INSTANCE == null ) {
+                    STANDARD_INSTANCE = createStandard();
+                }
+            }
+        }
+        return STANDARD_INSTANCE;
+    }
+
+    DateTimeFormatGuesser( List<String> patterns, List<DateTimeFormatter> formatters ) {
+
+        List<SingleDateTimeFormatGuess> guesses = new ArrayList<>( patterns.size() );
+
+        Iterator<Pattern> patternsIter = patterns.stream()
                 .map( p -> Pattern.compile( "(?<" + DATE_TIME_GROUP + ">" + p + ")" ) )
-                .collect( Collectors.toCollection( () -> new LinkedHashSet<>( dateTimePatterns.length ) ) );
-        this.logLineDateFormatters = logLineDateFormatters;
+                .iterator();
+        Iterator<DateTimeFormatter> formattersIter = formatters.iterator();
+
+        while ( patternsIter.hasNext() && formattersIter.hasNext() ) {
+            guesses.add( new SingleDateTimeFormatGuess( patternsIter.next(), formattersIter.next() ) );
+        }
+
+        assert !patternsIter.hasNext() && !formattersIter.hasNext() :
+                "number of patterns and formatters is not the same";
+
+        this.dateTimeFormatGuesses = guesses;
+        this.multiGuess = new MultiDateTimeFormatGuess( guesses );
+
         if ( log.isTraceEnabled() ) {
-            log.trace( "New instance with patterns:\n  - {}", String.join( "\n  - ",
-                    logLinePatterns.stream().map( Object::toString ).collect( Collectors.toList() ) ) );
+            log.trace( "New instance with patterns:\n  - {}", guesses.stream()
+                    .map( Object::toString )
+                    .collect( joining( "\n  - " ) ) );
         }
     }
 
+    /**
+     * @return this guesser as a {@link DateTimeFormatGuess} so that it can be used to guess Date-Time in any
+     * of its formats.
+     */
     public DateTimeFormatGuess asGuess() {
-        List<SingleDateTimeFormatGuess> guessers = new ArrayList<>( logLineDateFormatters.size() );
-        Iterator<Pattern> patternIterator = logLinePatterns.iterator();
-        Iterator<DateTimeFormatter> formatterIterator = logLineDateFormatters.iterator();
-        while ( patternIterator.hasNext() && formatterIterator.hasNext() ) {
-            guessers.add( new SingleDateTimeFormatGuess( patternIterator.next(), formatterIterator.next() ) );
-        }
-        return new MultiDateTimeFormatGuess( guessers );
+        return multiGuess;
     }
 
+    /**
+     * Find out which date-time format a logger uses based on the given sample lines.
+     * <p>
+     * All formats that can match something in the logger will be included in the returned guesser. If more than one
+     * format is found, the different formats will be sorted by the frequency of matches they had, so that the most
+     * likely format is used first.
+     *
+     * @param lines sample log lines
+     * @return guesser if possible
+     */
     public Optional<DateTimeFormatGuess> guessDateTimeFormats( Iterable<String> lines ) {
         Map<SingleDateTimeFormatGuess, Integer> countByGuess = new HashMap<>( 3 );
 
-        log.trace( "Trying to guess date-time formats in log using {} patterns and {} date-time formatters",
-                logLinePatterns.size(), logLineDateFormatters.size() );
+        log.trace( "Trying to guess date-time formats in log using {} guesses", dateTimeFormatGuesses.size() );
 
         long start = System.currentTimeMillis();
 
@@ -109,24 +148,12 @@ public final class DateTimeFormatGuesser {
             line = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
             boolean patternFound = false;
 
-            findGuessForLine:
-            for ( Pattern pattern : logLinePatterns ) {
-                Matcher matcher = pattern.matcher( line );
-
-                if ( matcher.find() ) {
+            for ( SingleDateTimeFormatGuess guess : dateTimeFormatGuesses ) {
+                if ( guess.guessDateTime( line ).isPresent() ) {
+                    log.trace( "Guess {} matched line: {}", guess, line );
                     patternFound = true;
-                    String dateTimePart = matcher.group( DATE_TIME_GROUP );
-                    log.trace( "Line matched pattern (extracted date-time: '{}'): {}", dateTimePart, pattern );
-                    for ( DateTimeFormatter formatter : logLineDateFormatters ) {
-                        SingleDateTimeFormatGuess guess = new SingleDateTimeFormatGuess( pattern, formatter );
-                        if ( guess.convert( line ).isPresent() ) {
-                            log.debug( "Found guess: {} - for line: {}", guess, line );
-                            countByGuess.merge( guess, 1, ( a, b ) -> a + b );
-                            break findGuessForLine; // one success per line is all that should be possible
-                        }
-                    }
-
-                    log.trace( "Found pattern, but not DateTimeFormatter for line: {}", line );
+                    countByGuess.merge( guess, 1, Integer::sum );
+                    break; // one success per line is all that should be possible
                 }
             }
 
@@ -140,7 +167,7 @@ public final class DateTimeFormatGuesser {
                     countByGuess.size(), System.currentTimeMillis() - start );
         }
 
-        log.trace( "Occurrences of date-time patterns in log file lines: {}", countByGuess );
+        log.debug( "Occurrences of date-time patterns in log file lines: {}", countByGuess );
 
         if ( countByGuess.isEmpty() ) {
             return Optional.empty();
@@ -165,7 +192,6 @@ public final class DateTimeFormatGuesser {
         return guesses;
     }
 
-
     static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
         private final Collection<SingleDateTimeFormatGuess> guesses;
 
@@ -174,11 +200,11 @@ public final class DateTimeFormatGuesser {
         }
 
         @Override
-        public Optional<ZonedDateTime> convert( String line ) {
+        public Optional<ZonedDateTime> guessDateTime( String line ) {
             line = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
 
             for ( SingleDateTimeFormatGuess guess : guesses ) {
-                Optional<ZonedDateTime> result = guess.convert( line );
+                Optional<ZonedDateTime> result = guess.guessDateTime( line );
                 if ( result.isPresent() ) {
                     return result;
                 }
@@ -204,7 +230,7 @@ public final class DateTimeFormatGuesser {
         }
 
         @Override
-        public Optional<ZonedDateTime> convert( String line ) {
+        public Optional<ZonedDateTime> guessDateTime( String line ) {
             Matcher matcher = pattern.matcher( line );
             if ( matcher.find() ) {
                 try {
