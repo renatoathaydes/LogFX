@@ -62,7 +62,7 @@ import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
 /**
  * The LogFX JavaFX Application.
  */
-public class LogFX extends Application {
+public final class LogFX extends Application {
 
     // NOT static because it would cause initialization problems if it were
     private final Logger log = LoggerFactory.getLogger( LogFX.class );
@@ -145,7 +145,7 @@ public class LogFX extends Application {
         } );
 
         Platform.runLater( () -> {
-            log.debug( "Setting divider positions to {}", config.getPaneDividerPositions() );
+            log.debug( "Setting initial divider positions to {}", config.getPaneDividerPositions() );
             logsPane.setDividerPositions( config.getPaneDividerPositions() );
             logsPane.panesDividersProperty().addListener( observable ->
                     config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() ) );

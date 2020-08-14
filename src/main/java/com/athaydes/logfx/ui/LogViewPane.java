@@ -39,13 +39,16 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 
 import static com.athaydes.logfx.ui.LogView.MAX_LINES;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -55,8 +58,10 @@ public final class LogViewPane {
 
     private static final Logger log = LoggerFactory.getLogger( LogViewPane.class );
 
-    private final SplitPane pane = new SplitPane();
+    private final TaskRunner taskRunner;
     private final HighlightGroups highlightGroups;
+
+    private final SplitPane pane = new SplitPane();
 
     // a simple observable that changes state every time a change occurs in a pane divider
     // (changes in number of dividers as well as in their positions)
@@ -67,6 +72,7 @@ public final class LogViewPane {
                         Supplier<StartUpView> startUpViewGetter,
                         HighlightGroups highlightGroups,
                         boolean showEmptyPanel ) {
+        this.taskRunner = taskRunner;
         this.highlightGroups = highlightGroups;
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
@@ -112,18 +118,34 @@ public final class LogViewPane {
                 return; // we can't maximize anything if there isn't more than 1 pane
             }
             getFocusedView().ifPresent( wrapper ->
-                    taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
-                        int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
-                        for ( int i = 0; i <= topDividerIndex; i++ ) {
-                            log.debug( "Setting divider [{}] to {}", i, 0.0 );
-                            pane.setDividerPosition( i, 0.0 );
-                        }
+                    taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ),
+                            () -> Platform.runLater( () -> {
+                                int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
+                                for ( int i = 0; i <= topDividerIndex; i++ ) {
+                                    log.debug( "Setting divider [{}] to {}", i, 0.0 );
+                                    pane.setDividerPosition( i, 0.0 );
+                                }
 
-                        for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
-                            log.debug( "Setting divider [{}] to {}", i, 1.0 );
-                            pane.setDividerPosition( i, 1.0 );
-                        }
-                    } ) ) );
+                                for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
+                                    log.debug( "Setting divider [{}] to {}", i, 1.0 );
+                                    pane.setDividerPosition( i, 1.0 );
+                                }
+                            } ) ) );
+        } );
+
+        MenuItem distributePanesMenuItem = new MenuItem( "Distribute panes evenly" );
+        distributePanesMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.D,
+                KeyCombination.SHORTCUT_DOWN ) );
+        distributePanesMenuItem.setOnAction( event -> {
+            if ( pane.getItems().size() < 2 ) {
+                return; // nothing to do if there isn't more than 1 pane
+            }
+
+            final int dividerCount = pane.getItems().size() - 1;
+            final double positionStep = 1.0 / ( dividerCount + 1 );
+            setDividerPositions( IntStream.range( 0, dividerCount )
+                    .mapToObj( i -> ( i + 1 ) * positionStep )
+                    .collect( toList() ) );
         } );
 
         MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
@@ -173,7 +195,7 @@ public final class LogViewPane {
                 new SeparatorMenuItem(),
                 pauseMenuItem,
                 new SeparatorMenuItem(),
-                minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
+                minimizeMenuItem, maximizeMenuItem, distributePanesMenuItem, closeMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
@@ -325,19 +347,23 @@ public final class LogViewPane {
         return panesDividersObservable;
     }
 
-    @MustCallOnJavaFXThread
     public void setDividerPositions( List<Double> separators ) {
         double[] positions = separators.stream().mapToDouble( i -> i ).toArray();
 
-        // set divider positions from last to first, then first to last, to try to honour all of them
-        for ( int i = positions.length - 1; i >= 0; i-- ) {
-            pane.setDividerPosition( i, positions[ i ] );
+        if ( log.isDebugEnabled() ) {
+            log.debug( "Number of dividers: {}, positions: {}", positions.length,
+                    Arrays.stream( positions )
+                            .mapToObj( d -> String.format( "%.2f", d ) )
+                            .collect( joining( ", " ) ) );
         }
-        Platform.runLater( () -> {
-            for ( int i = 0; i < positions.length; i++ ) {
-                pane.setDividerPosition( i, positions[ i ] );
-            }
-        } );
+
+        taskRunner.repeat( positions.length, Duration.ofMillis( 150 ),
+                () -> Platform.runLater( () -> {
+                    for ( int i = 0; i < positions.length; i++ ) {
+                        log.debug( "Setting divider [{}] to {}", i, positions[ i ] );
+                        pane.setDividerPosition( i, positions[ i ] );
+                    }
+                } ) );
     }
 
     @MustCallOnJavaFXThread

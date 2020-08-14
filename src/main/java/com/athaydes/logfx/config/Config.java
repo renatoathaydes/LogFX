@@ -220,7 +220,7 @@ public class Config {
             if ( !data.dividerPositions.isEmpty() ) {
                 writer.write( "\n  pane-dividers " );
                 writer.write( data.dividerPositions.stream()
-                        .map( n -> Double.toString( n ) )
+                        .map( n -> String.format( Locale.US, "%.2f", n ) )
                         .collect( joining( "," ) ) );
             }
             writer.write( "\n  font " + data.font.getSize() );
