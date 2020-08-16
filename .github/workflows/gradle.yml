@@ -20,6 +20,12 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew check
 
+      - name: Publish Test Report
+        uses: scacap/action-surefire-report@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+
   build-mac:
     runs-on: macos-latest
     steps:
@@ -33,6 +39,13 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew check
 
+
+      - name: Publish Test Report
+        uses: scacap/action-surefire-report@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          report_paths: '**/build/test-results/test/TEST-*.xml'
+
   build-win:
     runs-on: windows-latest
     steps:
@@ -45,3 +58,9 @@ jobs:
 
       - name: Build with Gradle
         run: ./gradlew check
+
+      - name: Publish Test Report
+        uses: scacap/action-surefire-report@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          report_paths: '**/build/test-results/test/TEST-*.xml'

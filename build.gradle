@@ -140,6 +140,10 @@ test {
     moduleOptions {
         runOnClasspath = true
     }
+
+    reports {
+        junitXml.enabled( true )
+    }
 }
 
 task generateJavaSources(
