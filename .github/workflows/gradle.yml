@@ -18,7 +18,7 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Build with Gradle
-        run: ./gradlew check
+        run: ./gradlew check || true
 
       - name: Publish Test Report
         uses: scacap/action-surefire-report@v1
@@ -38,8 +38,7 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Build with Gradle
-        run: ./gradlew check
-
+        run: ./gradlew check || true
 
       - name: Publish Test Report
         uses: scacap/action-surefire-report@v1
@@ -59,7 +58,7 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Build with Gradle
-        run: ./gradlew check
+        run: ./gradlew check || true
 
       - name: Publish Test Report
         uses: scacap/action-surefire-report@v1
