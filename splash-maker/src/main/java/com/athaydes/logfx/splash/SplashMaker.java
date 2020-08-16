@@ -27,6 +27,9 @@ public final class SplashMaker extends Application {
         Platform.runLater( () -> {
             var image = dialog.getBox().snapshot( new SnapshotParameters(), null );
             var file = new File( args.get( 0 ) );
+            if (!file.getParentFile().mkdirs() && !file.getParentFile().isDirectory()) {
+                throw new RuntimeException("Not a directory (and cannot be created): " + file.getParentFile());
+            }
             System.out.println( "Writing splash image to " + file.getAbsolutePath() );
             try {
                 ImageIO.write( SwingFXUtils.fromFXImage( image, null ), "png", file );
