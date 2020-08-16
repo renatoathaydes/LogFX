@@ -1,17 +1,35 @@
 package com.athaydes.logfx.concurrency
 
 import spock.lang.AutoCleanup
+import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Subject
 
+import java.time.Duration
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 class TaskRunnerSpec extends Specification {
 
     @Subject
+    @Shared
     @AutoCleanup( "shutdown" )
     TaskRunner taskRunner = new TaskRunner()
+
+    def setupSpec() {
+        def task = { -> }
+        Cancellable cancellable = null
+
+        // warm up the task runner to minimize time fluctuations
+        try {
+            cancellable = taskRunner.scheduleRepeatingTask( Duration.ofMillis( 10 ), task )
+        } catch ( e ) {
+            e.printStackTrace()
+        } finally {
+            sleep 500
+            cancellable?.cancel()
+        }
+    }
 
     def "Should be able to run tasks at most at a given frequency"() {
         given: 'A helper Integer mixin for assertions'
