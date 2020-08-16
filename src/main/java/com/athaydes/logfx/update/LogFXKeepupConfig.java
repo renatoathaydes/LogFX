@@ -2,18 +2,25 @@ package com.athaydes.logfx.update;
 
 import com.athaydes.keepup.api.AppDistributor;
 import com.athaydes.keepup.api.KeepupConfig;
-import com.athaydes.keepup.github.GitHubAppDistributor;
-import com.athaydes.keepup.github.GitHubAsset;
-import com.athaydes.keepup.github.GitHubResponse;
-import com.athaydes.logfx.ui.FxUtils;
-import org.slf4j.LoggerFactory;
+import com.athaydes.keepup.bintray.BintrayAppDistributor;
 
+import java.util.Locale;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 public class LogFXKeepupConfig implements KeepupConfig {
+
+    private static final String OS_FAMILY;
+
+    static {
+        String osName = System.getProperty( "os.name" ).toLowerCase( Locale.ENGLISH );
+        OS_FAMILY = osName.contains( "windows" )
+                ? "win"
+                : ( osName.contains( "mac" ) || osName.contains( "darwin" )
+                ? "mac"
+                : "linux" );
+    }
 
     private final ExecutorService executor;
     private final Function<String, CompletionStage<Boolean>> acceptVersion;
@@ -31,21 +38,13 @@ public class LogFXKeepupConfig implements KeepupConfig {
 
     @Override
     public AppDistributor<?> distributor() {
-        return new GitHubAppDistributor( "6d8c675e14b885e57d336b1c5f867e73b51476c5", "renatoathaydes", "LogFX",
-                3, acceptVersion, this::selectAsset );
-    }
-
-    private GitHubAsset selectAsset( GitHubResponse response ) {
-        var os = FxUtils.getOs().toLowerCase();
-        LoggerFactory.getLogger( LogFXUpdater.class ).info( "GitHub response: version={}, assets={}",
-                response.getLatestVersion(),
-                response.getAssets().stream()
-                        .map( GitHubAsset::getName )
-                        .collect( Collectors.joining( ", " ) ) );
-
-        return response.getAssets().stream()
-                .filter( asset -> asset.getName().contains( os ) )
-                .findFirst().orElseThrow( () -> new RuntimeException( "Unable to idenfity GitHub asset" ) );
+        return new BintrayAppDistributor(
+                "renatoathaydes",
+                OS_FAMILY,
+                "logfx",
+                "com.athaydes.logfx",
+                "LogFX",
+                acceptVersion );
     }
 
     @Override

@@ -8,7 +8,7 @@ module com.athaydes.logfx {
     requires javafx.controls;
     requires javafx.swing;
     requires com.athaydes.keepup.core;
-    requires com.athaydes.keepup.github;
+    requires com.athaydes.keepup.bintray;
     exports com.athaydes.logfx;
     exports com.athaydes.logfx.log to org.slf4j;
     opens com.athaydes.logfx.ui to javafx.graphics;
