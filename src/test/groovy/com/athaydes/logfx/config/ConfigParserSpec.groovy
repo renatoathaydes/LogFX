@@ -107,7 +107,7 @@ class ConfigParserSpec extends Specification {
 
     def "Can parse simple V2 configuration"() {
         given: 'A simple V2 Config'
-        def sampleConfig = '''\
+        def sampleConfig = """\
         |version:
         |  V2
         |standard-log-colors:
@@ -119,13 +119,13 @@ class ConfigParserSpec extends Specification {
         |filters:
         |  disable
         |files:
-        |  /android-studio/Install-Linux-tar.txt
-        |  /home/me/.logfx/config
+        |  ${path( '/android-studio/Install-Linux-tar.txt' )}
+        |  ${path( '/home/me/.logfx/config' )}
         |gui:
         |  orientation HORIZONTAL
         |  pane-dividers 0.4840163934426229
         |  font 13.0 Monospaced
-        |'''.stripMargin()
+        |""".stripMargin()
 
         when: 'the config is parsed'
         def config = new ConfigProperties()
@@ -147,7 +147,8 @@ class ConfigParserSpec extends Specification {
         !config.enableFilters.get()
         config.autoUpdate.get()
         config.observableFiles.collect { it.file.path }.toSet() ==
-                [ '/android-studio/Install-Linux-tar.txt', '/home/me/.logfx/config' ] as Set
+                [ path( '/android-studio/Install-Linux-tar.txt' ),
+                  path( '/home/me/.logfx/config' ) ] as Set
 
         config.panesOrientation.get() == Orientation.HORIZONTAL
         config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
@@ -157,7 +158,7 @@ class ConfigParserSpec extends Specification {
 
     def "Can parse simple V3 configuration with named highlight rules"() {
         given: 'A V3 Config containing named highlight rules'
-        def sampleConfig = '''\
+        def sampleConfig = """\
         |version:
         |  V3
         |standard-log-colors:
@@ -170,7 +171,7 @@ class ConfigParserSpec extends Specification {
         |filters:
         |  disable
         |files:
-        |  /home/me/.logfx/config
+        |  ${path( '/home/me/.logfx/config' )}
         |auto_update:
         |  disable
         |gui:
@@ -178,7 +179,7 @@ class ConfigParserSpec extends Specification {
         |  window 20.4 10.2 600.0 245.6
         |  pane-dividers 0.4840163934426229
         |  font 13.0 Monospaced
-        |'''.stripMargin()
+        |""".stripMargin()
 
         when: 'the config is parsed'
         def config = new ConfigProperties()
@@ -202,7 +203,7 @@ class ConfigParserSpec extends Specification {
         !config.enableFilters.get()
         !config.autoUpdate.get()
         config.observableFiles.collect { it.file.path }.toSet() ==
-                [ '/home/me/.logfx/config' ] as Set
+                [ path( '/home/me/.logfx/config' ) ] as Set
 
         config.panesOrientation.get() == Orientation.HORIZONTAL
         config.paneDividerPositions.collect() == [ 0.4840163934426229 as double ]
@@ -214,6 +215,10 @@ class ConfigParserSpec extends Specification {
         config.highlightGroups.getDefault().collect() == defaultHighlights
         config.highlightGroups.getByName( '' ).collect() == defaultHighlights
         config.highlightGroups.getByName( 'Extra Rules' )?.collect() == extraHighlights
+    }
+
+    private static String path( String linuxPath ) {
+        new File( linuxPath ).absolutePath
     }
 
 }
