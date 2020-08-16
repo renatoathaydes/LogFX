@@ -54,7 +54,7 @@ task jlink( type: Exec ) {
             '--module-path', libs,
             '--vm=server', // options: client|server|minimal|all
             '--add-modules', 'java.base,java.desktop,javafx.controls,jdk.unsupported,jdk.crypto.ec,org.slf4j,' +
-                    'org.json,com.athaydes.keepup.core,com.athaydes.keepup.github,com.athaydes.logfx',
+                    'com.athaydes.keepup.core,com.athaydes.keepup.bintray,com.athaydes.logfx',
             '--output', image,
             '--strip-debug', '--compress', '2', '--no-header-files', '--no-man-pages' ]
     def jlink = System.getProperty( 'java.home' ) + '/bin/jlink'

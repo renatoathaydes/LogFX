@@ -16,10 +16,12 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Upload Bintray Test App
+        uses: GabrielBB/xvfb-action@v1.2
         env:
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
-        run: ./gradlew bintrayUp
+        with:
+          run: ./gradlew bintrayUp
 
   publish-linux:
     runs-on: ubuntu-latest
@@ -32,10 +34,12 @@ jobs:
           java-package: 'jdk+fx'
 
       - name: Upload Bintray Test App
+        uses: GabrielBB/xvfb-action@v1.2
         env:
           BINTRAY_USER: ${{ secrets.BINTRAY_USER }}
           BINTRAY_KEY: ${{ secrets.BINTRAY_KEY }}
-        run: ./gradlew bintrayUp -PbintrayBinaries
+        with:
+          run: ./gradlew bintrayUp -PbintrayBinaries
 
   publish-mac:
     runs-on: macos-latest
