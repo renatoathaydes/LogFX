@@ -44,7 +44,7 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.SplashScreen;
+import java.awt.*;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -87,7 +87,7 @@ public final class LogFX extends Application {
         this.config = new Config( configFile, taskRunner );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
-                new StartUpView( stage, this::open ),
+                new StartUpView( stage, config.getObservableFiles(), this::open ),
                 config.getHighlightGroups(),
                 config.getObservableFiles().isEmpty() );
 
@@ -243,7 +243,7 @@ public final class LogFX extends Application {
         MenuItem open = new MenuItem( "_Open File" );
         open.setAccelerator( new KeyCodeCombination( KeyCode.O, KeyCombination.SHORTCUT_DOWN ) );
         open.setMnemonicParsing( true );
-        open.setOnAction( ( event ) -> new FileOpener( stage, this::open ) );
+        open.setOnAction( ( event ) -> FileOpener.run( stage, config.getObservableFiles(), this::open ) );
 
         MenuItem showLogFxLog = new MenuItem( "Open LogFX Log" );
         showLogFxLog.setAccelerator( new KeyCodeCombination( KeyCode.O,

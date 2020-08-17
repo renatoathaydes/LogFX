@@ -3,6 +3,7 @@ package com.athaydes.logfx.config;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import com.athaydes.logfx.ui.FileOpener;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
@@ -176,7 +177,11 @@ final class ConfigParser {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                properties.observableFiles.add( parseLogFileLine( line ) );
+                if ( properties.observableFiles.size() >= FileOpener.MAX_OPEN_FILES ) {
+                    log.warn( "Cannot open file {}. Too many open files.", line );
+                } else {
+                    properties.observableFiles.add( parseLogFileLine( line ) );
+                }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
