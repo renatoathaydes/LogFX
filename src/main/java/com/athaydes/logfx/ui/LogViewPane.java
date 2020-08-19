@@ -47,6 +47,7 @@ import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
+import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
 import static com.athaydes.logfx.ui.LogView.MAX_LINES;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
@@ -274,7 +275,7 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
-    public void add( LogView logView, Runnable onCloseFile, int index ) {
+    public void add( LogView logView, Runnable onCloseFile, int index, Consumer<LogView> createGroupForFile ) {
         LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups,
                 this::getAllLogViews, ( wrapper ) -> {
             try {
@@ -282,7 +283,7 @@ public final class LogViewPane {
             } finally {
                 onCloseFile.run();
             }
-        } );
+        }, createGroupForFile );
 
         if ( pane.getItems().size() == 1 &&
                 pane.getItems().get( 0 ) instanceof StartUpView ) {
@@ -433,18 +434,21 @@ public final class LogViewPane {
         private final LogViewHeader header;
         private final LogViewScrollPane scrollPane;
         private final Supplier<List<LogViewWrapper>> logViewsGetter;
+        private final Consumer<LogView> createGroupForLogFile;
 
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
                         HighlightGroups highlightGroups,
                         Supplier<List<LogViewWrapper>> logViewsGetter,
-                        Consumer<LogViewWrapper> onCloseFile ) {
+                        Consumer<LogViewWrapper> onCloseFile,
+                        Consumer<LogView> createGroupForLogFile ) {
             super( 2.0 );
 
             this.logView = logView;
             this.highlightGroups = highlightGroups;
             this.onCloseFile = onCloseFile;
             this.logViewsGetter = logViewsGetter;
+            this.createGroupForLogFile = createGroupForLogFile;
 
             this.header = new LogViewHeader( logView, this::closeView, this::toDateTime,
                     this::showHighlightGroupSelector );
@@ -488,9 +492,15 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         void showHighlightGroupSelector() {
             ChoiceBox<String> optionsChoiceBox = new ChoiceBox<>();
+            Button newGroup = AwesomeIcons.createIconButton( PLUS );
+            newGroup.setTooltip( new Tooltip( "Create new group" ) );
+            newGroup.setOnAction( ( ignore ) ->
+                    createGroupForLogFile.accept( logView ) );
+
             Dialog dialog = new Dialog(
                     new Label( String.format( "Select group for %s", logView.getFile().getName() ) ),
-                    optionsChoiceBox );
+                    new HBox( 10.0, optionsChoiceBox, newGroup ) );
+            dialog.closeWhenLoseFocus();
 
             optionsChoiceBox.setConverter( new HighlightGroupSelectorConverter() );
             optionsChoiceBox.getItems().addAll( highlightGroups.groupNames() );
@@ -498,9 +508,6 @@ public final class LogViewPane {
             optionsChoiceBox.setOnAction( ( event ) -> {
                 logView.getLogFile().highlightGroupProperty().setValue( optionsChoiceBox.getValue() );
                 dialog.hide();
-            } );
-            optionsChoiceBox.focusedProperty().addListener( ( obs, oldVal, newVal ) -> {
-                if ( !newVal ) dialog.hide();
             } );
             optionsChoiceBox.setOnKeyPressed( ( event ) -> {
                 if ( event.getCode() == KeyCode.ENTER || event.getCode() == KeyCode.ESCAPE ) {

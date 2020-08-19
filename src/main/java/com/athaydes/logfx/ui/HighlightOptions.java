@@ -177,11 +177,14 @@ public class HighlightOptions extends VBox {
         var texts = new TextFlow(
                 text.apply( "Highlight Options\n", "h2" ),
                 text.apply( "This dialog allows you to set up rules for highlighting text in the logs.\n", null ),
-                text.apply( "When a line of a log file is displayed, its contents are checked against each of these rules.\n" +
+                text.apply( "When a line of a log file is displayed, its contents are checked against each of these " +
+                        "rules.\n" +
                         "The first rule to match is applied. All rules below the matching rule are ignored.\n", null ),
-                text.apply( "The last rule is always empty, which means it always matches. Therefore, it can be used to define the standard style of the log.\n\n", null ),
+                text.apply( "The last rule is always empty, which means it always matches. Therefore, it can be used " +
+                        "to define the standard style of the log.\n\n", null ),
                 text.apply( "Writing expressions\n", "h2" ),
-                text.apply( "Each rule defines a regular expression that is used to determine if its styles should be applied to a log line.\n", null ),
+                text.apply( "Each rule defines a regular expression that is used to determine if its styles should be" +
+                        " applied to a log line.\n", null ),
                 text.apply( "For example, to match all lines containing the word ", null ),
                 text.apply( "Error", "code" ),
                 text.apply( " just enter the ", null ),

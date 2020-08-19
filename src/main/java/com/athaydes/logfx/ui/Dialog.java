@@ -114,7 +114,7 @@ public class Dialog {
         if ( !closeWhenLoseFocus ) {
             dialogStage.focusedProperty().addListener( observable -> {
                 if ( !dialogStage.isFocused() ) {
-                    dialogStage.close();
+                    Platform.runLater( dialogStage::close );
                 }
             } );
             closeWhenLoseFocus = true;

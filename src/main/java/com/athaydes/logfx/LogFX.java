@@ -14,11 +14,11 @@ import com.athaydes.logfx.ui.Dialog;
 import com.athaydes.logfx.ui.FileDragAndDrop;
 import com.athaydes.logfx.ui.FileOpener;
 import com.athaydes.logfx.ui.FxUtils;
-import com.athaydes.logfx.ui.HighlightGroupsView;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import com.athaydes.logfx.ui.StartUpView;
+import com.athaydes.logfx.ui.TopViewMenu;
 import com.athaydes.logfx.update.LogFXUpdater;
 import javafx.application.Application;
 import javafx.application.HostServices;
@@ -51,13 +51,10 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static com.athaydes.logfx.data.NaNChecker.checkNaN;
 import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
-import static com.athaydes.logfx.ui.FontPicker.showFontPicker;
-import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
 
 /**
  * The LogFX JavaFX Application.
@@ -76,6 +73,7 @@ public final class LogFX extends Application {
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
     private final LogViewPane logsPane;
+    private final TopViewMenu topViewMenu;
     private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
     private final TaskRunner taskRunner = new TaskRunner( false );
@@ -92,6 +90,8 @@ public final class LogFX extends Application {
                 config.getObservableFiles().isEmpty() );
 
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
+
+        topViewMenu = new TopViewMenu( logsPane, config );
 
         openFilesFromConfig();
 
@@ -111,7 +111,7 @@ public final class LogFX extends Application {
 
         MenuBar menuBar = new MenuBar();
         menuBar.useSystemMenuBarProperty().set( true );
-        menuBar.getMenus().addAll( fileMenu(), viewMenu(), helpMenu() );
+        menuBar.getMenus().addAll( fileMenu(), topViewMenu, helpMenu() );
 
         VBox mainBox = new VBox( 0 );
         logsPane.prefHeightProperty().bind( mainBox.heightProperty() );
@@ -344,71 +344,10 @@ public final class LogFX extends Application {
             }
         } );
 
-        logsPane.add( view, () -> config.getObservableFiles().remove( logFile ), index );
+        logsPane.add( view, () -> config.getObservableFiles().remove( logFile ), index,
+                topViewMenu.getGroupCreateCallback() );
 
         return true;
-    }
-
-    @MustCallOnJavaFXThread
-    private Menu viewMenu() {
-        Menu menu = new Menu( "_View" );
-        menu.setMnemonicParsing( true );
-
-        CheckMenuItem highlight = new CheckMenuItem( "_Highlight Options" );
-        highlight.setAccelerator( new KeyCodeCombination( KeyCode.H,
-                // on Mac, Cmd+H hides the window, so let it use Ctrl+H instead
-                FxUtils.isMac() ? KeyCombination.CONTROL_DOWN : KeyCombination.SHORTCUT_DOWN ) );
-        highlight.setMnemonicParsing( true );
-        bindMenuItemToDialog( highlight, () ->
-                showHighlightOptionsDialog( new HighlightGroupsView( config ) ) );
-
-        MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
-        orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
-                KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
-        orientation.setOnAction( event -> logsPane.switchOrientation() );
-
-        CheckMenuItem font = new CheckMenuItem( "Fon_t" );
-        font.setAccelerator( new KeyCodeCombination( KeyCode.F,
-                KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
-        font.setMnemonicParsing( true );
-        bindMenuItemToDialog( font, () -> showFontPicker( config.fontProperty() ) );
-
-        CheckMenuItem filter = new CheckMenuItem( "Enable _filters" );
-        filter.setAccelerator( new KeyCodeCombination( KeyCode.F,
-                KeyCombination.SHORTCUT_DOWN ) );
-        filter.setMnemonicParsing( true );
-        filter.selectedProperty().bindBidirectional( config.filtersEnabledProperty() );
-
-        MenuItem showContextMenu = new MenuItem( "Show Context Menu" );
-        showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN ) );
-        showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
-
-        menu.getItems().addAll( highlight, orientation, font, filter, showContextMenu );
-        return menu;
-    }
-
-    @MustCallOnJavaFXThread
-    private static void bindMenuItemToDialog( CheckMenuItem menuItem, Callable<Dialog> dialogCreator ) {
-        AtomicReference<Dialog> dialogRef = new AtomicReference<>();
-
-        menuItem.setOnAction( ( event ) -> {
-            if ( menuItem.isSelected() ) {
-                if ( dialogRef.get() == null || !dialogRef.get().isVisible() ) {
-                    try {
-                        Dialog dialog = dialogCreator.call();
-                        dialogRef.set( dialog );
-                        dialog.setOnHidden( e -> {
-                            menuItem.setSelected( false );
-                            dialogRef.set( null );
-                        } );
-                    } catch ( Exception e ) {
-                        e.printStackTrace();
-                    }
-                }
-            } else if ( dialogRef.get() != null ) {
-                dialogRef.get().hide();
-            }
-        } );
     }
 
     public static HostServices hostServices() {
