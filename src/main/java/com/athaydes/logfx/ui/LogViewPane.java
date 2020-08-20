@@ -10,6 +10,7 @@ import javafx.beans.property.ObjectProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.ChoiceBox;
@@ -47,7 +48,6 @@ import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
-import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
 import static com.athaydes.logfx.ui.LogView.MAX_LINES;
 import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
@@ -492,15 +492,20 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         void showHighlightGroupSelector() {
             ChoiceBox<String> optionsChoiceBox = new ChoiceBox<>();
-            Button newGroup = AwesomeIcons.createIconButton( PLUS );
-            newGroup.setTooltip( new Tooltip( "Create new group" ) );
-            newGroup.setOnAction( ( ignore ) ->
-                    createGroupForLogFile.accept( logView ) );
+            Button newGroup = new Button( "Edit groups" );
+
+            HBox groupRow = new HBox( 10.0, optionsChoiceBox, newGroup );
+            groupRow.setAlignment( Pos.CENTER );
 
             Dialog dialog = new Dialog(
                     new Label( String.format( "Select group for %s", logView.getFile().getName() ) ),
-                    new HBox( 10.0, optionsChoiceBox, newGroup ) );
+                    groupRow );
             dialog.closeWhenLoseFocus();
+
+            newGroup.setOnAction( ( ignore ) -> {
+                dialog.hide();
+                Platform.runLater( () -> createGroupForLogFile.accept( logView ) );
+            } );
 
             optionsChoiceBox.setConverter( new HighlightGroupSelectorConverter() );
             optionsChoiceBox.getItems().addAll( highlightGroups.groupNames() );
