@@ -10,6 +10,7 @@ import javafx.animation.Timeline;
 import javafx.animation.Transition;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
+import javafx.geometry.Bounds;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -110,6 +111,11 @@ public class Dialog {
         return box;
     }
 
+    public void setWidth( double width ) {
+        dialogStage.setWidth( width );
+        box.setMinWidth( width );
+    }
+
     public void closeWhenLoseFocus() {
         if ( !closeWhenLoseFocus ) {
             dialogStage.focusedProperty().addListener( observable -> {
@@ -174,6 +180,16 @@ public class Dialog {
         hasBeenShown = true;
     }
 
+    public void showNear( Node node ) {
+        dialogStage.setWidth( 400.0 );
+        Bounds boundsInScreen = node.localToScreen( node.getBoundsInLocal() );
+        double shiftX = Math.max( 0.0, ( boundsInScreen.getWidth() - dialogStage.getWidth() ) / 2.0 );
+        dialogStage.setX( boundsInScreen.getMinX() + shiftX );
+        dialogStage.setY( boundsInScreen.getMinY() );
+        dialogStage.show();
+        hasBeenShown = true;
+    }
+
     public void hide() {
         dialogStage.hide();
     }
@@ -222,7 +238,8 @@ public class Dialog {
             Label label = new Label( question );
             TextField textField = new TextField( prefilledAnswer );
             Dialog dialog = new Dialog( label, textField );
-            dialog.getBox().setMinWidth( 500 );
+            dialog.closeWhenLoseFocus();
+            dialog.setWidth( 500 );
             dialog.setStyle( StageStyle.UNDECORATED );
             if ( owner != null ) {
                 dialog.setOwner( owner.getWindow() );
@@ -243,7 +260,7 @@ public class Dialog {
             var optionsBox = new HBox( 10 );
             optionsBox.setAlignment( Pos.CENTER );
             var dialog = new Dialog( label, new BorderPane( optionsBox ) );
-            dialog.getBox().setMinWidth( 500 );
+            dialog.setWidth( 500 );
             dialog.setStyle( StageStyle.UNDECORATED );
             dialog.doNotCloseOnEscapePressed();
             options.forEach( ( opt, action ) -> {
@@ -268,7 +285,7 @@ public class Dialog {
             messageText.setWrappingWidth( width );
 
             Dialog dialog = new Dialog( messageText );
-            dialog.getBox().setMaxWidth( width );
+            dialog.setWidth( width );
             dialog.setStyle( StageStyle.TRANSPARENT );
             dialog.getBox().setSpacing( 0 );
             dialog.getBox().getStyleClass().addAll( "message", level.name().toLowerCase() );

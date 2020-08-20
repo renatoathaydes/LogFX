@@ -523,8 +523,8 @@ public final class LogViewPane {
             dialog.setOwner( getScene().getWindow() );
             dialog.setStyle( StageStyle.UNDECORATED );
             dialog.setResizable( false );
-            dialog.getBox().setMinWidth( 400.0 );
-            dialog.show( Dialog.DialogPosition.TOP_CENTER );
+            dialog.setWidth( 400.0 );
+            dialog.showNear( scrollPane );
         }
 
         @MustCallOnJavaFXThread
