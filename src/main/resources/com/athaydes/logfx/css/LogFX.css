@@ -17,10 +17,15 @@ Button, ToggleButton {
     -fx-background-insets: 0,0,0;
     -fx-background-radius: 0,0,0;
     -fx-padding: 4 10 4 10;
+    -fx-border-color: transparent;
 }
 
 Button:hover, ToggleButton:hover {
     -fx-background-color: derive(-fx-base, 20%);
+}
+
+Button:focused, ToggleButton:focused {
+    -fx-border-color: -fx-focus-color;
 }
 
 .favourite-button {
