@@ -18,6 +18,7 @@ import javafx.scene.layout.HBox;
 import static com.athaydes.logfx.ui.AwesomeIcons.PENCIL;
 import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
+import static com.athaydes.logfx.ui.HighlightOptions.nextColor;
 
 public class HighlightGroupsView extends BorderPane {
     private final ChoiceBox<HighlightOptions> optionsChoiceBox;
@@ -91,6 +92,7 @@ public class HighlightGroupsView extends BorderPane {
         return ( ignore ) -> {
             String groupName = generateGroupName( groups );
             ObservableList<HighlightExpression> rules = groups.add( groupName );
+            rules.add( new HighlightExpression( "", nextColor(), nextColor(), false ) );
             HighlightOptions newOptions = createHighlightOptions( config, groupName, rules );
             optionsChoiceBox.getItems().add( newOptions );
             optionsChoiceBox.getSelectionModel().select( newOptions );

@@ -233,7 +233,7 @@ public class HighlightOptions extends VBox {
                 expression, observableExpressions, expressionsBox ) );
     }
 
-    private static Color nextColor() {
+    static Color nextColor() {
         return Color.color( Math.random(), Math.random(), Math.random() );
     }
 
