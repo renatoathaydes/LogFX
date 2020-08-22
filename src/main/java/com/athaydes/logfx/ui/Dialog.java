@@ -88,6 +88,7 @@ public class Dialog {
     public Dialog( String stylesheet, Node top, Node... others ) {
         dialogStage.initOwner( primaryStage );
         dialogStage.initModality( Modality.NONE );
+        box.getStyleClass().add( "dialog-vbox" );
         box.setAlignment( Pos.CENTER );
         box.setPadding( new Insets( 20 ) );
         box.getChildren().add( top );
