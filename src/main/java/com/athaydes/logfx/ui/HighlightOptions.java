@@ -249,7 +249,8 @@ public class HighlightOptions extends VBox {
         private final SimpleObjectProperty<LogLineColors> standardLogColors;
 
         StandardLogColorsRow( SimpleObjectProperty<LogLineColors> standardLogColors ) {
-            super( "", standardLogColors.get().getBackground(), standardLogColors.get().getFill(), false );
+            super( "<default for all groups>", standardLogColors.get().getBackground(),
+                    standardLogColors.get().getFill(), false );
             this.standardLogColors = standardLogColors;
 
             expressionField.setEditable( false );
