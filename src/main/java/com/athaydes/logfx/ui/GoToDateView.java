@@ -6,6 +6,8 @@ import com.athaydes.logfx.ui.LogViewPane.LogViewWrapper;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -57,7 +59,7 @@ class GoToDateView {
         Button goButton = new Button( "Go" );
         goButton.disableProperty().bind( dateTimeField.validProperty().not() );
 
-        goButton.setOnAction( event -> {
+        EventHandler<ActionEvent> goAction = event -> {
             dateTimeField.getValue().ifPresent( dateTime -> {
                 List<LogViewWrapper> viewWrappers = new ArrayList<>( 3 );
                 if ( goToAll.isSelected() ) {
@@ -75,14 +77,17 @@ class GoToDateView {
             } );
 
             dialog.hide();
-        } );
+        };
+
+        dateTimeField.setOnAction( goAction );
+        goButton.setOnAction( goAction );
 
         dialog.dialogStage.focusedProperty().addListener( ( obs, oldVal, newVal ) -> {
             if ( !newVal ) dialog.hide();
         } );
 
         HBox buttonBox = new HBox( 10 );
-        buttonBox.getChildren().addAll(  goButton, goToAll );
+        buttonBox.getChildren().addAll( goButton, goToAll );
 
         root.getChildren().addAll( dateLabel, dateTimeField, buttonBox );
     }
