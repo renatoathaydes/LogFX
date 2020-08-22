@@ -275,7 +275,7 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
-    public void add( LogView logView, Runnable onCloseFile, int index, Consumer<LogView> createGroupForFile ) {
+    public void add( LogView logView, Runnable onCloseFile, int index, Consumer<LogView> editGroupForFile ) {
         LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups,
                 this::getAllLogViews, ( wrapper ) -> {
             try {
@@ -283,7 +283,7 @@ public final class LogViewPane {
             } finally {
                 onCloseFile.run();
             }
-        }, createGroupForFile );
+        }, editGroupForFile );
 
         if ( pane.getItems().size() == 1 &&
                 pane.getItems().get( 0 ) instanceof StartUpView ) {
@@ -492,9 +492,9 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         void showHighlightGroupSelector() {
             ChoiceBox<String> optionsChoiceBox = new ChoiceBox<>();
-            Button newGroup = new Button( "Edit groups" );
+            Button editGroupsButton = new Button( "Edit groups" );
 
-            HBox groupRow = new HBox( 10.0, optionsChoiceBox, newGroup );
+            HBox groupRow = new HBox( 10.0, optionsChoiceBox, editGroupsButton );
             groupRow.setAlignment( Pos.CENTER );
 
             Dialog dialog = new Dialog(
@@ -502,7 +502,7 @@ public final class LogViewPane {
                     groupRow );
             dialog.closeWhenLoseFocus();
 
-            newGroup.setOnAction( ( ignore ) -> {
+            editGroupsButton.setOnAction( ( ignore ) -> {
                 dialog.hide();
                 Platform.runLater( () -> createGroupForLogFile.accept( logView ) );
             } );

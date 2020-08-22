@@ -3,6 +3,7 @@ package com.athaydes.logfx.ui;
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.HighlightGroups;
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
@@ -24,6 +25,7 @@ public class HighlightGroupsView extends BorderPane {
     private final ChoiceBox<HighlightOptions> optionsChoiceBox;
     private final HighlightOptions defaultOption;
     private final HighlightGroups groups;
+    private final HighlightOptionsSelectorConverter selectorConverter;
 
     public HighlightGroupsView( Config config ) {
         groups = config.getHighlightGroups();
@@ -31,10 +33,13 @@ public class HighlightGroupsView extends BorderPane {
         optionsChoiceBox = new ChoiceBox<>();
 
         defaultOption = populateChoiceBoxAndReturnDefaultOption( config, optionsChoiceBox.getItems(), groups );
+
         assert defaultOption != null;
 
-        optionsChoiceBox.setConverter( new HighlightOptionsSelectorConverter(
-                optionsChoiceBox.getItems(), defaultOption, groups ) );
+        selectorConverter = new HighlightOptionsSelectorConverter(
+                optionsChoiceBox.getItems(), defaultOption, groups );
+
+        optionsChoiceBox.setConverter( selectorConverter );
 
         Button deleteButton = AwesomeIcons.createIconButton( TRASH );
         deleteButton.setTooltip( new Tooltip( "Delete the selected group of highlight rules" ) );
@@ -66,6 +71,11 @@ public class HighlightGroupsView extends BorderPane {
 
         setTop( selector );
         optionsChoiceBox.getSelectionModel().select( defaultOption );
+    }
+
+    public void setGroupFor( LogFile logFile ) {
+        HighlightOptions options = selectorConverter.fromString( logFile.getHighlightGroup() );
+        optionsChoiceBox.getSelectionModel().select( options );
     }
 
     void onShow() {
@@ -156,5 +166,4 @@ public class HighlightGroupsView extends BorderPane {
         }
         return groupName;
     }
-
 }

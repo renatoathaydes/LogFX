@@ -18,18 +18,20 @@ import static com.athaydes.logfx.ui.HighlightOptions.showHighlightOptionsDialog;
 public final class TopViewMenu extends Menu {
 
     private final CheckMenuItem highlight;
+    private final HighlightGroupsView highlightGroupsView;
 
     public TopViewMenu( LogViewPane logsPane, Config config ) {
         super( "_View" );
         setMnemonicParsing( true );
+
+        highlightGroupsView = new HighlightGroupsView( config );
 
         highlight = new CheckMenuItem( "_Highlight Options" );
         highlight.setAccelerator( new KeyCodeCombination( KeyCode.H,
                 // on Mac, Cmd+H hides the window, so let it use Ctrl+H instead
                 FxUtils.isMac() ? KeyCombination.CONTROL_DOWN : KeyCombination.SHORTCUT_DOWN ) );
         highlight.setMnemonicParsing( true );
-        bindMenuItemToDialog( highlight, () ->
-                showHighlightOptionsDialog( new HighlightGroupsView( config ) ) );
+        bindMenuItemToDialog( highlight, () -> showHighlightOptionsDialog( highlightGroupsView ) );
 
         MenuItem orientation = new MenuItem( "Switch Pane Orientation" );
         orientation.setAccelerator( new KeyCodeCombination( KeyCode.S,
@@ -55,8 +57,11 @@ public final class TopViewMenu extends Menu {
         getItems().addAll( highlight, orientation, font, filter, showContextMenu );
     }
 
-    public Consumer<LogView> getGroupCreateCallback() {
-        return ( logView ) -> highlight.selectedProperty().setValue( true );
+    public Consumer<LogView> getEditGroupCallback() {
+        return ( logView ) -> {
+            highlightGroupsView.setGroupFor( logView.getLogFile() );
+            highlight.selectedProperty().setValue( true );
+        };
     }
 
     @MustCallOnJavaFXThread
