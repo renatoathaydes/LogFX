@@ -24,8 +24,23 @@ Button:hover, ToggleButton:hover {
     -fx-background-color: derive(-fx-base, 20%);
 }
 
-Button:focused, ToggleButton:focused {
+Button:focused, ToggleButton:focused, HighlightGroupSelector:focused {
     -fx-border-color: -fx-focus-color;
+}
+
+HighlightGroupSelector {
+    -fx-border-color: transparent;
+    -fx-background-color: derive(-fx-base, 20%);
+    -fx-min-width: 100px;
+    -fx-font-size: 12px;
+}
+
+HighlightGroupSelector:hover {
+    -fx-background-color: derive(-fx-base, 30%);
+}
+
+HighlightGroupSelector .label {
+    -fx-font-size: 12px;
 }
 
 .favourite-button {

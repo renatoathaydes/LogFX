@@ -39,17 +39,3 @@ final class HighlightOptionsSelectorConverter extends StringConverter<HighlightO
                 .orElseThrow( () -> new RuntimeException( "Unreachable" ) );
     }
 }
-
-final class HighlightGroupSelectorConverter extends StringConverter<String> {
-
-    @Override
-    public String toString( String option ) {
-        if ( option.isEmpty() ) return HighlightOptionsSelectorConverter.DEFAULT_GROUP_DISPLAY_NAME;
-        return option;
-    }
-
-    @Override
-    public String fromString( String groupName ) {
-        return groupName;
-    }
-}
