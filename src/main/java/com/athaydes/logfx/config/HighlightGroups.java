@@ -59,6 +59,14 @@ public final class HighlightGroups {
         return Collections.unmodifiableMap( configByGroupName );
     }
 
+    public void addGroupNameListener( InvalidationListener listener ) {
+        configByGroupName.addListener( listener );
+    }
+
+    public void removeGroupNameListener( InvalidationListener listener ) {
+        configByGroupName.removeListener( listener );
+    }
+
     void setListener( InvalidationListener listener ) {
         if ( invalidationListener != null ) throw new RuntimeException( "invalidation listener has already been set" );
         invalidationListener = listener;

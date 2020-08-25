@@ -545,6 +545,8 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         void stop() {
+            header.dispose();
+
             // do not call onClose as this is not closing the view, just stopping the app
             logView.closeFileReader();
         }
@@ -585,9 +587,6 @@ public final class LogViewPane {
                        HighlightGroups groups, Consumer<LogView> editGroupForLogFile ) {
             groupSelector = new HighlightGroupSelector( groups, logView );
             groupSelector.setTooltip( new Tooltip( "Select highlight rules group for this file" ) );
-            logView.getLogFile().highlightGroupProperty().addListener( ignore -> {
-                groupSelector.getSelectionModel().select( logView.getLogFile().getHighlightGroup() );
-            } );
 
             setMinWidth( 10.0 );
 
@@ -677,6 +676,10 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         void togglePauseRefresh() {
             pauseRefresh.set( !pauseRefresh.getValue() );
+        }
+
+        public void dispose() {
+            groupSelector.dispose();
         }
     }
 
