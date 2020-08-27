@@ -43,7 +43,7 @@ public class LogFXKeepupConfig implements KeepupConfig {
                 OS_FAMILY,
                 "logfx",
                 "com.athaydes.logfx",
-                "LogFX",
+                "logfx",
                 acceptVersion );
     }
 
