@@ -40,5 +40,6 @@ public class AwesomeIcons {
     public static final String PENCIL = "\ue61c";
     public static final String PLUS = "\ue61a";
     public static final String LIST_UL = "\ue6c3";
+    public static final String DUPLICATE = "\uE62F";
 
 }

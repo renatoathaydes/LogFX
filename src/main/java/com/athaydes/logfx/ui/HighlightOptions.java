@@ -65,9 +65,10 @@ public class HighlightOptions extends VBox {
         this.isFilterEnabled = isFilterEnabled;
         this.expressionsBox = new VBox( 2 );
 
-        expressionsBox.getChildren().addAll( observableExpressions.stream()
+        // allow the caller to add children AFTER calling this HighlightOptions
+        Platform.runLater( () -> expressionsBox.getChildren().addAll( observableExpressions.stream()
                 .map( ex -> new HighlightExpressionRow( ex, observableExpressions, expressionsBox ) )
-                .toArray( HighlightExpressionRow[]::new ) );
+                .toArray( HighlightExpressionRow[]::new ) ) );
 
         setSpacing( 5 );
         setPadding( new Insets( 5 ) );

@@ -16,6 +16,7 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 
+import static com.athaydes.logfx.ui.AwesomeIcons.DUPLICATE;
 import static com.athaydes.logfx.ui.AwesomeIcons.PENCIL;
 import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
@@ -55,6 +56,10 @@ public class HighlightGroupsView extends BorderPane {
                 "Each log file can be associated with a group" ) );
         addButton.setOnAction( handleAddGroup( config, groups ) );
 
+        Button duplicateButton = AwesomeIcons.createIconButton( DUPLICATE );
+        duplicateButton.setTooltip( new Tooltip( "Duplicate this group" ) );
+        duplicateButton.setOnAction( handleDuplicateGroup( config, groups ) );
+
         optionsChoiceBox.setOnAction( ( ignore ) -> {
             HighlightOptions selectedItem = optionsChoiceBox.getSelectionModel().getSelectedItem();
             if ( selectedItem == null ) return;
@@ -67,7 +72,8 @@ public class HighlightGroupsView extends BorderPane {
 
         HBox selector = new HBox( 10 );
         Label groupLabel = new Label( "Select group to edit:" );
-        selector.getChildren().addAll( groupLabel, optionsChoiceBox, editButton, deleteButton, addButton );
+        selector.getChildren().addAll( groupLabel, optionsChoiceBox, editButton, deleteButton,
+                addButton, duplicateButton );
 
         setTop( selector );
         optionsChoiceBox.getSelectionModel().select( defaultOption );
@@ -98,14 +104,27 @@ public class HighlightGroupsView extends BorderPane {
         return defaultHighlightOptions.getValue();
     }
 
+    private ObservableList<HighlightExpression> newGroup( Config config, HighlightGroups groups ) {
+        String groupName = generateGroupName( groups );
+        ObservableList<HighlightExpression> rules = groups.add( groupName );
+        HighlightOptions newOptions = createHighlightOptions( config, groupName, rules );
+        optionsChoiceBox.getItems().add( newOptions );
+        optionsChoiceBox.getSelectionModel().select( newOptions );
+        return rules;
+    }
+
     private EventHandler<ActionEvent> handleAddGroup( Config config, HighlightGroups groups ) {
         return ( ignore ) -> {
-            String groupName = generateGroupName( groups );
-            ObservableList<HighlightExpression> rules = groups.add( groupName );
+            ObservableList<HighlightExpression> rules = newGroup( config, groups );
             rules.add( new HighlightExpression( "", nextColor(), nextColor(), false ) );
-            HighlightOptions newOptions = createHighlightOptions( config, groupName, rules );
-            optionsChoiceBox.getItems().add( newOptions );
-            optionsChoiceBox.getSelectionModel().select( newOptions );
+        };
+    }
+
+    private EventHandler<ActionEvent> handleDuplicateGroup( Config config, HighlightGroups groups ) {
+        return ( ignore ) -> {
+            String currentGroupName = optionsChoiceBox.getSelectionModel().getSelectedItem().getGroupName();
+            ObservableList<HighlightExpression> rules = newGroup( config, groups );
+            rules.addAll( groups.getByName( currentGroupName ) );
         };
     }
 
