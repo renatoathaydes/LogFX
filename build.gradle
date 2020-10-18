@@ -5,7 +5,7 @@ plugins {
     id 'groovy'
     id 'application'
     id 'maven'
-    id 'org.javamodularity.moduleplugin' version '1.6.0'
+    id 'org.javamodularity.moduleplugin' version '1.7.0'
     id "com.jfrog.bintray" version "1.8.4"
 }
 
