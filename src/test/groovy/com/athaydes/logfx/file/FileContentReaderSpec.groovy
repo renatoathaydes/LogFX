@@ -639,7 +639,7 @@ class FileContentReaderSpec extends Specification {
 
         and: 'A function that correctly extracts date-times from log lines'
         def pattern = Pattern.compile( 'INFO ([A-za-z0-9: ]+)-.*' )
-        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy' )
+        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy', Locale.ENGLISH )
         def dateExtractor = { String line ->
             def matcher = pattern.matcher( line )
             if ( matcher.matches() ) {
@@ -651,7 +651,7 @@ class FileContentReaderSpec extends Specification {
 
         when: 'we try to move to a certain time (#time) in the log'
         def zonedTime = ZonedDateTime.parse( time + ' CEST',
-                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z" ) )
+                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z", Locale.ENGLISH ) )
         def result = reader.moveTo( zonedTime, dateExtractor )
         def lines = reader.refresh()
 
@@ -727,7 +727,7 @@ class FileContentReaderSpec extends Specification {
 
         and: 'A function that correctly extracts date-times from log lines'
         def pattern = Pattern.compile( 'INFO ([A-za-z0-9: ]+)-.*' )
-        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy' )
+        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy', Locale.ENGLISH )
         def dateExtractor = { String line ->
             def matcher = pattern.matcher( line )
             if ( matcher.matches() ) {
@@ -741,7 +741,7 @@ class FileContentReaderSpec extends Specification {
         reader.tail()
 
         def zonedTime = ZonedDateTime.parse( time + ' CEST',
-                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z" ) )
+                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z", Locale.ENGLISH ) )
         def result = reader.moveTo( zonedTime, dateExtractor )
 
         def lines = reader.refresh()
@@ -816,7 +816,7 @@ class FileContentReaderSpec extends Specification {
 
         and: 'A function that correctly extracts date-times from log lines'
         def pattern = Pattern.compile( 'INFO ([A-za-z0-9: ]+)-.*' )
-        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy' )
+        def dateFormat = DateTimeFormatter.ofPattern( 'EEE MMM dd HH:mm:ss z yyyy', Locale.ENGLISH )
         def dateExtractor = { String line ->
             def matcher = pattern.matcher( line )
             if ( matcher.matches() ) {
@@ -828,7 +828,7 @@ class FileContentReaderSpec extends Specification {
 
         when: 'we try to move to a certain time (#time) in the log'
         def zonedTime = ZonedDateTime.parse( time + ' CEST',
-                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z" ) )
+                DateTimeFormatter.ofPattern( "yyyy-MM-dd'T'HH:mm:ss[.SS] z", Locale.ENGLISH ) )
         def result = reader.moveTo( zonedTime, dateExtractor )
         def lines = reader.refresh()
 

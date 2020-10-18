@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -9,6 +10,7 @@ import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
@@ -17,25 +19,20 @@ import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
-import javafx.scene.text.Font;
-import javafx.scene.text.FontWeight;
-import javafx.scene.web.WebEngine;
-import javafx.scene.web.WebView;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Predicate;
+import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
@@ -43,7 +40,7 @@ import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
-import static java.util.stream.Collectors.joining;
+import static com.athaydes.logfx.ui.FxUtils.resourcePath;
 
 /**
  * The highlight options screen.
@@ -52,28 +49,30 @@ public class HighlightOptions extends VBox {
 
     private static final Logger log = LoggerFactory.getLogger( HighlightOptions.class );
 
-    private final SimpleObjectProperty<LogLineColors> standardLogColors;
     private final ObservableList<HighlightExpression> observableExpressions;
     private final BooleanProperty isFilterEnabled;
 
+    private String groupName;
     private final VBox expressionsBox;
+    private final StandardLogColorsRow standardLogColorsRow;
 
-    public HighlightOptions( SimpleObjectProperty<LogLineColors> standardLogColors,
+    public HighlightOptions( String groupName,
+                             SimpleObjectProperty<LogLineColors> standardLogColors,
                              ObservableList<HighlightExpression> observableExpressions,
                              BooleanProperty isFilterEnabled ) {
-        this.standardLogColors = standardLogColors;
+        this.groupName = groupName;
         this.observableExpressions = observableExpressions;
         this.isFilterEnabled = isFilterEnabled;
         this.expressionsBox = new VBox( 2 );
 
-        expressionsBox.getChildren().addAll( observableExpressions.stream()
+        // allow the caller to add children AFTER calling this HighlightOptions
+        Platform.runLater( () -> expressionsBox.getChildren().addAll( observableExpressions.stream()
                 .map( ex -> new HighlightExpressionRow( ex, observableExpressions, expressionsBox ) )
-                .toArray( HighlightExpressionRow[]::new ) );
+                .toArray( HighlightExpressionRow[]::new ) ) );
 
         setSpacing( 5 );
         setPadding( new Insets( 5 ) );
         Label headerLabel = new Label( "Enter highlight expressions:" );
-        headerLabel.setFont( Font.font( "Lucida", FontWeight.BOLD, 14 ) );
 
         CheckBox enableFilter = new CheckBox( "Filter?" );
         enableFilter.selectedProperty().bindBidirectional( isFilterEnabled );
@@ -104,11 +103,24 @@ public class HighlightOptions extends VBox {
         buttonsPane.setLeft( newRow );
         buttonsPane.setRight( filterButtons );
 
+        standardLogColorsRow = new StandardLogColorsRow( standardLogColors );
+
         getChildren().addAll(
                 headerPane,
                 expressionsBox,
-                new StandardLogColorsRow( standardLogColors ),
+                standardLogColorsRow,
                 buttonsPane );
+    }
+
+    void onShow() {
+        // try to focus on the first rule's text input
+        ObservableList<Node> expressionRows = expressionsBox.getChildren();
+        Row firstRow = expressionRows.isEmpty() ? standardLogColorsRow : ( Row ) expressionRows.get( 0 );
+        firstRow.receiveFocus();
+    }
+
+    ObservableList<HighlightExpression> getHighlightOptions() {
+        return observableExpressions;
     }
 
     private void enableFilters( boolean enable ) {
@@ -133,33 +145,16 @@ public class HighlightOptions extends VBox {
     }
 
     private Node createHelpIcon() {
-        WebView htmlContent = new WebView();
-        WebEngine webEngine = htmlContent.getEngine();
+        Node help = AwesomeIcons.createIcon( HELP );
 
-        String htmlText;
-        try {
-            htmlText = new BufferedReader( new InputStreamReader(
-                    getClass().getResourceAsStream( "/html/highlight-options-help.html" ),
-                    StandardCharsets.UTF_8 )
-            ).lines().collect( joining( "\n" ) );
-
-            webEngine.setUserStyleSheetLocation( getClass().getResource( "/css/web-view.css" ).toString() );
-        } catch ( Exception e ) {
-            log.warn( "Error loading HTML resources", e );
-            htmlText = "<div>Could not open the help file</div>";
-        }
-
-        Label help = AwesomeIcons.createIconLabel( HELP );
-        Dialog helpDialog = new Dialog( htmlContent );
+        AnchorPane content = helpScreen();
+        Dialog helpDialog = new Dialog( content );
         helpDialog.setTitle( "Highlight Options Help" );
         helpDialog.setStyle( StageStyle.UTILITY );
         helpDialog.setResizable( false );
 
-        final String html = htmlText;
-
         help.setOnMouseClicked( event -> {
             helpDialog.setOwner( getScene().getWindow() );
-            webEngine.loadContent( html );
             helpDialog.show();
         } );
 
@@ -169,6 +164,69 @@ public class HighlightOptions extends VBox {
         return help;
     }
 
+    private static AnchorPane helpScreen() {
+        BiFunction<String, String, Text> text = ( String value, String cssClass ) -> {
+            var t = new Text( value );
+            if ( cssClass != null ) t.getStyleClass().add( cssClass );
+            return t;
+        };
+        var pane = new AnchorPane();
+        pane.setPrefHeight( 400 );
+        pane.setPrefWidth( 600 );
+        pane.getStylesheets().add( resourcePath( "css/highlight-options-help.css" ) );
+
+        var texts = new TextFlow(
+                text.apply( "Highlight Options\n", "h2" ),
+                text.apply( "This dialog allows you to set up rules for highlighting text in the logs.\n", null ),
+                text.apply( "When a line of a log file is displayed, its contents are checked against each of these " +
+                        "rules.\n" +
+                        "The first rule to match is applied. All rules below the matching rule are ignored.\n", null ),
+                text.apply( "The last rule is always empty, which means it always matches. Therefore, it can be used " +
+                        "to define the standard style of the log.\n\n", null ),
+                text.apply( "Writing expressions\n", "h2" ),
+                text.apply( "Each rule defines a regular expression that is used to determine if its styles should be" +
+                        " applied to a log line.\n", null ),
+                text.apply( "For example, to match all lines containing the word ", null ),
+                text.apply( "Error", "code" ),
+                text.apply( " just enter the ", null ),
+                text.apply( "Error", "code" ),
+                text.apply( " expression.\n", null ),
+                text.apply( "To match any line containing one or more ", null ),
+                text.apply( "A", "code" ),
+                text.apply( "'s, enter ", null ),
+                text.apply( "A+", "code" ),
+                text.apply( ".\n", null ),
+                text.apply( "To match a whole line, you can use the usual ", null ),
+                text.apply( "^", "code" ),
+                text.apply( " (start) and ", null ),
+                text.apply( "\\$", "code" ),
+                text.apply( " (end) anchors.\nSo, to mach lines starting with ", null ),
+                text.apply( "[INFO]", "code" ),
+                text.apply( ", enter ", null ),
+                text.apply( "^\\[INFO\\]", null ),
+                text.apply( " (notice that the brackets must be escaped).\n\n" +
+                        "To make the expression case-insensitive, start it with ", null ),
+                text.apply( "(?i)", "code" ),
+                text.apply( ".\n", null ),
+                text.apply( "For assistance writing Java regular expressions, check the ", null ),
+                new Link( "https://docs.oracle.com/javase/tutorial/essential/regex/", "Oracle Regex Tutorial" ),
+                text.apply( ".\n\n", null ),
+                text.apply( "Choosing the style for a rule\n", "h2" ),
+                text.apply( "If a rule matches, the background and text colors selected in the first and second color" +
+                        " pickers, respectively, are applied to the log line.\nA color may be specified by:\n\n" +
+                        "   - name: e.g. blue or yellow.\n" +
+                        "   - hex-value: e.g. 0x00ff00.\n" +
+                        "   - web-value: e.g. #C0FFEE.\n\n", null ),
+                text.apply( "See the ", null ),
+                new Link( "https://docs.oracle.com/javase/8/javafx/api/javafx/scene/paint/Color.html", "Color class" ),
+                text.apply( " for all options.", null )
+        );
+
+        pane.getChildren().add( texts );
+
+        return pane;
+    }
+
     private void addRow( Object ignore ) {
         HighlightExpression expression = new HighlightExpression( "", nextColor(), nextColor(), false );
         observableExpressions.add( expression );
@@ -176,49 +234,24 @@ public class HighlightOptions extends VBox {
                 expression, observableExpressions, expressionsBox ) );
     }
 
-    private static Color nextColor() {
+    static Color nextColor() {
         return Color.color( Math.random(), Math.random(), Math.random() );
     }
 
-    ObservableList<HighlightExpression> getObservableExpressions() {
-        return observableExpressions;
+    public String getGroupName() {
+        return groupName;
     }
 
-    SimpleObjectProperty<LogLineColors> getStandardLogColors() {
-        return standardLogColors;
-    }
-
-    LogLineColors logLineColorsFor( String text ) {
-        for ( HighlightExpression expression : observableExpressions ) {
-            if ( expression.matches( text ) ) {
-                return expression.getLogLineColors();
-            }
-        }
-
-        return standardLogColors.get();
-    }
-
-    BooleanProperty filterEnabled() {
-        return isFilterEnabled;
-    }
-
-    Optional<Predicate<String>> getLineFilter() {
-        if ( isFilterEnabled.get() ) {
-            List<HighlightExpression> filteredExpressions = observableExpressions.stream()
-                    .filter( HighlightExpression::isFiltered )
-                    .collect( Collectors.toList() );
-            return Optional.of( ( line ) -> filteredExpressions.stream()
-                    .anyMatch( ( exp ) -> exp.matches( line ) ) );
-        } else {
-            return Optional.empty();
-        }
+    void setGroupName( String groupName ) {
+        this.groupName = groupName;
     }
 
     private static class StandardLogColorsRow extends Row {
         private final SimpleObjectProperty<LogLineColors> standardLogColors;
 
         StandardLogColorsRow( SimpleObjectProperty<LogLineColors> standardLogColors ) {
-            super( "", standardLogColors.get().getBackground(), standardLogColors.get().getFill(), false );
+            super( "<default for all groups>", standardLogColors.get().getBackground(),
+                    standardLogColors.get().getFill(), false );
             this.standardLogColors = standardLogColors;
 
             expressionField.setEditable( false );
@@ -286,7 +319,7 @@ public class HighlightOptions extends VBox {
         }
 
         private Node removeButton() {
-            Label removeButton = AwesomeIcons.createIconLabel( TRASH );
+            Button removeButton = AwesomeIcons.createIconButton( TRASH );
             removeButton.setTooltip( new Tooltip( "Remove rule" ) );
             removeButton.setOnMouseClicked( event -> {
                 observableExpressions.remove( expression );
@@ -336,7 +369,8 @@ public class HighlightOptions extends VBox {
             isFilteredBox.setTooltip( new Tooltip( "Include in filter" ) );
 
             InvalidationListener updater = ( ignore ) ->
-                    update( bkgColorPicker.getColor(), fillColorPicker.getColor(), isFilteredBox.selectedProperty().get() );
+                    update( bkgColorPicker.getColor(), fillColorPicker.getColor(),
+                            isFilteredBox.selectedProperty().get() );
 
             bkgColorPicker.addListener( updater );
             fillColorPicker.addListener( updater );
@@ -349,17 +383,22 @@ public class HighlightOptions extends VBox {
         @MustCallOnJavaFXThread
         protected abstract void update( Color bkgColor, Color fillColor, boolean isFiltered );
 
+        void receiveFocus() {
+            expressionField.requestFocus();
+        }
     }
 
-    public static Dialog showHighlightOptionsDialog( HighlightOptions highlightOptions ) {
-        ScrollPane pane = new ScrollPane( highlightOptions );
+    public static Dialog showHighlightOptionsDialog( HighlightGroupsView highlightGroups ) {
+        ScrollPane pane = new ScrollPane( highlightGroups );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
-        Dialog dialog = new Dialog( new ScrollPane( highlightOptions ) );
-        dialog.setSize( 850.0, 260.0 );
+        Dialog dialog = new Dialog( new ScrollPane( highlightGroups ) );
+        dialog.setSize( 880.0, 340.0 );
         dialog.setTitle( "Highlight Options" );
         dialog.setResizable( false );
         dialog.makeTransparentWhenLoseFocus();
+        dialog.getBox().setAlignment( Pos.TOP_CENTER );
         dialog.show();
+        Platform.runLater( highlightGroups::onShow );
         return dialog;
     }
 

@@ -1,7 +1,10 @@
 package com.athaydes.logfx.config;
 
+import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import com.athaydes.logfx.ui.FileOpener;
+import javafx.geometry.BoundingBox;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -12,6 +15,8 @@ import java.io.File;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Stream;
 
@@ -19,11 +24,13 @@ import static java.util.stream.Collectors.toList;
 
 final class ConfigParser {
 
-    enum ConfigVersion {
-        V1, V2;
+    private static final Pattern FILE_LINE_PATTERN = Pattern.compile( "\\s+\\[(.*)]\\s*(.+)\\s*" );
 
-        public boolean isAfterV1() {
-            return this == V2;
+    enum ConfigVersion {
+        V1, V2, V3;
+
+        public boolean isAfter( ConfigVersion version ) {
+            return ordinal() > version.ordinal();
         }
     }
 
@@ -57,6 +64,8 @@ final class ConfigParser {
                 parseFilters( lines );
             case "files:":
                 parseFiles( lines );
+            case "auto_update:":
+                parseAutoUpdate( lines );
             case "gui:":
                 parseGuiSection( lines );
         }
@@ -101,14 +110,22 @@ final class ConfigParser {
     }
 
     private void parseExpressions( Iterator<String> lines ) {
+        boolean firstLine = true;
+        String group = "";
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                try {
-                    properties.observableExpressions.add( parseHighlightExpression( line.trim(), version ) );
+                line = line.trim();
+                if ( firstLine && line.startsWith( "@name@" ) ) {
+                    group = line.substring( "@name@".length() ).trim();
+                    properties.highlightGroups.add( group );
+                } else try {
+                    properties.highlightGroups.add( group )
+                            .addAll( parseHighlightExpression( line.trim(), version ) );
                 } catch ( IllegalArgumentException e ) {
                     logInvalidProperty( "expressions", "highlight", line, e.toString() );
                 }
+                firstLine = false;
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
@@ -136,16 +153,47 @@ final class ConfigParser {
         }
     }
 
+    private void parseAutoUpdate( Iterator<String> lines ) {
+        if ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                switch ( line.trim() ) {
+                    case "enable":
+                        properties.autoUpdate.set( true );
+                        break;
+                    case "disable":
+                        properties.autoUpdate.set( false );
+                        break;
+                    default:
+                        logInvalidProperty( "auto_update", "auto_update", line, "value must be 'enable' or 'disable'" );
+                }
+            } else if ( !line.trim().isEmpty() ) {
+                parseConfigFile( line, lines );
+            }
+        }
+    }
+
     private void parseFiles( Iterator<String> lines ) {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
-                properties.observableFiles.add( new File( line.trim() ) );
+                if ( properties.observableFiles.size() >= FileOpener.MAX_OPEN_FILES ) {
+                    log.warn( "Cannot open file {}. Too many open files.", line );
+                } else {
+                    properties.observableFiles.add( parseLogFileLine( line ) );
+                }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
                 break;
             }
         }
+    }
+
+    static LogFile parseLogFileLine( String line ) {
+        Matcher matcher = FILE_LINE_PATTERN.matcher( line );
+        return matcher.matches()
+                ? new LogFile( new File( matcher.group( 2 ) ), matcher.group( 1 ) )
+                : new LogFile( new File( line.trim() ) );
     }
 
     private void parseGuiSection( Iterator<String> lines ) {
@@ -166,6 +214,19 @@ final class ConfigParser {
                             logInvalidProperty( "gui", "orientation", parts[ 1 ],
                                     "Invalid value for Orientation: " + e );
                         }
+                        break;
+                    case "window":
+                        if ( parts.length == 5 ) try {
+                            properties.windowBounds.set( new BoundingBox(
+                                    Double.parseDouble( parts[ 1 ] ), Double.parseDouble( parts[ 2 ] ),
+                                    Double.parseDouble( parts[ 3 ] ), Double.parseDouble( parts[ 4 ] )
+                            ) );
+                            break;
+                        } catch ( NumberFormatException e ) {
+                            // proceed to log error below
+                        }
+                        logInvalidProperty( "gui", "window", line.trim(),
+                                "Invalid value for window (should be 'window x y width height')" );
                         break;
                     case "pane-dividers":
                         if ( parts.length != 2 ) {
@@ -253,7 +314,7 @@ final class ConfigParser {
 
         boolean isFiltered = false;
 
-        if ( version.isAfterV1() ) {
+        if ( version.isAfter( ConfigVersion.V1 ) ) {
             if ( line.length() > secondSpaceIndex + 1 ) {
                 line = line.substring( secondSpaceIndex + 1 ).trim();
             } else {
@@ -261,10 +322,12 @@ final class ConfigParser {
             }
 
             int thirdSpaceIndex = line.indexOf( ' ' );
+            String filteredString;
             if ( thirdSpaceIndex <= 0 ) {
-                throw highlightParseError( "regular expression not specified", line );
+                filteredString = line;
+            } else {
+                filteredString = line.substring( 0, thirdSpaceIndex );
             }
-            String filteredString = line.substring( 0, thirdSpaceIndex );
             switch ( filteredString.toLowerCase() ) {
                 case "true":
                     isFiltered = true;
@@ -276,7 +339,7 @@ final class ConfigParser {
                     throw highlightParseError( "invalid value for filtered property", line );
             }
 
-            if ( line.length() > thirdSpaceIndex + 1 ) {
+            if ( thirdSpaceIndex > 0 && line.length() > thirdSpaceIndex + 1 ) {
                 line = line.substring( thirdSpaceIndex + 1 ).trim();
             } else {
                 line = "";
@@ -287,10 +350,6 @@ final class ConfigParser {
             } else {
                 line = "";
             }
-        }
-
-        if ( line.isEmpty() ) {
-            throw highlightParseError( "regular expression not specified", line );
         }
 
         String expression = line;
