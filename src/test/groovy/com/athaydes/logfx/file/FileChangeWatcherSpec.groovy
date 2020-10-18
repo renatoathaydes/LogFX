@@ -46,21 +46,29 @@ class FileChangeWatcherSpec extends Specification {
     }
 
     private void assertSingleEventWithin( Duration timeout,
-                                          Duration timeToWaitForNoFurtherEvents = Duration.ofMillis( 100 ) ) {
-        assertEventWithin timeout
-        assertNoEventsFor timeToWaitForNoFurtherEvents
+                                          Duration timeToWaitForNoFurtherEvents,
+                                          String description ) {
+        assertEventWithin timeout, description
+        assertNoEventsFor timeToWaitForNoFurtherEvents, description
     }
 
-    private void assertEventWithin( Duration timeout ) {
+    private void assertOneOrTwoEventsWithin( Duration timeout1, Duration timeout2, String description ) {
+        assert eventQueue.poll( timeout1.toMillis(), TimeUnit.MILLISECONDS ):
+                "First Event '$description' did not occur within timeout"
+        // just throw away possible second event
+        eventQueue.poll( timeout2.toMillis(), TimeUnit.MILLISECONDS )
+    }
+
+    private void assertEventWithin( Duration timeout, String description ) {
         assert eventQueue.poll( timeout.toMillis(), TimeUnit.MILLISECONDS ):
-                'Event did not occur within timeout'
+                "Event '$description' did not occur within timeout"
     }
 
-    private void assertNoEventsFor( Duration duration ) {
+    private void assertNoEventsFor( Duration duration, String description ) {
         long time = System.currentTimeMillis()
         def waitTime = { System.currentTimeMillis() - time }
         assert eventQueue.poll( duration.toMillis(), TimeUnit.MILLISECONDS ) == null:
-                "Unexpected Event occurred within ${waitTime()} ms"
+                "Unexpected Event occurred within ${waitTime()} ms: '$description'"
     }
 
     def "FileWatcher can watch existing file"() {
@@ -73,14 +81,14 @@ class FileChangeWatcherSpec extends Specification {
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
-        assertSingleEventWithin Duration.ofSeconds( 1 ) // initial start_watching event
+        assertSingleEventWithin Duration.ofSeconds( 1 ), Duration.ofMillis( 500 ), 'initial start_watching'
 
         when: 'The file changes'
         file << 'hi'
 
         then: 'One file change is observed'
         def time = System.currentTimeMillis()
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'first file change'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
 
         when: 'The file changes again'
@@ -88,7 +96,7 @@ class FileChangeWatcherSpec extends Specification {
         time = System.currentTimeMillis()
 
         then: 'Two file changes have been observed'
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'second file change'
         println "Got second file change notification in ${System.currentTimeMillis() - time} ms"
     }
 
@@ -102,14 +110,14 @@ class FileChangeWatcherSpec extends Specification {
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
-        assertSingleEventWithin Duration.ofSeconds( 1 ) // initial start_watching event
+        assertSingleEventWithin Duration.ofSeconds( 1 ), Duration.ofMillis( 500 ), 'initial start_watching'
 
         when: 'The file changes'
         file << 'hi'
 
         then: 'One file change is observed'
         def time = System.currentTimeMillis()
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'first file change'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
 
         when: 'The file is deleted'
@@ -117,7 +125,7 @@ class FileChangeWatcherSpec extends Specification {
         time = System.currentTimeMillis()
 
         then: 'Two file changes have been observed'
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'file deletion'
         println "Got delete file change notification in ${System.currentTimeMillis() - time} ms"
     }
 
@@ -134,15 +142,16 @@ class FileChangeWatcherSpec extends Specification {
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
-        assertSingleEventWithin Duration.ofSeconds( 1 ) // initial start_watching event
+        assertSingleEventWithin Duration.ofSeconds( 1 ), Duration.ofMillis( 500 ), 'initial start_watching event'
 
         when: 'The file is created'
         file << 'hi'
 
-        then: 'Two file changes are observed (create, write)'
+        then: 'Two file changes may be observed (create, write)'
         def time = System.currentTimeMillis()
-        assertEventWithin Duration.ofSeconds( 4 )
-        assertSingleEventWithin Duration.ofMillis( 250 )
+
+        // depending on the OS, we get one or two events in quick succession... all we care here is that we capture one event at least
+        assertOneOrTwoEventsWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'file is created'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
 
         when: 'The file changes again'
@@ -150,7 +159,7 @@ class FileChangeWatcherSpec extends Specification {
         time = System.currentTimeMillis()
 
         then: 'One more file change has been observed'
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'second file change'
         println "Got second file change notification in ${System.currentTimeMillis() - time} ms"
     }
 
@@ -168,7 +177,7 @@ class FileChangeWatcherSpec extends Specification {
         def fileWatcher = createFileChangeWatcher( file )
 
         then: 'We watcher does not start watching within a second as there is nothing to watch'
-        assertNoEventsFor Duration.ofSeconds( 1 )
+        assertNoEventsFor Duration.ofSeconds( 1 ), 'no file, no dir'
         !fileWatcher.isWatching()
 
         when: 'The parent directory is created'
@@ -176,15 +185,16 @@ class FileChangeWatcherSpec extends Specification {
 
         then: 'The File watcher finally starts watching'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 2500L ) ) )
-        assertSingleEventWithin Duration.ofSeconds( 1 ) // initial start_watching event
+        assertSingleEventWithin Duration.ofSeconds( 1 ), Duration.ofMillis( 500 ), 'initial start_watching event'
 
         when: 'The file is created'
         file << 'hi'
 
         then: 'The first change is observed'
         def time = System.currentTimeMillis()
-        assertEventWithin Duration.ofSeconds( 4 ) // create event
-        assertSingleEventWithin Duration.ofMillis( 250 ) // change event
+
+        // depending on the OS, we get one or two events in quick succession... all we care here is that we capture one event at least
+        assertOneOrTwoEventsWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'file is created'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
 
         when: 'The file changes again'
@@ -192,7 +202,7 @@ class FileChangeWatcherSpec extends Specification {
         time = System.currentTimeMillis()
 
         then: 'Two file changes have been observed'
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'second file change'
         println "Got second file change notification in ${System.currentTimeMillis() - time} ms"
     }
 
@@ -212,7 +222,7 @@ class FileChangeWatcherSpec extends Specification {
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
-        assertSingleEventWithin Duration.ofSeconds( 1 ) // initial start_watching event
+        assertSingleEventWithin Duration.ofSeconds( 1 ), Duration.ofMillis( 500 ), 'initial start_watching event'
 
         and: 'The file is modified'
         println "Writing to file"
@@ -220,7 +230,7 @@ class FileChangeWatcherSpec extends Specification {
 
         then: 'One file change is observed'
         def time = System.currentTimeMillis()
-        assertSingleEventWithin Duration.ofSeconds( 4 )
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'first file change'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
 
         when: 'The file and its parent directory are deleted'
@@ -231,7 +241,7 @@ class FileChangeWatcherSpec extends Specification {
         assert removableDir.delete()
 
         then: 'Two file changes have been observed'
-        assertEventWithin Duration.ofSeconds( 4 )
+        assertEventWithin Duration.ofSeconds( 4 ), 'file deleted'
         println "Got second file change notification in ${System.currentTimeMillis() - time} ms"
 
         and: 'The File watcher is no longer watching'
@@ -244,7 +254,7 @@ class FileChangeWatcherSpec extends Specification {
         time = System.currentTimeMillis()
 
         then: 'A third file change is observed'
-        assertSingleEventWithin Duration.ofSeconds( 4 ) // create event
+        assertSingleEventWithin Duration.ofSeconds( 4 ), Duration.ofMillis( 500 ), 'file re-created'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
     }
 
@@ -258,14 +268,14 @@ class FileChangeWatcherSpec extends Specification {
 
         and: 'We wait for the watcher to start up'
         waitOrTimeout( { fileWatcher.isWatching() }, timeout( millis( 400L ) ) )
-        assertSingleEventWithin Duration.ofSeconds( 1 ) // initial start_watching event
+        assertSingleEventWithin Duration.ofSeconds( 1 ), Duration.ofMillis( 500 ), 'initial start_watching event'
 
         when: 'The file changes'
         file << 'hi'
 
         then: 'One file change is observed'
         def time = System.currentTimeMillis()
-        assertEventWithin Duration.ofSeconds( 4 )
+        assertEventWithin Duration.ofSeconds( 4 ), 'first file change'
         println "Got first file change notification in ${System.currentTimeMillis() - time} ms"
 
         when: 'The file watcher is closed'
@@ -278,7 +288,7 @@ class FileChangeWatcherSpec extends Specification {
         file << 'bye'
 
         then: 'The second file change is not observed'
-        assertNoEventsFor Duration.ofSeconds( 2 )
+        assertNoEventsFor Duration.ofSeconds( 2 ), 'fileWatcher is closed, no more events'
     }
 
 }
