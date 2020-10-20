@@ -7,14 +7,15 @@ plugins {
     id 'maven'
     id 'org.javamodularity.moduleplugin' version '1.7.0'
     id "com.jfrog.bintray" version "1.8.4"
+    id "com.athaydes.sdkman" version "1.0-RC2"
 }
 
 group 'com.athaydes.logfx'
 version '1.0-RC14'
 description 'A beautiful log viewer capable of handling large files'
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+sourceCompatibility = JavaVersion.VERSION_15
+targetCompatibility = JavaVersion.VERSION_15
 
 mainClassName = "com.athaydes.logfx/com.athaydes.logfx.LogFX"
 
