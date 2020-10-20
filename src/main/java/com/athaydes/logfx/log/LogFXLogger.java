@@ -37,14 +37,17 @@ class LogFXLogger extends MarkerIgnoringBase {
             .orElse( new LogTarget.FileLogTarget() );
 
     private final String name;
+    private final LogFXLogFactory logFactory;
 
-    LogFXLogger( String name ) {
+
+    LogFXLogger( String name, LogFXLogFactory logFactory ) {
         this.name = name;
+        this.logFactory = logFactory;
     }
 
     @Override
     public boolean isTraceEnabled() {
-        return LogFXLogFactory.INSTANCE.isLogLevelEnabled( LogLevel.TRACE );
+        return logFactory.isLogLevelEnabled( LogLevel.TRACE );
     }
 
     @Override
@@ -74,7 +77,7 @@ class LogFXLogger extends MarkerIgnoringBase {
 
     @Override
     public boolean isDebugEnabled() {
-        return LogFXLogFactory.INSTANCE.isLogLevelEnabled( LogLevel.DEBUG );
+        return logFactory.isLogLevelEnabled( LogLevel.DEBUG );
     }
 
     @Override
@@ -104,7 +107,7 @@ class LogFXLogger extends MarkerIgnoringBase {
 
     @Override
     public boolean isInfoEnabled() {
-        return LogFXLogFactory.INSTANCE.isLogLevelEnabled( LogLevel.INFO );
+        return logFactory.isLogLevelEnabled( LogLevel.INFO );
     }
 
     @Override
@@ -134,7 +137,7 @@ class LogFXLogger extends MarkerIgnoringBase {
 
     @Override
     public boolean isWarnEnabled() {
-        return LogFXLogFactory.INSTANCE.isLogLevelEnabled( LogLevel.WARN );
+        return logFactory.isLogLevelEnabled( LogLevel.WARN );
     }
 
     @Override
@@ -164,7 +167,7 @@ class LogFXLogger extends MarkerIgnoringBase {
 
     @Override
     public boolean isErrorEnabled() {
-        return LogFXLogFactory.INSTANCE.isLogLevelEnabled( LogLevel.ERROR );
+        return logFactory.isLogLevelEnabled( LogLevel.ERROR );
     }
 
     @Override
@@ -193,7 +196,7 @@ class LogFXLogger extends MarkerIgnoringBase {
     }
 
     private void formatAndLog( LogLevel logLevel, String format, Object... arguments ) {
-        if ( !LogFXLogFactory.INSTANCE.isLogLevelEnabled( logLevel ) ) {
+        if ( !logFactory.isLogLevelEnabled( logLevel ) ) {
             return;
         }
 
@@ -202,7 +205,7 @@ class LogFXLogger extends MarkerIgnoringBase {
     }
 
     private void log( LogLevel logLevel, String message, Throwable throwable ) {
-        if ( !LogFXLogFactory.INSTANCE.isLogLevelEnabled( logLevel ) ) {
+        if ( !logFactory.isLogLevelEnabled( logLevel ) ) {
             return;
         }
 

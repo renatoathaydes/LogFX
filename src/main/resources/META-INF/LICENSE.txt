@@ -1,0 +1,10 @@
+LogFX is licensed with GNU GENERAL PUBLIC LICENSE Version 3.
+
+A copy of the license can be obtained from the LogFX source code repository:
+
+https://github.com/renatoathaydes/LogFX
+
+Other software used by LogFX are listed below, with their respective licenses.
+
+- Themify Icons Font: http://scripts.sil.org/OFL
+- slf4j-api: MIT License (http://www.slf4j.org/license.html)

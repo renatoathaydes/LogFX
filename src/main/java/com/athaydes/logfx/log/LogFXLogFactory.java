@@ -6,9 +6,7 @@ import org.slf4j.Logger;
 
 import java.nio.file.Path;
 
-public enum LogFXLogFactory implements ILoggerFactory {
-
-    INSTANCE;
+public final class LogFXLogFactory implements ILoggerFactory {
 
     private final LogLevel currentLevel = Properties.getLogLevel().orElse( LogLevel.INFO );
 
@@ -16,7 +14,7 @@ public enum LogFXLogFactory implements ILoggerFactory {
 
     @Override
     public Logger getLogger( String name ) {
-        return new LogFXLogger( name );
+        return new LogFXLogger( name, this );
     }
 
     boolean isLogLevelEnabled( LogLevel logLevel ) {

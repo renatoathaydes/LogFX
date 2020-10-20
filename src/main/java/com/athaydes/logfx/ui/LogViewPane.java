@@ -1,6 +1,7 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.concurrency.TaskRunner;
+import com.athaydes.logfx.config.HighlightGroups;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
@@ -35,13 +36,16 @@ import java.io.File;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
+import java.util.stream.IntStream;
 
 import static com.athaydes.logfx.ui.LogView.MAX_LINES;
+import static java.util.stream.Collectors.joining;
 import static java.util.stream.Collectors.toList;
 
 /**
@@ -50,6 +54,9 @@ import static java.util.stream.Collectors.toList;
 public final class LogViewPane {
 
     private static final Logger log = LoggerFactory.getLogger( LogViewPane.class );
+
+    private final TaskRunner taskRunner;
+    private final HighlightGroups highlightGroups;
 
     private final SplitPane pane = new SplitPane();
 
@@ -60,13 +67,15 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public LogViewPane( TaskRunner taskRunner,
                         Supplier<StartUpView> startUpViewGetter,
+                        HighlightGroups highlightGroups,
                         boolean showEmptyPanel ) {
+        this.taskRunner = taskRunner;
+        this.highlightGroups = highlightGroups;
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
-        copyMenuItem.setOnAction( event -> getFocusedView().ifPresent( wrapper ->
-                wrapper.logView.getSelection().ifPresent( content -> {
-                    Clipboard.getSystemClipboard().setContent( content );
-                } ) ) );
+        copyMenuItem.setOnAction( event -> getFocusedView()
+                .flatMap( wrapper -> wrapper.logView.getSelection() )
+                .ifPresent( content -> Clipboard.getSystemClipboard().setContent( content ) ) );
 
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.SHORTCUT_DOWN ) );
@@ -106,18 +115,34 @@ public final class LogViewPane {
                 return; // we can't maximize anything if there isn't more than 1 pane
             }
             getFocusedView().ifPresent( wrapper ->
-                    taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
-                        int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
-                        for ( int i = 0; i <= topDividerIndex; i++ ) {
-                            log.debug( "Setting divider [{}] to {}", i, 0.0 );
-                            pane.setDividerPosition( i, 0.0 );
-                        }
+                    taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ),
+                            () -> Platform.runLater( () -> {
+                                int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
+                                for ( int i = 0; i <= topDividerIndex; i++ ) {
+                                    log.debug( "Setting divider [{}] to {}", i, 0.0 );
+                                    pane.setDividerPosition( i, 0.0 );
+                                }
 
-                        for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
-                            log.debug( "Setting divider [{}] to {}", i, 1.0 );
-                            pane.setDividerPosition( i, 1.0 );
-                        }
-                    } ) ) );
+                                for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
+                                    log.debug( "Setting divider [{}] to {}", i, 1.0 );
+                                    pane.setDividerPosition( i, 1.0 );
+                                }
+                            } ) ) );
+        } );
+
+        MenuItem distributePanesMenuItem = new MenuItem( "Distribute panes evenly" );
+        distributePanesMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.D,
+                KeyCombination.SHORTCUT_DOWN ) );
+        distributePanesMenuItem.setOnAction( event -> {
+            if ( pane.getItems().size() < 2 ) {
+                return; // nothing to do if there isn't more than 1 pane
+            }
+
+            final int dividerCount = pane.getItems().size() - 1;
+            final double positionStep = 1.0 / ( dividerCount + 1 );
+            setDividerPositions( IntStream.range( 0, dividerCount )
+                    .mapToObj( i -> ( i + 1 ) * positionStep )
+                    .collect( toList() ) );
         } );
 
         MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
@@ -128,6 +153,17 @@ public final class LogViewPane {
                 wrapper.get().toDateTime();
             } else {
                 new GoToDateView( null, this::getAllLogViews ).show();
+            }
+        } );
+
+        MenuItem changeHighlightGroup = new MenuItem( "Select highlight group" );
+        changeHighlightGroup.setAccelerator( new KeyCodeCombination( KeyCode.J, KeyCombination.SHORTCUT_DOWN ) );
+        changeHighlightGroup.setOnAction( event -> {
+            Optional<LogViewWrapper> wrapper = getFocusedView();
+            if ( wrapper.isPresent() ) {
+                wrapper.get().showHighlightGroupSelector();
+            } else {
+                Dialog.showMessage( "No file pane selected", Dialog.MessageLevel.INFO );
             }
         } );
 
@@ -152,11 +188,11 @@ public final class LogViewPane {
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
                 new SeparatorMenuItem(),
-                toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem,
+                toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
                 pauseMenuItem,
                 new SeparatorMenuItem(),
-                minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
+                minimizeMenuItem, maximizeMenuItem, distributePanesMenuItem, closeMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
@@ -235,14 +271,15 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
-    public void add( LogView logView, Runnable onCloseFile, int index ) {
-        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, this::getAllLogViews, ( wrapper ) -> {
+    public void add( LogView logView, Runnable onCloseFile, int index, Consumer<LogView> editGroupForFile ) {
+        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups,
+                this::getAllLogViews, ( wrapper ) -> {
             try {
                 pane.getItems().remove( wrapper );
             } finally {
                 onCloseFile.run();
             }
-        } );
+        }, editGroupForFile );
 
         if ( pane.getItems().size() == 1 &&
                 pane.getItems().get( 0 ) instanceof StartUpView ) {
@@ -307,19 +344,23 @@ public final class LogViewPane {
         return panesDividersObservable;
     }
 
-    @MustCallOnJavaFXThread
     public void setDividerPositions( List<Double> separators ) {
         double[] positions = separators.stream().mapToDouble( i -> i ).toArray();
 
-        // set divider positions from last to first, then first to last, to try to honour all of them
-        for ( int i = positions.length - 1; i >= 0; i-- ) {
-            pane.setDividerPosition( i, positions[ i ] );
+        if ( log.isDebugEnabled() ) {
+            log.debug( "Number of dividers: {}, positions: {}", positions.length,
+                    Arrays.stream( positions )
+                            .mapToObj( d -> String.format( "%.2f", d ) )
+                            .collect( joining( ", " ) ) );
         }
-        Platform.runLater( () -> {
-            for ( int i = 0; i < positions.length; i++ ) {
-                pane.setDividerPosition( i, positions[ i ] );
-            }
-        } );
+
+        taskRunner.repeat( positions.length, Duration.ofMillis( 150 ),
+                () -> Platform.runLater( () -> {
+                    for ( int i = 0; i < positions.length; i++ ) {
+                        log.debug( "Setting divider [{}] to {}", i, positions[ i ] );
+                        pane.setDividerPosition( i, positions[ i ] );
+                    }
+                } ) );
     }
 
     @MustCallOnJavaFXThread
@@ -391,16 +432,18 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
+                        HighlightGroups highlightGroups,
                         Supplier<List<LogViewWrapper>> logViewsGetter,
-                        Consumer<LogViewWrapper> onCloseFile ) {
+                        Consumer<LogViewWrapper> onCloseFile,
+                        Consumer<LogView> editGroupForLogFile ) {
             super( 2.0 );
 
             this.logView = logView;
             this.onCloseFile = onCloseFile;
             this.logViewsGetter = logViewsGetter;
 
-            this.header = new LogViewHeader( logView, this::closeView, this::toDateTime );
-
+            this.header = new LogViewHeader( logView, this::closeView, this::toDateTime,
+                    highlightGroups, editGroupForLogFile );
             this.scrollPane = new LogViewScrollPane( this );
 
             getChildren().setAll( header, scrollPane );
@@ -435,6 +478,12 @@ public final class LogViewPane {
 
         private boolean isShowingFileContents() {
             return getChildren().size() > 1 && getChildren().get( 1 ) instanceof LogViewScrollPane;
+        }
+
+        @MustCallOnJavaFXThread
+        void showHighlightGroupSelector() {
+            header.getGroupSelector().requestFocus();
+            header.getGroupSelector().show();
         }
 
         @MustCallOnJavaFXThread
@@ -496,6 +545,8 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         void stop() {
+            header.dispose();
+
             // do not call onClose as this is not closing the view, just stopping the app
             logView.closeFileReader();
         }
@@ -530,8 +581,13 @@ public final class LogViewPane {
 
         private final BooleanProperty tailFile;
         private final BooleanProperty pauseRefresh;
+        private final HighlightGroupSelector groupSelector;
 
-        LogViewHeader( LogView logView, Runnable closeLogView, Runnable goToDateTime ) {
+        LogViewHeader( LogView logView, Runnable closeLogView, Runnable goToDateTime,
+                       HighlightGroups groups, Consumer<LogView> editGroupForLogFile ) {
+            groupSelector = new HighlightGroupSelector( groups, logView );
+            groupSelector.setTooltip( new Tooltip( "Select highlight rules group for this file" ) );
+
             setMinWidth( 10.0 );
 
             File file = logView.getFile();
@@ -566,6 +622,10 @@ public final class LogViewPane {
 
             leftAlignedBox.getChildren().add( fileNameLabel );
 
+            Button highlightRulesButton = AwesomeIcons.createIconButton( AwesomeIcons.LIST_UL );
+            highlightRulesButton.setTooltip( new Tooltip( "Edit highlight rules for this file" ) );
+            highlightRulesButton.setOnAction( event -> editGroupForLogFile.accept( logView ) );
+
             Button goToDateButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOCK );
             goToDateButton.setTooltip( new Tooltip( "Go to date-time" ) );
             goToDateButton.setOnAction( event -> goToDateTime.run() );
@@ -593,10 +653,16 @@ public final class LogViewPane {
                 }
             } );
 
-            rightAlignedBox.getChildren().addAll( goToDateButton, tailFileButton, pauseRefreshButton, closeButton );
+            rightAlignedBox.getChildren().addAll( highlightRulesButton, goToDateButton,
+                    tailFileButton, pauseRefreshButton, closeButton );
 
             setLeft( leftAlignedBox );
+            setCenter( groupSelector );
             setRight( rightAlignedBox );
+        }
+
+        HighlightGroupSelector getGroupSelector() {
+            return groupSelector;
         }
 
         BooleanProperty tailFileProperty() {
@@ -610,6 +676,10 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         void togglePauseRefresh() {
             pauseRefresh.set( !pauseRefresh.getValue() );
+        }
+
+        public void dispose() {
+            groupSelector.dispose();
         }
     }
 

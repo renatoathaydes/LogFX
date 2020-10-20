@@ -2,102 +2,64 @@
 
 [ ![Download](https://api.bintray.com/packages/renatoathaydes/maven/logfx/images/download.svg) ](https://bintray.com/renatoathaydes/maven/logfx/_latestVersion)
 
-
-A log viewer capable of reading large files without a performance hit.
+LogFX is a multi-platform, free and open-source log viewer designed to handle very large files without a performance hit.
 
 It is written in JavaFX so it can run in any Operating System.
 
-## Features
+[LogFX Website](https://renatoathaydes.github.io/LogFX/)
 
-* extremely fast to open and navigate large files.
-* tail file(s) with option to pause at any time.
-* go to date-time in any log file (or all opened files).
-* highlight text using regular expressions rules.
-* filter content based on highlight expressions.
-* highly customizable look via JavaFX CSS (refreshes instantly).
-* keyboard friendly (shortcuts for everything).
+[Documentation](https://renatoathaydes.github.io/LogFX/docs/index.html)
+
+[Report Issue](https://github.com/renatoathaydes/LogFX/issues/new)
+
+[Send private feedback](https://renatoathaydes.github.io/LogFX/contact.html)
 
 ## Getting LogFX
 
-To get LogFX:
+Please choose one of the two alternatives below:
 
-* click on the `Download` button near the top of this page, then open the `Files` tab, 
-choose the logfx-x.x-all.jar file... notice the `all` qualifier...
+### Stand-alone distributions
 
-OR
+LogFX is distributed as a stand-alone application (arond 35MB download, 55MB unpacked).
+
+Simply download the zip file for your distribution, unzip it, then run it with:
+
+```
+logfx/bin/logfx
+```
+
+[Linux](https://bintray.com/renatoathaydes/linux/logfx)
+
+[Mac](https://bintray.com/renatoathaydes/mac/logfx)
+
+[Windows](https://bintray.com/renatoathaydes/win/logfx)
+
+### Fat Jar (requires Java 11+ with JavaFX)
 
 * download the jar from the command-line:
 
+> Find the latest version on [Bintray](https://bintray.com/renatoathaydes/maven/logfx).
+
 ```
-curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/0.9.1/logfx-0.9.1-all.jar -o logfx.jar
+VERSION=<latest_version> && \
+curl -sSfL https://jcenter.bintray.com/com/athaydes/logfx/logfx/$VERSION/logfx-$VERSION-all.jar -o logfx.jar
 ```
 
 > Size of the jar as of version `0.6.1`: 289 KB. *Not MB!*
+> UPDATE: Version 1.0's jar size: 304KB. 
 
-> UPDATE: Version 0.9.0's jar size: 320KB. 
-
-## Running LogFX
-
-> Java 8+ is required to run LogFX
-
-Run it with:
+Run with:
 
 ```
 java -jar logfx.jar
 ```
 
-If you don't want it to use the default hundreds of MB of RAM, ask `java` to use at most 50MB and it will run fine:
-
-```
-java -Xmx50m -jar logfx.jar
-```
+> Hint: to get Java 11 with JavaFX included, use [SDKMAN!](https://sdkman.io/)
+> (e.g. `sdk use java 11.0.8.fx-zulu`).
 
 ## Screenshots
 
-See screenshots in the [Wiki](https://github.com/renatoathaydes/LogFX/wiki/Screenshots).
+![LogFX running on Linux KDE](https://raw.githubusercontent.com/renatoathaydes/LogFX/next/docs/images/screenshots/logfx-1.0rc2-linux.png)
 
-## System properties
-
-LogFX allows customizing certain behaviours using system properties.
-
-The following properties are currently recognized at startup:
-
-* `logfx.home` - home directory (`~/.logfx/`) by default.
-* `logfx.stylesheet.file` - custom stylesheet file location.
-* `logfx.stylesheet.norefresh` - set this to any value to stop LogFX from watching the custom stylesheet file.
-* `logfx.log.target` - where to send LogFX's own log (`file|sysout|syserr`).
-* `logfx.log.level` - log level for LogFX's own log (`trace|debug|info|warn|error`).
-
-To specify a different home for LogFX (say, `/temp/logfx`), for example, start LogFX with this command:
-
-```
-java -Dlogfx.home=/temp/logfx -jar logfx.jar
-```
-
-This allows you to store several different LogFX customizations in the same machine. 
-
-### Specifying a custom stylesheet
-
-Notice that the `logfx.stylesheet.file` allows you to specify your own stylesheet to customize the looks of LogFX.
-
-The default stylesheet can be found at [src/main/resources/css/LogFX.css](src/main/resources/css/LogFX.css).
-
-The most interesting element is the `.root`, which lets you set the theme-colour as well as the UI icons' colours:
-
-```css
-.root {
-    -fx-base: #1d1d1d;
-    -icons-color: rgb(61, 114, 144);
-}
-```
-
-You can also increase the padding between log lines, as another example:
-
-```css
-.log-line {
-    -fx-padding: 2, 5, 2, 5;
-}
-
-```
-
-To see some possibilities, check the [Screenshots](https://github.com/renatoathaydes/LogFX/wiki/Screenshots) in the Wiki.
+More in the [Wiki](https://github.com/renatoathaydes/LogFX/wiki/Screenshots) and on the
+[Website](https://renatoathaydes.github.io/LogFX/).
