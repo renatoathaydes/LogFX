@@ -1,6 +1,7 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.binding.BindableValue;
+import com.athaydes.logfx.data.LogLineColors;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.Transition;
@@ -31,15 +32,10 @@ class LogLine extends Label implements SelectionHandler.SelectableNode {
     }
 
     @MustCallOnJavaFXThread
-    void setText( String text, Paint bkgColor, Paint fillColor ) {
+    void setText( String text, LogLineColors colors ) {
         super.setText( text );
-        setColors( bkgColor, fillColor );
-    }
-
-    @MustCallOnJavaFXThread
-    private void setColors( Paint bkgColor, Paint fillColor ) {
-        setBackground( FxUtils.simpleBackground( bkgColor ) );
-        setTextFill( fillColor );
+        setBackground( FxUtils.simpleBackground( colors.getBackground() ) );
+        setTextFill( colors.getFill() );
     }
 
     @MustCallOnJavaFXThread

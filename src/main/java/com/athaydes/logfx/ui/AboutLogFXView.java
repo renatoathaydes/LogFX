@@ -1,30 +1,25 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.Constants;
-import javafx.application.HostServices;
 import javafx.geometry.Pos;
-import javafx.scene.control.Hyperlink;
+import javafx.scene.Group;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
 import javafx.stage.StageStyle;
+
+import static com.athaydes.logfx.ui.FxUtils.resourcePath;
 
 /**
  * About LogFX View.
  */
 public class AboutLogFXView {
 
-    private final HostServices hostServices;
-
-    public AboutLogFXView( HostServices hostServices ) {
-        this.hostServices = hostServices;
-    }
-
     VBox createNode() {
         VBox contents = new VBox( 25 );
         contents.setPrefSize( 500, 300 );
         contents.setAlignment( Pos.CENTER );
-        contents.getStylesheets().add( "css/about.css" );
+        contents.getStylesheets().add( resourcePath( "css/about.css" ) );
 
         HBox textBox = new HBox( 0 );
         textBox.setPrefWidth( 500 );
@@ -39,11 +34,13 @@ public class AboutLogFXView {
         smallText.setPrefWidth( 500 );
         smallText.setAlignment( Pos.CENTER );
         Text version = new Text( "Version " + Constants.LOGFX_VERSION );
-        Text byRenato = new Text( "Copyright Renato Athaydes, 2017. All rights reserved." );
+        Text byRenato = new Text( "Copyright Renato Athaydes, 2017-2020. All rights reserved." );
         Text license = new Text( "Licensed under the GPLv3 License." );
-        Hyperlink link = new Hyperlink( "https://github.com/renatoathaydes/LogFX" );
-        link.setOnAction( ( event ) -> hostServices.showDocument( link.getText() ) );
-        smallText.getChildren().addAll( version, byRenato, link, license );
+        Group fontsAttribution = new Group(
+                new Text( "Icons provided by " ),
+                new Link( "https://themify.me/themify-icons", "Themify.me" ) );
+        Link link = new Link( "https://renatoathaydes.github.io/LogFX/" );
+        smallText.getChildren().addAll( version, byRenato, link, license, fontsAttribution );
 
         contents.getChildren().addAll( textBox, smallText );
 
@@ -52,11 +49,14 @@ public class AboutLogFXView {
 
     @MustCallOnJavaFXThread
     public void show() {
+        createDialog().show();
+    }
+
+    public Dialog createDialog() {
         Dialog dialog = new Dialog( ( String ) null, createNode() );
         dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
         dialog.closeWhenLoseFocus();
-
-        dialog.show();
+        return dialog;
     }
 }

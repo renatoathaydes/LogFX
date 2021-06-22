@@ -1,9 +1,13 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.text.DateTimeFormatGuess;
+import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.ui.LogViewPane.LogViewWrapper;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
+import javafx.event.ActionEvent;
+import javafx.event.EventHandler;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.Label;
@@ -16,13 +20,9 @@ import javafx.stage.StageStyle;
 import java.time.LocalDateTime;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeFormatterBuilder;
-import java.time.format.DateTimeParseException;
-import java.time.temporal.ChronoField;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.TimeZone;
 import java.util.function.Supplier;
 
 import static java.util.stream.Collectors.toList;
@@ -56,13 +56,10 @@ class GoToDateView {
             goToAll.setDisable( true );
         }
 
-        Button cancelButton = new Button( "Cancel" );
-        cancelButton.setOnAction( event -> dialog.hide() );
-
         Button goButton = new Button( "Go" );
         goButton.disableProperty().bind( dateTimeField.validProperty().not() );
 
-        goButton.setOnAction( event -> {
+        EventHandler<ActionEvent> goAction = event -> {
             dateTimeField.getValue().ifPresent( dateTime -> {
                 List<LogViewWrapper> viewWrappers = new ArrayList<>( 3 );
                 if ( goToAll.isSelected() ) {
@@ -80,12 +77,19 @@ class GoToDateView {
             } );
 
             dialog.hide();
+        };
+
+        dateTimeField.setOnAction( goAction );
+        goButton.setOnAction( goAction );
+
+        dialog.dialogStage.focusedProperty().addListener( ( obs, oldVal, newVal ) -> {
+            if ( !newVal ) dialog.hide();
         } );
 
         HBox buttonBox = new HBox( 10 );
-        buttonBox.getChildren().addAll( cancelButton, goButton );
+        buttonBox.getChildren().addAll( goButton, goToAll );
 
-        root.getChildren().addAll( dateLabel, dateTimeField, buttonBox, goToAll );
+        root.getChildren().addAll( dateLabel, dateTimeField, buttonBox );
     }
 
     void show() {
@@ -95,27 +99,7 @@ class GoToDateView {
     private static class DateTimeTextField extends TextField {
 
         private static String lastValidDateTimeText = null;
-
-        private final DateTimeFormatter formatter = new DateTimeFormatterBuilder()
-                .appendValue( ChronoField.YEAR )
-                .appendLiteral( '-' )
-                .appendValue( ChronoField.MONTH_OF_YEAR )
-                .appendLiteral( '-' )
-                .appendValue( ChronoField.DAY_OF_MONTH )
-                .appendLiteral( ' ' )
-                .appendValue( ChronoField.HOUR_OF_DAY )
-                .appendLiteral( ':' )
-                .appendValue( ChronoField.MINUTE_OF_HOUR )
-                .appendLiteral( ':' )
-                .appendValue( ChronoField.SECOND_OF_MINUTE )
-                .optionalStart()
-                .appendLiteral( '.' )
-                .appendValue( ChronoField.MILLI_OF_SECOND )
-                .optionalEnd()
-                .optionalStart()
-                .appendLiteral( ' ' )
-                .appendZoneOrOffsetId()
-                .toFormatter();
+        private static final DateTimeFormatGuess guesser = DateTimeFormatGuesser.standard().asGuess();
 
         private final BooleanProperty valid = new SimpleBooleanProperty( true );
 
@@ -123,12 +107,13 @@ class GoToDateView {
 
         DateTimeTextField() {
             textProperty().addListener( ( observable, oldValue, newValue ) -> {
-                try {
-                    this.dateTime = formatter.parse( newValue, ZonedDateTime::from );
+                Optional<ZonedDateTime> guess = guesser.guessDateTime( newValue );
+                if ( guess.isPresent() ) {
+                    this.dateTime = guess.get();
                     valid.set( true );
                     getStyleClass().remove( "error" );
                     lastValidDateTimeText = newValue;
-                } catch ( DateTimeParseException e ) {
+                } else {
                     valid.set( false );
                     if ( !getStyleClass().contains( "error" ) ) {
                         getStyleClass().add( "error" );
@@ -139,17 +124,8 @@ class GoToDateView {
             if ( lastValidDateTimeText != null ) {
                 setText( lastValidDateTimeText );
             } else {
-                setText( formatter.format( LocalDateTime.now() ) + " " + localTimeOffset() );
+                setText( LocalDateTime.now().format( DateTimeFormatter.ISO_DATE_TIME ) );
             }
-        }
-
-        private static String localTimeOffset() {
-            int offsetInHours = TimeZone.getDefault().getOffset( System.currentTimeMillis() ) / 3600000;
-            int absOffsetInHours = Math.abs( offsetInHours );
-
-            return ( offsetInHours >= 0 ? "+" : "-" ) +
-                    ( ( absOffsetInHours < 10 ) ? "0" : "" ) +
-                    absOffsetInHours + ":00";
         }
 
         BooleanProperty validProperty() {

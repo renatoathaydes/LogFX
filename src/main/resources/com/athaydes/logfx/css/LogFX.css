@@ -7,6 +7,56 @@
     -fx-padding: 0 0 0 1;
 }
 
+.progress-bar > .bar {
+    -fx-background-color: cyan;
+    -fx-border-style: none;
+}
+
+Button, ToggleButton {
+    -fx-background-color: derive(-fx-base, 10%);
+    -fx-background-insets: 0,0,0;
+    -fx-background-radius: 0,0,0;
+    -fx-padding: 4 10 4 10;
+    -fx-border-color: transparent;
+}
+
+Button:hover, ToggleButton:hover {
+    -fx-background-color: derive(-fx-base, 20%);
+}
+
+Button:focused, ToggleButton:focused, HighlightGroupSelector:focused {
+    -fx-border-color: -fx-focus-color;
+}
+
+HighlightGroupSelector {
+    -fx-border-color: transparent;
+    -fx-background-color: derive(-fx-base, 20%);
+    -fx-min-width: 100px;
+    -fx-font-size: 12px;
+}
+
+HighlightGroupSelector:hover {
+    -fx-background-color: derive(-fx-base, 30%);
+}
+
+HighlightGroupSelector .label {
+    -fx-font-size: 12px;
+}
+
+.favourite-button {
+    -fx-background-color: green;
+}
+
+.favourite-button:hover {
+    -fx-background-color: derive(green, 20%);
+}
+
+Label {
+    -fx-font-family: Lucida;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
 .text-input.error {
     -fx-border-color: palevioletred;
 }
@@ -32,7 +82,7 @@
 }
 
 .log-line {
-    -fx-padding: 0, 5, 0, 5;
+    -fx-padding: 0 5 0 5;
 }
 
 .log-line.selected {
@@ -53,19 +103,21 @@ LogView.dropping-files {
     -fx-stroke: red 1px;
 }
 
+.message {
+    -fx-font-size: 16px;
+    -fx-padding: 0 0 0 20;
+}
+
 .message.info {
     -fx-background-color: palegreen;
-    -fx-text-fill: lightyellow;
 }
 
 .message.warning {
     -fx-background-color: sandybrown;
-    -fx-text-fill: darkslategray;
 }
 
 .message.error {
     -fx-background-color: palevioletred;
-    -fx-text-fill: whitesmoke;
 }
 
 .drop-file-pane {

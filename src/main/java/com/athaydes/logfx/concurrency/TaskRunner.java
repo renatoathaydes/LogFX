@@ -42,7 +42,7 @@ public class TaskRunner {
     }
 
     public TaskRunner( boolean daemon ) {
-        this.executor = Executors.newScheduledThreadPool( 2, ( runnable ) -> {
+        this.executor = Executors.newScheduledThreadPool( 4, ( runnable ) -> {
             Thread thread = new Thread( threadGroup, runnable );
             thread.setDaemon( daemon );
             return thread;
@@ -65,6 +65,16 @@ public class TaskRunner {
      */
     public void runAsync( Runnable task ) {
         executor.submit( task );
+    }
+
+    /**
+     * Run a task after a certain delay, asynchronously.
+     *
+     * @param task  to run
+     * @param delay to impose
+     */
+    public void runDelayed( Runnable task, Duration delay ) {
+        executor.schedule( task, delay.toMillis(), TimeUnit.MILLISECONDS );
     }
 
     /**
@@ -174,6 +184,10 @@ public class TaskRunner {
                 task, 0L, period.toMillis(), TimeUnit.MILLISECONDS );
 
         return () -> future.cancel( false );
+    }
+
+    public ScheduledExecutorService getExecutor() {
+        return executor;
     }
 
     public void shutdown() {

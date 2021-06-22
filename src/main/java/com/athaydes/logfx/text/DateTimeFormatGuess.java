@@ -15,6 +15,6 @@ public interface DateTimeFormatGuess {
      * @return the date-time if the line contained it in a format this guess could understand,
      * empty otherwise.
      */
-    Optional<ZonedDateTime> convert( String line );
+    Optional<ZonedDateTime> guessDateTime( String line );
 
 }
