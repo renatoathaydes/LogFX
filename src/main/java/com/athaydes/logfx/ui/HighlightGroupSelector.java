@@ -63,7 +63,9 @@ public final class HighlightGroupSelector extends ChoiceBox<String> {
 
         @Override
         public String toString( String option ) {
-            if ( option.isEmpty() ) return HighlightOptionsSelectorConverter.DEFAULT_GROUP_DISPLAY_NAME;
+            if ( option == null || option.isEmpty() ) {
+                return HighlightOptionsSelectorConverter.DEFAULT_GROUP_DISPLAY_NAME;
+            }
             return option;
         }
 
