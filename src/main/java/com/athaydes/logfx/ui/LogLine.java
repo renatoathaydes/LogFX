@@ -5,8 +5,11 @@ import com.athaydes.logfx.data.LogLineColors;
 import javafx.animation.Animation;
 import javafx.animation.Interpolator;
 import javafx.animation.Transition;
+import javafx.application.Platform;
 import javafx.beans.binding.NumberBinding;
+import javafx.scene.Parent;
 import javafx.scene.control.Label;
+import javafx.scene.control.TextField;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
@@ -19,32 +22,66 @@ import java.util.List;
 /**
  * Node holding a single log line in a {@link LogView}.
  */
-class LogLine extends Label implements SelectionHandler.SelectableNode {
+class LogLine extends Parent implements SelectionHandler.SelectableNode {
+
+    private final Label stdLine;
+    private final BindableValue<Font> fontValue;
 
     LogLine( BindableValue<Font> fontValue,
              NumberBinding widthProperty,
              Paint bkgColor, Paint fillColor ) {
-        setBackground( FxUtils.simpleBackground( bkgColor ) );
-        setTextFill( fillColor );
-        fontProperty().bind( fontValue );
-        minWidthProperty().bind( widthProperty );
-        getStyleClass().add( "log-line" );
+        this.stdLine = new Label();
+        this.fontValue = fontValue;
+
+        stdLine.setBackground( FxUtils.simpleBackground( bkgColor ) );
+        stdLine.setTextFill( fillColor );
+        stdLine.fontProperty().bind( fontValue );
+        stdLine.minWidthProperty().bind( widthProperty );
+        stdLine.getStyleClass().add( "log-line" );
+
+        setOnMouseClicked( event -> {
+            if ( event.getClickCount() > 1 ) swapSelectableText();
+        } );
+
+        getChildren().add( stdLine );
+    }
+
+    @Override
+    public String getText() {
+        return stdLine.getText();
+    }
+
+    private void swapSelectableText() {
+        var child = getChildren().remove( 0 );
+        if ( child == stdLine ) {
+            var textField = new TextField( getText() );
+            textField.setFont( fontValue.getValue() );
+            textField.setEditable( false );
+            textField.minWidthProperty().bind( stdLine.minWidthProperty() );
+            textField.focusedProperty().addListener( ( ignore ) -> {
+                if ( !textField.isFocused() ) swapSelectableText();
+            } );
+            getChildren().add( textField );
+            Platform.runLater( textField::requestFocus );
+        } else {
+            getChildren().add( stdLine );
+        }
     }
 
     @MustCallOnJavaFXThread
     void setText( String text, LogLineColors colors ) {
-        super.setText( text );
-        setBackground( FxUtils.simpleBackground( colors.getBackground() ) );
-        setTextFill( colors.getFill() );
+        stdLine.setText( text );
+        stdLine.setBackground( FxUtils.simpleBackground( colors.getBackground() ) );
+        stdLine.setTextFill( colors.getFill() );
     }
 
     @MustCallOnJavaFXThread
     @Override
     public void setSelect( boolean select ) {
         if ( select ) {
-            getStyleClass().add( "selected" );
+            stdLine.getStyleClass().add( "selected" );
         } else {
-            getStyleClass().remove( "selected" );
+            stdLine.getStyleClass().remove( "selected" );
         }
     }
 
@@ -60,7 +97,7 @@ class LogLine extends Label implements SelectionHandler.SelectableNode {
         private final Color targetColor;
 
         BackgroundTransition( Color targetColor ) {
-            List<BackgroundFill> fills = getBackground().getFills();
+            List<BackgroundFill> fills = stdLine.getBackground().getFills();
             if ( !fills.isEmpty() && fills.get( 0 ).getFill() instanceof Color ) {
                 this.originalColor = ( Color ) fills.get( 0 ).getFill();
             } else {
@@ -77,12 +114,12 @@ class LogLine extends Label implements SelectionHandler.SelectableNode {
             setInterpolator( Interpolator.EASE_OUT );
             setCycleCount( 6 );
             setAutoReverse( true );
-            setOnFinished( event -> setBackground( FxUtils.simpleBackground( originalColor ) ) );
+            setOnFinished( event -> stdLine.setBackground( FxUtils.simpleBackground( originalColor ) ) );
         }
 
         @Override
         protected void interpolate( double frac ) {
-            setBackground( FxUtils.simpleBackground(
+            stdLine.setBackground( FxUtils.simpleBackground(
                     originalColor.interpolate( targetColor, frac ) ) );
         }
     }
