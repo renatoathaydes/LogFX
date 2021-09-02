@@ -64,8 +64,6 @@ final class ConfigParser {
                 parseFilters( lines );
             case "files:":
                 parseFiles( lines );
-            case "auto_update:":
-                parseAutoUpdate( lines );
             case "gui:":
                 parseGuiSection( lines );
         }
@@ -146,26 +144,6 @@ final class ConfigParser {
                         break;
                     default:
                         logInvalidProperty( "filters", "filters", line, "value must be 'enable' or 'disable'" );
-                }
-            } else if ( !line.trim().isEmpty() ) {
-                parseConfigFile( line, lines );
-            }
-        }
-    }
-
-    private void parseAutoUpdate( Iterator<String> lines ) {
-        if ( lines.hasNext() ) {
-            String line = lines.next();
-            if ( line.startsWith( " " ) ) {
-                switch ( line.trim() ) {
-                    case "enable":
-                        properties.autoUpdate.set( true );
-                        break;
-                    case "disable":
-                        properties.autoUpdate.set( false );
-                        break;
-                    default:
-                        logInvalidProperty( "auto_update", "auto_update", line, "value must be 'enable' or 'disable'" );
                 }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );

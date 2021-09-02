@@ -83,8 +83,6 @@ public class Config {
                 change.getElementRemoved().highlightGroupProperty().removeListener( listener );
             }
         } );
-
-        properties.autoUpdate.addListener( listener );
     }
 
     public SimpleObjectProperty<LogLineColors> standardLogColorsProperty() {
@@ -119,14 +117,6 @@ public class Config {
         return properties.enableFilters;
     }
 
-    public BooleanProperty autoUpdateProperty() {
-        return properties.autoUpdate;
-    }
-
-    public boolean isAutoUpdate() {
-        return properties.autoUpdate.get();
-    }
-
     private void readConfigFile( Path path ) {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
@@ -157,7 +147,6 @@ public class Config {
         Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
         Platform.runLater( () -> data.dividerPositions = new ArrayList<>( properties.paneDividerPositions ) );
         Platform.runLater( () -> data.font = properties.font.getValue() );
-        Platform.runLater( () -> data.autoUpdate = properties.autoUpdate.get() );
 
         // go to the JavaFX Thread to wait for all previous tasks to complete, then dump the file, finally.
         Platform.runLater( () -> taskRunner.runAsync( () -> dumpConfigToFile( data ) ) );

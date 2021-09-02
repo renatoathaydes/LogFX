@@ -19,7 +19,6 @@ import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import com.athaydes.logfx.ui.StartUpView;
 import com.athaydes.logfx.ui.TopViewMenu;
-import com.athaydes.logfx.update.LogFXUpdater;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
@@ -27,7 +26,6 @@ import javafx.beans.InvalidationListener;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.scene.Scene;
-import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuBar;
 import javafx.scene.control.MenuItem;
@@ -94,10 +92,6 @@ public final class LogFX extends Application {
         topViewMenu = new TopViewMenu( logsPane, config );
 
         openFilesFromConfig();
-
-        if ( FxUtils.isRunningAsModularApp() && config.isAutoUpdate() ) {
-            LogFXUpdater.checkAndDownloadUpdateIfAvailable( taskRunner );
-        }
     }
 
     @Override
@@ -269,14 +263,6 @@ public final class LogFX extends Application {
         MenuItem about = new MenuItem( "_About LogFX" );
         about.setOnAction( ( event ) -> new AboutLogFXView().show() );
         menu.getItems().add( about );
-
-        if ( FxUtils.isRunningAsModularApp() ) {
-            CheckMenuItem autoUpdate = new CheckMenuItem( "Auto-update LogFX?" );
-            autoUpdate.setAccelerator( new KeyCodeCombination( KeyCode.A,
-                    KeyCombination.SHORTCUT_DOWN, KeyCombination.ALT_DOWN ) );
-            autoUpdate.selectedProperty().bindBidirectional( config.autoUpdateProperty() );
-            menu.getItems().add( autoUpdate );
-        }
 
         return menu;
     }

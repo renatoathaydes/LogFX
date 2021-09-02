@@ -5,11 +5,11 @@ plugins {
 group 'com.athaydes.logfx'
 version '1.0'
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+sourceCompatibility = JavaVersion.VERSION_16
+targetCompatibility = JavaVersion.VERSION_16
 
 repositories {
-    jcenter()
+    mavenCentral()
 }
 
 dependencies {

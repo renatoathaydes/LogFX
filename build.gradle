@@ -4,23 +4,22 @@ import org.apache.tools.ant.taskdefs.condition.Os
 plugins {
     id 'groovy'
     id 'application'
-    id 'maven'
+    id 'maven-publish'
+    id 'signing'
     id 'org.javamodularity.moduleplugin' version '1.7.0'
-    id "com.jfrog.bintray" version "1.8.4"
 }
 
 group 'com.athaydes.logfx'
 version '1.0-RC14'
 description 'A beautiful log viewer capable of handling large files'
 
-sourceCompatibility = JavaVersion.VERSION_11
-targetCompatibility = JavaVersion.VERSION_11
+sourceCompatibility = JavaVersion.VERSION_16
+targetCompatibility = JavaVersion.VERSION_16
 
 mainClassName = "com.athaydes.logfx/com.athaydes.logfx.LogFX"
 
 repositories {
-    mavenLocal()
-    jcenter()
+    mavenCentral()
 }
 
 tasks.withType( JavaCompile ) {
@@ -107,25 +106,20 @@ task jpackage( type: Exec ) {
 //sourceSets.main.java.srcDir generatedJavaSources
 
 configurations {
-    fatJarRuntime
     binaries
 }
 
 dependencies {
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
-    implementation group: 'com.athaydes.keepup', name: 'keepup-core', version: '1.0-RC4'
-    implementation group: 'com.athaydes.keepup', name: 'keepup-bintray', version: '1.0-RC4'
 
-    fatJarRuntime group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
-
-    testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '2.5.10'
-    testImplementation group: 'org.spockframework', name: 'spock-core', version: '1.3-groovy-2.5', {
+    testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.8'
+    testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.0-groovy-3.0', {
         transitive = false
     }
-    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '1.7.1', {
+    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.0-groovy-3.0', {
         transitive = false
     }
-    testImplementation group: 'junit', name: 'junit', version: '4.12'
+    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'cglib', name: 'cglib-nodep', version: '3.3.0'
     testImplementation group: 'com.google.code.tempus-fugit', name: 'tempus-fugit', version: '1.1'
 }
@@ -193,128 +187,78 @@ task fatJar( type: Jar ) {
     with jar
 }
 
-task sourcesJar( type: Jar, dependsOn: classes ) {
-    from sourceSets.main.allSource
-    classifier "sources"
-    extension "jar"
-}
-
-task javadocJar( type: Jar ) {
-    classifier "javadoc"
-    from javadoc
-}
-
 /* Publishing config */
 
-artifacts {
-    archives javadocJar, sourcesJar, fatJar
-    binaries packageImage
+jar {
+    manifest {
+        attributes(
+                "Implementation-Title": "LogFX",
+                "Implementation-Version": version )
+    }
 }
 
-// add all the info required by Maven Central to the pom
-configure( install.repositories.mavenInstaller ) {
-    pom.project {
-        inceptionYear '2017'
-        name project.name
-        packaging 'jar'
-        description project.description
+java {
+    withJavadocJar()
+    withSourcesJar()
+}
 
-        url 'https://github.com/renatoathaydes/LogFX'
+javadoc {
+    if ( JavaVersion.current().isJava9Compatible() ) {
+        options.addBooleanOption( 'html5', true )
+    }
+}
 
-        scm {
-            connection 'git@github.com:renatoathaydes/LogFX.git'
-            developerConnection 'git@github.com:renatoathaydes/LogFX.git'
-            url 'https://github.com/renatoathaydes/LogFX'
-        }
+def getProjectProperty = { String propertyName ->
+    project.properties[ propertyName ]
+}
 
-        licenses {
-            license {
-                name 'GNU General Public License (version 3.0)'
-                url 'https://www.gnu.org/licenses/gpl-3.0.txt'
+publishing {
+    publications {
+        mavenJava( MavenPublication ) {
+            artifactId = 'logfx'
+            from components.java
+            pom {
+                inceptionYear = '2017'
+                name = project.name
+                description = project.description
+                url = 'https://github.com/renatoathaydes/LogFX'
+
+                scm {
+                    connection = 'git@github.com:renatoathaydes/LogFX.git'
+                    developerConnection = 'git@github.com:renatoathaydes/LogFX.git'
+                    url = 'https://github.com/renatoathaydes/LogFX'
+                }
+
+                licenses {
+                    license {
+                        name = 'GNU General Public License (version 3.0)'
+                        url = 'https://www.gnu.org/licenses/gpl-3.0.txt'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'renatoathaydes'
+                        name = 'Renato Athaydes'
+                        email = 'renato@athaydes.com'
+                    }
+                }
             }
         }
-
-        developers {
-            developer {
-                id 'renatoathaydes'
-                name 'Renato Athaydes'
-                email 'renato@athaydes.com'
+    }
+    repositories {
+        maven {
+            url "https://oss.sonatype.org/service/local/staging/deploy/maven2"
+            credentials {
+                username getProjectProperty( 'ossrhUsername' )?.toString()
+                password getProjectProperty( 'ossrhPassword' )?.toString()
             }
         }
     }
 }
 
-def getSecret = { String projectProperty, String envName ->
-    project.hasProperty( projectProperty )
-            ? project.property( projectProperty )
-            : System.getenv()[ envName ]
-}
-
-if ( hasProperty( 'bintrayBinaries' ) ) {
-    // Binary Generic Repository Config
-    bintray {
-        user = getSecret( 'bintrayUserName', 'BINTRAY_USER' )
-        key = getSecret( 'bintrayApiKey', 'BINTRAY_KEY' )
-        configurations = [ 'binaries' ]
-        publish = true
-        pkg {
-            repo = Os.isFamily( Os.FAMILY_MAC ) ? 'mac' : Os.isFamily( Os.FAMILY_WINDOWS ) ? 'win' : 'linux'
-            name = 'logfx'
-            licenses = [ 'GPL-3.0' ]
-            desc = project.description
-            vcsUrl = 'https://github.com/renatoathaydes/LogFX.git'
-            websiteUrl = 'https://github.com/renatoathaydes/LogFX'
-            issueTrackerUrl = 'https://github.com/renatoathaydes/LogFX/issues'
-            labels = [ 'log', 'javafx', 'log-viewer' ]
-            publicDownloadNumbers = true
-
-            //noinspection GroovyAssignabilityCheck
-            version {
-                name = project.version
-                vcsTag = project.version
-                gpg {
-                    sign = true
-                }
-            }
-        }
+signing {
+    if ( project.hasProperty( 'sign' ) ) {
+        sign publishing.publications.mavenJava
     }
-
-    bintrayUpload.dependsOn packageImage
-} else {
-    // Maven Repository Config
-    bintray {
-        user = getSecret( 'bintrayUserName', 'BINTRAY_USER' )
-        key = getSecret( 'bintrayApiKey', 'BINTRAY_KEY' )
-        configurations = [ 'archives' ]
-        publish = true
-        pkg {
-            repo = 'maven'
-            name = 'logfx'
-            licenses = [ 'GPL-3.0' ]
-            desc = project.description
-            vcsUrl = 'https://github.com/renatoathaydes/LogFX.git'
-            websiteUrl = 'https://github.com/renatoathaydes/LogFX'
-            issueTrackerUrl = 'https://github.com/renatoathaydes/LogFX/issues'
-            labels = [ 'log', 'javafx', 'log-viewer' ]
-            publicDownloadNumbers = true
-
-            //noinspection GroovyAssignabilityCheck
-            version {
-                name = project.version
-                vcsTag = project.version
-                gpg {
-                    sign = true
-                }
-                mavenCentralSync {
-                    sync = true
-                    user = project.hasProperty( "ossrhUsername" ) ? ossrhUsername : null
-                    password = project.hasProperty( "ossrhPassword" ) ? ossrhPassword : null
-                    close = '1' // '0' to NOT close
-                }
-            }
-        }
-
-    }
-
-    bintrayUpload.dependsOn fatJar, sourcesJar, fatJar
 }
