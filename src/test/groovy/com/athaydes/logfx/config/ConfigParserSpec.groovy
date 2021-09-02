@@ -145,7 +145,6 @@ class ConfigParserSpec extends Specification {
         defaultHighlights[ 2 ] == new HighlightExpression( 'OFF', Color.valueOf( '0x1a3399ff' ), Color.valueOf( '0xffccb3ff' ), true )
 
         !config.enableFilters.get()
-        config.autoUpdate.get()
         config.observableFiles.collect { it.file.path }.toSet() ==
                 [ path( '/android-studio/Install-Linux-tar.txt' ),
                   path( '/home/me/.logfx/config' ) ] as Set
@@ -201,7 +200,6 @@ class ConfigParserSpec extends Specification {
         extraHighlights[ 0 ] == new HighlightExpression( 'wget', Color.valueOf( '0xe86b08ff' ), Color.valueOf( '0x000000ff' ), true )
 
         !config.enableFilters.get()
-        !config.autoUpdate.get()
         config.observableFiles.collect { it.file.path }.toSet() ==
                 [ path( '/home/me/.logfx/config' ) ] as Set
 

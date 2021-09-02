@@ -13,8 +13,12 @@ class SelectionHandlerSpec extends Specification {
     def 'It is possible to select all nodes between two known nodes'() {
         given: 'A mocked parent'
         ObservableList<SelectionHandler.SelectableNode> observableChildren = FXCollections.observableArrayList()
-        def root = Mock( Parent )
-        root.getChildrenUnmodifiable() >> observableChildren
+        def root = new Parent() {
+            @Override
+            ObservableList<Node> getChildrenUnmodifiable() {
+                observableChildren
+            }
+        }
 
         and: 'A SelectionHandler is created to handle the parent'
         SelectionHandler handler = new SelectionHandler( root )
