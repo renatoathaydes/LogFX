@@ -97,6 +97,10 @@ public class TaskRunner {
         if ( maxFrequencyInMs < 1L ) {
             throw new IllegalArgumentException( "maxFrequencyInMs must be larger than 0" );
         }
+        if ( executor.isShutdown() ) {
+            log.debug( "Ignoring request to run runnable as executor has been shut down" );
+            return;
+        }
 
         boolean shouldRunImmediately;
 
