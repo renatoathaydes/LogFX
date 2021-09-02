@@ -268,6 +268,7 @@ public class LogView extends VBox {
     }
 
     private void immediateOnFileChange( Runnable andThen ) {
+        if (fileReaderExecutor.isShutdown()) return;
         Predicate<String> filter = highlighter.getLineFilter().orElse( null );
         fileReaderExecutor.execute( () -> {
             fileContentReader.setLineFilter( filter );
@@ -331,9 +332,12 @@ public class LogView extends VBox {
     }
 
     void closeFileReader() {
-        fileChangeWatcher.close();
-        fileReaderExecutor.shutdown();
-        removeListeners();
+        try {
+            removeListeners();
+        } finally {
+            fileChangeWatcher.close();
+            fileReaderExecutor.shutdown();
+        }
     }
 
     private void wireListeners() {
