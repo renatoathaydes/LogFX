@@ -241,10 +241,11 @@ public class LogView extends VBox {
     }
 
     private void setLine( int index, String line ) {
-        LogLineColors logLineColors = highlighter.logLineColorsFor( line );
         LogLine logLine = lineAt( index );
+        // avoid wasting resources
+        if (logLine.getText().equals( line )) return;
+        LogLineColors logLineColors = highlighter.logLineColorsFor( line );
         logLine.setText( line, logLineColors );
-
     }
 
     // must be called from fileReaderExecutor Thread

@@ -24,6 +24,9 @@ import java.util.List;
  */
 class LogLine extends Parent implements SelectionHandler.SelectableNode {
 
+    private static final int MAX_LINE_LENGTH = 5000;
+
+    private String fullText = "";
     private final Label stdLine;
     private final BindableValue<Font> fontValue;
 
@@ -48,13 +51,13 @@ class LogLine extends Parent implements SelectionHandler.SelectableNode {
 
     @Override
     public String getText() {
-        return stdLine.getText();
+        return fullText;
     }
 
     private void swapSelectableText() {
         var child = getChildren().remove( 0 );
         if ( child == stdLine ) {
-            var textField = new TextField( getText() );
+            var textField = new TextField( fullText );
             textField.setFont( fontValue.getValue() );
             textField.setEditable( false );
             textField.minWidthProperty().bind( stdLine.minWidthProperty() );
@@ -70,7 +73,11 @@ class LogLine extends Parent implements SelectionHandler.SelectableNode {
 
     @MustCallOnJavaFXThread
     void setText( String text, LogLineColors colors ) {
-        stdLine.setText( text );
+        this.fullText = text;
+        var uiText = fullText.length() > MAX_LINE_LENGTH
+                ? fullText.substring( 0, MAX_LINE_LENGTH ) + "..."
+                : fullText;
+        stdLine.setText( uiText );
         stdLine.setBackground( FxUtils.simpleBackground( colors.getBackground() ) );
         stdLine.setTextFill( colors.getFill() );
     }
