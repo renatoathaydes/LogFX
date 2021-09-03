@@ -49,7 +49,6 @@ public class LogView extends VBox {
     };
 
     public static final int MAX_LINES = 100;
-    private static final double DELTA_FACTOR = 10.0;
 
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
@@ -133,21 +132,25 @@ public class LogView extends VBox {
     }
 
     void pageUp() {
-        move( MAX_LINES * DELTA_FACTOR );
+        move( 51.0 );
     }
 
     void pageDown() {
-        move( -MAX_LINES * DELTA_FACTOR );
+        move( -51.0 );
     }
 
-    void move( double deltaY ) {
-        if ( !allowRefresh.get() ) {
-            log.trace( "Ignoring call to move up/down as the LogView is paused" );
-            return;
+    double move( double deltaY ) {
+        if ( !allowRefresh.get() || fileReaderExecutor.isShutdown() ) {
+            log.trace( "Ignoring call to move up/down as the {}",
+                    fileReaderExecutor.isShutdown()
+                            ? "reader executor is shutdown"
+                            : "LogView is paused" );
+            return 0.0;
         }
 
-        int lines = Double.valueOf( deltaY / DELTA_FACTOR ).intValue();
-        log.trace( "Moving by deltaY={}, lines={}", deltaY, lines );
+        double scrollFactor = scaleScrollDelta( deltaY );
+        int lines = Math.toIntExact( Math.round( MAX_LINES * scrollFactor ) );
+        log.trace( "Moving by deltaY={}, factor={}, lines={}", deltaY, scrollFactor, lines );
 
         fileReaderExecutor.execute( () -> {
             Optional<? extends List<String>> result;
@@ -155,11 +158,27 @@ public class LogView extends VBox {
                 result = fileContentReader.moveUp( lines );
                 result.ifPresent( this::addTopLines );
             } else {
-                result = fileContentReader.moveDown( -lines );
+                result = fileContentReader.moveDown( lines );
                 result.ifPresent( this::addBottomLines );
             }
             onFileExists.accept( result.isPresent() );
         } );
+
+        return scrollFactor;
+    }
+
+    private static double scaleScrollDelta( double deltaY ) {
+        double absDeltaY = Math.abs( deltaY );
+        if ( absDeltaY > 100.0 ) {
+            return 0.8;
+        }
+        if ( absDeltaY > 50.0 ) {
+            return 0.5;
+        }
+        if ( absDeltaY > 10.0 ) {
+            return 0.2;
+        }
+        return 0.1;
     }
 
     BooleanProperty tailingFileProperty() {

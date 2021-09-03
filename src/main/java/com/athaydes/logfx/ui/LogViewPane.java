@@ -415,19 +415,12 @@ public final class LogViewPane {
                 } else if ( wrapper.isTailingFile() ) {
                     return; // no need to scroll down when tailing file
                 }
-
-                switch ( event.getTextDeltaYUnits() ) {
-                    case NONE:
-                        // no change
-                        break;
-                    case LINES:
-                        deltaY *= 10.0;
-                        break;
-                    case PAGES:
-                        deltaY *= 50.0;
-                        break;
+                var factor = wrapper.logView.move( deltaY );
+                if (deltaY > 0) {
+                    setVvalue( factor );
+                } else {
+                    setVvalue( 1.0 - factor );
                 }
-                wrapper.logView.move( deltaY );
             } );
         }
 
