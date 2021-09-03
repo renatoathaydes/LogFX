@@ -130,21 +130,6 @@ public final class LogViewPane {
                             } ) ) );
         } );
 
-        MenuItem distributePanesMenuItem = new MenuItem( "Distribute panes evenly" );
-        distributePanesMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.D,
-                KeyCombination.SHORTCUT_DOWN ) );
-        distributePanesMenuItem.setOnAction( event -> {
-            if ( pane.getItems().size() < 2 ) {
-                return; // nothing to do if there isn't more than 1 pane
-            }
-
-            final int dividerCount = pane.getItems().size() - 1;
-            final double positionStep = 1.0 / ( dividerCount + 1 );
-            setDividerPositions( IntStream.range( 0, dividerCount )
-                    .mapToObj( i -> ( i + 1 ) * positionStep )
-                    .collect( toList() ) );
-        } );
-
         MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
         goToDateMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN ) );
         goToDateMenuItem.setOnAction( event -> {
@@ -192,7 +177,7 @@ public final class LogViewPane {
                 new SeparatorMenuItem(),
                 pauseMenuItem,
                 new SeparatorMenuItem(),
-                minimizeMenuItem, maximizeMenuItem, distributePanesMenuItem, closeMenuItem ) );
+                minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
 
         // aggregate any change in the position of number of dividers into a single listener
         InvalidationListener dividersListener = ( event ) ->
@@ -396,6 +381,19 @@ public final class LogViewPane {
         }
 
         return null;
+    }
+
+    @MustCallOnJavaFXThread
+    public void dividePanesEvenly() {
+        if ( pane.getItems().size() < 2 ) {
+            return; // nothing to do if there isn't more than 1 pane
+        }
+
+        final int dividerCount = pane.getItems().size() - 1;
+        final double positionStep = 1.0 / ( dividerCount + 1 );
+        setDividerPositions( IntStream.range( 0, dividerCount )
+                .mapToObj( i -> ( i + 1 ) * positionStep )
+                .collect( toList() ) );
     }
 
     private static class LogViewScrollPane extends ScrollPane {

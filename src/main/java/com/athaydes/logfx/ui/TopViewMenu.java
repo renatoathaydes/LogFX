@@ -38,6 +38,11 @@ public final class TopViewMenu extends Menu {
                 KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
         orientation.setOnAction( event -> logsPane.switchOrientation() );
 
+        MenuItem distributePanesMenuItem = new MenuItem( "Distribute panes evenly" );
+        distributePanesMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.S,
+                KeyCombination.SHORTCUT_DOWN ) );
+        distributePanesMenuItem.setOnAction( event -> logsPane.dividePanesEvenly() );
+
         CheckMenuItem font = new CheckMenuItem( "Fon_t" );
         font.setAccelerator( new KeyCodeCombination( KeyCode.F,
                 KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
@@ -54,7 +59,7 @@ public final class TopViewMenu extends Menu {
         showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN ) );
         showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
 
-        getItems().addAll( highlight, orientation, font, filter, showContextMenu );
+        getItems().addAll( highlight, orientation, distributePanesMenuItem, font, filter, showContextMenu );
     }
 
     public Consumer<LogView> getEditGroupCallback() {
