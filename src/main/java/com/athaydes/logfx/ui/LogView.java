@@ -21,7 +21,6 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
-import javafx.scene.input.ClipboardContent;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import org.slf4j.Logger;
@@ -121,8 +120,8 @@ public class LogView extends VBox {
         return allowRefresh;
     }
 
-    Optional<ClipboardContent> getSelection() {
-        return selectionHandler.getSelection();
+    SelectionHandler getSelectionHandler() {
+        return selectionHandler;
     }
 
     void loadFileContents() {
@@ -268,7 +267,7 @@ public class LogView extends VBox {
     }
 
     private void immediateOnFileChange( Runnable andThen ) {
-        if (fileReaderExecutor.isShutdown()) return;
+        if ( fileReaderExecutor.isShutdown() ) return;
         Predicate<String> filter = highlighter.getLineFilter().orElse( null );
         fileReaderExecutor.execute( () -> {
             fileContentReader.setLineFilter( filter );

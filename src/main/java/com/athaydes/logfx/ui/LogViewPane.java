@@ -74,7 +74,7 @@ public final class LogViewPane {
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
         copyMenuItem.setOnAction( event -> getFocusedView()
-                .flatMap( wrapper -> wrapper.logView.getSelection() )
+                .flatMap( wrapper -> wrapper.logView.getSelectionHandler().getSelection() )
                 .ifPresent( content -> Clipboard.getSystemClipboard().setContent( content ) ) );
 
         MenuItem closeMenuItem = new MenuItem( "Close" );
@@ -214,6 +214,21 @@ public final class LogViewPane {
         pane.getItems().addListener( ( InvalidationListener ) ( event ) -> {
             if ( pane.getItems().isEmpty() ) {
                 pane.getItems().add( startUpViewGetter.get() );
+            }
+        } );
+
+        pane.setOnKeyPressed( event -> {
+            if ( event.isControlDown() ) {
+                switch ( event.getCode() ) {
+                    case N -> getFocusedView().ifPresent( view -> {
+                        var handler = view.getLogView().getSelectionHandler();
+                        handler.getNextItem().ifPresent( handler::select );
+                    } );
+                    case P -> getFocusedView().ifPresent( view -> {
+                        var handler = view.getLogView().getSelectionHandler();
+                        handler.getPreviousItem().ifPresent( handler::select );
+                    } );
+                }
             }
         } );
 

@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.iterable.IterableUtils;
 import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableSet;
@@ -101,6 +102,41 @@ class SelectionHandler {
 
     ObservableSet<SelectableNode> getSelectedItems() {
         return selectionManager.getSelectedItems();
+    }
+
+    void select( SelectableNode node ) {
+        selectionManager.unselectAll();
+        selectionManager.select( node, true );
+    }
+
+    Optional<SelectableNode> getNextItem() {
+        return IterableUtils.getLast( getSelectedItems() ).flatMap( last -> {
+            var returnNext = false;
+            for ( var node : root.getChildrenUnmodifiable() ) {
+                if ( returnNext && node instanceof SelectableNode ) {
+                    return Optional.of( ( SelectableNode ) node );
+                }
+                if ( node == last ) {
+                    returnNext = true;
+                }
+            }
+            return Optional.empty();
+        } );
+    }
+
+    Optional<SelectableNode> getPreviousItem() {
+        return IterableUtils.getFirst( getSelectedItems() ).flatMap( first -> {
+            SelectableNode previous = null;
+            for ( var node : root.getChildrenUnmodifiable() ) {
+                if ( node == first ) {
+                    return Optional.ofNullable( previous );
+                }
+                if ( node instanceof SelectableNode ) {
+                    previous = ( SelectableNode ) node;
+                }
+            }
+            return Optional.empty();
+        } );
     }
 
     private void enableDragEventsOn( Node node ) {
