@@ -59,7 +59,6 @@ class LogLine extends Parent implements SelectionHandler.SelectableNode {
         if ( child == stdLine ) {
             var textField = new TextField( fullText );
             textField.setFont( fontValue.getValue() );
-            textField.setEditable( false );
             textField.minWidthProperty().bind( stdLine.minWidthProperty() );
             textField.focusedProperty().addListener( ( ignore ) -> {
                 if ( !textField.isFocused() ) swapSelectableText();
