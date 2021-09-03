@@ -42,10 +42,9 @@ import javafx.stage.Stage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
+import java.awt.SplashScreen;
 import java.io.File;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -101,7 +100,6 @@ public final class LogFX extends Application {
         setPrimaryStage( primaryStage );
         setIconsOn( primaryStage );
         setupResizeListenersAndResize( primaryStage );
-        hackToCauseJavaFXToRedrawWholeWindowDueToJavaFXBug( primaryStage );
 
         MenuBar menuBar = new MenuBar();
         menuBar.useSystemMenuBarProperty().set( true );
@@ -191,17 +189,6 @@ public final class LogFX extends Application {
         stage.heightProperty().addListener( updateBounds );
         stage.xProperty().addListener( updateBounds );
         stage.yProperty().addListener( updateBounds );
-    }
-
-    // fixes JavaFX bug: https://bugs.openjdk.java.net/browse/JDK-8189092
-    private void hackToCauseJavaFXToRedrawWholeWindowDueToJavaFXBug( Stage stage ) {
-        double h = stage.getHeight();
-        taskRunner.runDelayed( () -> {
-            Platform.runLater( () -> stage.setHeight( h + 1 ) );
-            taskRunner.runDelayed( () -> {
-                Platform.runLater( () -> stage.setHeight( h - 1 ) );
-            }, Duration.ofSeconds( 1 ) );
-        }, Duration.ofSeconds( 2 ) );
     }
 
     private void updateBottomMessagePane( VBox mainBox ) {
@@ -318,14 +305,9 @@ public final class LogFX extends Application {
                 open( droppedFile );
             } else {
                 switch ( target ) {
-                    case BEFORE:
-                        open( droppedFile, droppedOnPaneIndex );
-                        break;
-                    case AFTER:
-                        open( droppedFile, droppedOnPaneIndex + 1 );
-                        break;
-                    default:
-                        throw new IllegalStateException( "Unknown target: " + target.name() );
+                    case BEFORE -> open( droppedFile, droppedOnPaneIndex );
+                    case AFTER -> open( droppedFile, droppedOnPaneIndex + 1 );
+                    default -> throw new IllegalStateException( "Unknown target: " + target.name() );
                 }
             }
         } );

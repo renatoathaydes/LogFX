@@ -321,8 +321,7 @@ public final class LogViewPane {
     public void close() {
         for ( int i = 0; i < pane.getItems().size(); i++ ) {
             Node item = pane.getItems().get( i );
-            if ( item instanceof LogViewWrapper ) {
-                LogViewWrapper wrapper = ( LogViewWrapper ) item;
+            if ( item instanceof LogViewWrapper wrapper ) {
                 wrapper.stop();
             }
         }
@@ -372,8 +371,7 @@ public final class LogViewPane {
     @MustCallOnJavaFXThread
     public ScrollPane getScrollPaneFor( LogView view ) {
         for ( Node item : pane.getItems() ) {
-            if ( item instanceof LogViewWrapper ) {
-                LogViewWrapper wrapper = ( LogViewWrapper ) item;
+            if ( item instanceof LogViewWrapper wrapper ) {
                 if ( wrapper.getLogView() == view ) {
                     return wrapper.getScrollPane();
                 }
