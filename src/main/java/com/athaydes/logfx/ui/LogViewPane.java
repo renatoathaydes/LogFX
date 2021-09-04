@@ -413,12 +413,13 @@ public final class LogViewPane {
                 } else if ( wrapper.isTailingFile() ) {
                     return; // no need to scroll down when tailing file
                 }
-                var factor = wrapper.logView.move( deltaY );
-                if (deltaY > 0) {
-                    setVvalue( factor );
-                } else {
-                    setVvalue( 1.0 - factor );
-                }
+                wrapper.logView.move( deltaY, factor -> Platform.runLater( () -> {
+                    if ( deltaY > 0 ) {
+                        setVvalue( factor );
+                    } else {
+                        setVvalue( 1.0 - factor );
+                    }
+                } ) );
             } );
         }
 

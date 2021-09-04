@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.concurrency.IdentifiableRunnable;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.data.LinesScroller;
@@ -34,6 +35,7 @@ import java.util.Optional;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -48,7 +50,7 @@ public class LogView extends VBox {
     private static final Runnable DO_NOTHING = () -> {
     };
 
-    public static final int MAX_LINES = 100;
+    public static final int MAX_LINES = 256;
 
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
@@ -132,53 +134,59 @@ public class LogView extends VBox {
     }
 
     void pageUp() {
-        move( 51.0 );
+        move( 51.0, ( d ) -> {
+        } );
     }
 
     void pageDown() {
-        move( -51.0 );
+        move( -51.0, ( d ) -> {
+        } );
     }
 
-    double move( double deltaY ) {
+    void move( double deltaY, DoubleConsumer useScrollFactor ) {
+        if ( deltaY == 0.0 ) return;
+
         if ( !allowRefresh.get() || fileReaderExecutor.isShutdown() ) {
             log.trace( "Ignoring call to move up/down as the {}",
                     fileReaderExecutor.isShutdown()
                             ? "reader executor is shutdown"
                             : "LogView is paused" );
-            return 0.0;
+            return;
         }
 
-        double scrollFactor = scaleScrollDelta( deltaY );
-        int lines = Math.toIntExact( Math.round( MAX_LINES * scrollFactor ) );
-        log.trace( "Moving by deltaY={}, factor={}, lines={}", deltaY, scrollFactor, lines );
+        // avoid repeating task in quick succession
+        taskRunner.runWithMaxFrequency( new IdentifiableRunnable( "scroll", () -> {
+            double scrollFactor = scaleScrollDelta( deltaY );
+            int lines = Math.toIntExact( Math.round( MAX_LINES * scrollFactor ) );
 
-        fileReaderExecutor.execute( () -> {
-            Optional<? extends List<String>> result;
-            if ( deltaY > 0.0 ) {
-                result = fileContentReader.moveUp( lines );
-                result.ifPresent( this::addTopLines );
-            } else {
-                result = fileContentReader.moveDown( lines );
-                result.ifPresent( this::addBottomLines );
-            }
-            onFileExists.accept( result.isPresent() );
-        } );
+            log.trace( "Moving by deltaY={}, factor={}, lines={}", deltaY, scrollFactor, lines );
 
-        return scrollFactor;
+            // we can only access the file reader inside its executor
+            fileReaderExecutor.execute( () -> {
+                Optional<? extends List<String>> result;
+                if ( deltaY > 0.0 ) {
+                    result = fileContentReader.moveUp( lines );
+                    result.ifPresent( this::addTopLines );
+                } else {
+                    result = fileContentReader.moveDown( lines );
+                    result.ifPresent( this::addBottomLines );
+                }
+                onFileExists.accept( result.isPresent() );
+                if ( result.isPresent() && !result.get().isEmpty() ) {
+                    useScrollFactor.accept( scrollFactor );
+                }
+            } );
+        } ), 50 );
     }
 
     private static double scaleScrollDelta( double deltaY ) {
         double absDeltaY = Math.abs( deltaY );
-        if ( absDeltaY > 100.0 ) {
-            return 0.8;
-        }
-        if ( absDeltaY > 50.0 ) {
-            return 0.5;
-        }
-        if ( absDeltaY > 10.0 ) {
-            return 0.2;
-        }
-        return 0.1;
+        if ( absDeltaY < 0.001 ) return 0.0;
+        if ( absDeltaY < 1.0 ) return 0.02;
+        if ( absDeltaY > 100.0 ) return 0.8;
+        if ( absDeltaY > 50.0 ) return 0.5;
+        if ( absDeltaY > 10.0 ) return 0.2;
+        return 0.08;
     }
 
     BooleanProperty tailingFileProperty() {
@@ -243,7 +251,7 @@ public class LogView extends VBox {
     private void setLine( int index, String line ) {
         LogLine logLine = lineAt( index );
         // avoid wasting resources
-        if (logLine.getText().equals( line )) return;
+        if ( logLine.getText().equals( line ) ) return;
         LogLineColors logLineColors = highlighter.logLineColorsFor( line );
         logLine.setText( line, logLineColors );
     }
