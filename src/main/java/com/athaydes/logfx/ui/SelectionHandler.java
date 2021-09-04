@@ -19,26 +19,31 @@ import java.util.stream.Collectors;
 /**
  * Adds selection capabilities to a {@link Parent} node.
  */
-class SelectionHandler {
+final class SelectionHandler {
 
     private final SelectionManager selectionManager = new SelectionManager();
-    private final Parent root;
+    private final SelectableContainer root;
 
     private SelectableNode dragEventStartedOnNode;
 
-    SelectionHandler( Parent root ) {
+    SelectionHandler( SelectableContainer root ) {
         this.root = root;
-        root.setOnDragDetected( this::onDragDetected );
-        root.setOnMouseReleased( this::onMouseReleased );
-        root.setOnMouseExited( this::onMouseReleased );
+        var node = root.getNode();
+        node.setOnDragDetected( this::onDragDetected );
+        node.setOnMouseReleased( this::onMouseReleased );
+        node.setOnMouseExited( this::onMouseReleased );
 
-        root.getChildrenUnmodifiable().addListener( ( ListChangeListener<Node> ) change -> {
+        root.getSelectables().getList().addListener( ( ListChangeListener<Node> ) change -> {
             if ( change.next() ) {
                 for ( Node newNode : change.getAddedSubList() ) {
-                    enableDragEventsOn( newNode );
+                    if ( newNode instanceof SelectableNode selectableNode ) {
+                        enableDragEventsOn( selectableNode );
+                    }
                 }
                 for ( Node removedNode : change.getRemoved() ) {
-                    disableDragEventsOn( removedNode );
+                    if ( removedNode instanceof SelectableNode selectableNode ) {
+                        disableDragEventsOn( selectableNode );
+                    }
                 }
             }
         } );
@@ -47,9 +52,9 @@ class SelectionHandler {
     private void onDragDetected( MouseEvent event ) {
         Node target = getTargetNode( event.getTarget() );
 
-        if ( target instanceof SelectableNode ) {
-            dragEventStartedOnNode = ( SelectableNode ) target;
-            root.startFullDrag();
+        if ( target instanceof SelectableNode selectableNode ) {
+            dragEventStartedOnNode = selectableNode;
+            root.getNode().startFullDrag();
 
             // when we start dragging, we want to make sure only one node is selected
             selectionManager.unselectAll();
@@ -65,9 +70,7 @@ class SelectionHandler {
         if ( event.getButton() == MouseButton.PRIMARY &&
                 dragEventStartedOnNode == null ) {
             Node target = getTargetNode( event.getTarget() );
-            if ( target instanceof SelectableNode ) {
-                SelectableNode selectableTarget = ( SelectableNode ) target;
-
+            if ( target instanceof SelectableNode selectableTarget ) {
                 // select only this node, unless it was selected before
                 boolean wasSelected = getSelectedItems().contains( selectableTarget );
                 selectionManager.unselectAll();
@@ -81,18 +84,15 @@ class SelectionHandler {
     }
 
     private Node getTargetNode( Object objectTarget ) {
-        if ( objectTarget instanceof Node ) {
-
-            Node target = ( Node ) objectTarget;
-
+        if ( objectTarget instanceof Node target ) {
             // try to go up in the hierarchy until we find a selectable node or the root node
-            while ( target != root && !( target instanceof SelectableNode ) ) {
+            while ( target != root.getNode() && !( target instanceof SelectableNode ) ) {
                 target = target.getParent();
             }
 
             return target;
         } else {
-            return root;
+            return root.getNode();
         }
     }
 
@@ -112,9 +112,9 @@ class SelectionHandler {
     Optional<SelectableNode> getNextItem() {
         return IterableUtils.getLast( getSelectedItems() ).flatMap( last -> {
             var returnNext = false;
-            for ( var node : root.getChildrenUnmodifiable() ) {
-                if ( returnNext && node instanceof SelectableNode ) {
-                    return Optional.of( ( SelectableNode ) node );
+            for ( var node : root.getSelectables().getIterable() ) {
+                if ( returnNext ) {
+                    return Optional.of( node );
                 }
                 if ( node == last ) {
                     returnNext = true;
@@ -127,56 +127,44 @@ class SelectionHandler {
     Optional<SelectableNode> getPreviousItem() {
         return IterableUtils.getFirst( getSelectedItems() ).flatMap( first -> {
             SelectableNode previous = null;
-            for ( var node : root.getChildrenUnmodifiable() ) {
+            for ( var node : root.getSelectables().getIterable() ) {
                 if ( node == first ) {
                     return Optional.ofNullable( previous );
                 }
-                if ( node instanceof SelectableNode ) {
-                    previous = ( SelectableNode ) node;
-                }
+                previous = node;
             }
             return Optional.empty();
         } );
     }
 
-    private void enableDragEventsOn( Node node ) {
-        if ( node instanceof SelectableNode ) {
-            SelectableNode selectableNode = ( SelectableNode ) node;
-            node.setOnMouseDragEntered( event -> {
-                if ( dragEventStartedOnNode != null ) {
-                    selectAllBetween( selectableNode, dragEventStartedOnNode );
-                    event.consume();
-                }
-            } );
-        } else {
-            throw new IllegalArgumentException( "node must be a SelectableNode" );
-        }
+    private void enableDragEventsOn( SelectableNode node ) {
+        node.getNode().setOnMouseDragEntered( event -> {
+            if ( dragEventStartedOnNode != null ) {
+                selectAllBetween( node, dragEventStartedOnNode );
+                event.consume();
+            }
+        } );
     }
 
-    private void disableDragEventsOn( Node node ) {
-        if ( node instanceof SelectableNode ) {
-            node.setOnMouseDragEntered( null );
-            selectionManager.select( ( SelectableNode ) node, false );
-        }
+    private void disableDragEventsOn( SelectableNode node ) {
+        node.getNode().setOnMouseDragEntered( null );
+        selectionManager.select( node, false );
     }
 
     void selectAllBetween( SelectableNode start, SelectableNode end ) {
         boolean selecting = false;
-        for ( Node node : root.getChildrenUnmodifiable() ) {
-            if ( node instanceof SelectableNode ) {
-                SelectableNode selectableNode = ( SelectableNode ) node;
-                if ( selecting ) {
-                    if ( node == start || node == end ) {
-                        selecting = false;
-                    }
+        for ( SelectableNode selectableNode : root.getSelectables().getIterable() ) {
+            if ( selecting ) {
+                if ( selectableNode == start || selectableNode == end ) {
+                    selecting = false;
+                }
+                selectionManager.select( selectableNode, true );
+            } else {
+                if ( selectableNode == start || selectableNode == end ) {
+                    selecting = ( start != end );
                     selectionManager.select( selectableNode, true );
                 } else {
-                    if ( node == start || node == end ) {
-                        selecting = ( start != end );
-                        selectionManager.select( selectableNode, true );
-                    } else {
-                        selectionManager.select( selectableNode, false );
-                    }
+                    selectionManager.select( selectableNode, false );
                 }
             }
         }
@@ -229,5 +217,7 @@ class SelectionHandler {
         void setSelect( boolean select );
 
         String getText();
+
+        Node getNode();
     }
 }

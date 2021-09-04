@@ -7,6 +7,7 @@ import javafx.animation.Interpolator;
 import javafx.animation.Transition;
 import javafx.application.Platform;
 import javafx.beans.binding.NumberBinding;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -47,6 +48,11 @@ class LogLine extends Parent implements SelectionHandler.SelectableNode {
         } );
 
         getChildren().add( stdLine );
+    }
+
+    @Override
+    public Node getNode() {
+        return this;
     }
 
     @Override

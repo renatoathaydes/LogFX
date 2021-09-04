@@ -10,6 +10,7 @@ import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
 import com.athaydes.logfx.file.OutsideRangeQueryResult;
+import com.athaydes.logfx.iterable.ObservableListView;
 import com.athaydes.logfx.text.DateTimeFormatGuess;
 import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.text.HighlightExpression;
@@ -22,6 +23,7 @@ import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.ReadOnlyDoubleProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
+import javafx.scene.Node;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import org.slf4j.Logger;
@@ -43,7 +45,7 @@ import java.util.stream.Collectors;
 /**
  * View of a log file.
  */
-public class LogView extends VBox {
+public class LogView extends VBox implements SelectableContainer {
 
     private static final Logger log = LoggerFactory.getLogger( LogView.class );
 
@@ -115,6 +117,16 @@ public class LogView extends VBox {
         } );
 
         this.fileChangeWatcher = new FileChangeWatcher( logFile.file, taskRunner, this::onFileChange );
+    }
+
+    @Override
+    public Node getNode() {
+        return this;
+    }
+
+    @Override
+    public ObservableListView<? extends SelectionHandler.SelectableNode> getSelectables() {
+        return new ObservableListView<>( SelectionHandler.SelectableNode.class, getChildrenUnmodifiable() );
     }
 
     BooleanProperty allowRefreshProperty() {
