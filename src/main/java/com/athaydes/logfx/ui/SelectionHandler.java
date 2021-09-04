@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
 
 /**
@@ -106,35 +108,44 @@ final class SelectionHandler {
 
     void select( SelectableNode node ) {
         selectionManager.unselectAll();
+
         selectionManager.select( node, true );
+        // only scroll to view every 10th line to avoid jumping around too much
+//        var scrollToView = node.getLineIndex() % 10 == 0;
+//        if (scrollToView) {
+        root.scrollToView( node );
+//        }
     }
 
-    Optional<SelectableNode> getNextItem() {
-        return IterableUtils.getLast( getSelectedItems() ).flatMap( last -> {
+    CompletionStage<? extends SelectableNode> getNextItem() {
+        return IterableUtils.getLast( getSelectedItems() ).map( last -> {
             var returnNext = false;
             for ( var node : root.getSelectables().getIterable() ) {
                 if ( returnNext ) {
-                    return Optional.of( node );
+                    return CompletableFuture.completedFuture( node );
                 }
                 if ( node == last ) {
                     returnNext = true;
                 }
             }
-            return Optional.empty();
-        } );
+            return root.nextSelectable();
+        } ).orElseGet( CompletableFuture::new );
     }
 
-    Optional<SelectableNode> getPreviousItem() {
-        return IterableUtils.getFirst( getSelectedItems() ).flatMap( first -> {
+    CompletionStage<? extends SelectableNode> getPreviousItem() {
+        return IterableUtils.getFirst( getSelectedItems() ).map( first -> {
             SelectableNode previous = null;
             for ( var node : root.getSelectables().getIterable() ) {
                 if ( node == first ) {
-                    return Optional.ofNullable( previous );
+                    if ( previous != null ) {
+                        return CompletableFuture.completedFuture( previous );
+                    }
+                    break;
                 }
                 previous = node;
             }
-            return Optional.empty();
-        } );
+            return root.previousSelectable();
+        } ).orElseGet( CompletableFuture::new );
     }
 
     private void enableDragEventsOn( SelectableNode node ) {
@@ -219,5 +230,7 @@ final class SelectionHandler {
         String getText();
 
         Node getNode();
+
+        int getLineIndex();
     }
 }

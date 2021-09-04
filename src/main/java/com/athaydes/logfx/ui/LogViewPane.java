@@ -33,8 +33,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
@@ -207,11 +205,11 @@ public final class LogViewPane {
                 switch ( event.getCode() ) {
                     case N -> getFocusedView().ifPresent( view -> {
                         var handler = view.getLogView().getSelectionHandler();
-                        handler.getNextItem().ifPresent( handler::select );
+                        handler.getNextItem().thenAccept( handler::select );
                     } );
                     case P -> getFocusedView().ifPresent( view -> {
                         var handler = view.getLogView().getSelectionHandler();
-                        handler.getPreviousItem().ifPresent( handler::select );
+                        handler.getPreviousItem().thenAccept( handler::select );
                     } );
                 }
             }
@@ -280,6 +278,8 @@ public final class LogViewPane {
                 onCloseFile.run();
             }
         }, editGroupForFile );
+
+        logView.setScrollToLineFunction( logViewWrapper::scrollTo );
 
         if ( pane.getItems().size() == 1 &&
                 pane.getItems().get( 0 ) instanceof StartUpView ) {
@@ -567,19 +567,11 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         void scrollTo( int lineNumber ) {
-            double vvalue = lineNumberToScrollVvalue( lineNumber );
-
+            double vvalue = ( double ) lineNumber / ( MAX_LINES - 1 );
             log.debug( "Setting scroll to {} for line number {}", vvalue, lineNumber );
             scrollPane.setVvalue( vvalue );
         }
 
-    }
-
-    static double lineNumberToScrollVvalue( double lineNumber ) {
-        double frac = ( lineNumber / MAX_LINES );
-        return BigDecimal.valueOf( frac )
-                .setScale( 1, frac < 0.5 ? RoundingMode.DOWN : RoundingMode.UP )
-                .doubleValue();
     }
 
     private static class LogViewHeader extends BorderPane {

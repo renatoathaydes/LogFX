@@ -1,22 +1,21 @@
 package com.athaydes.logfx.iterable;
 
 import javafx.collections.ObservableList;
-import javafx.scene.Node;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-public class ObservableListView<T> {
+public class ObservableListView<T, N> {
 
     private final Class<T> elementType;
-    private final ObservableList<? extends Node> delegate;
+    private final ObservableList<? extends N> delegate;
 
-    public ObservableListView( Class<T> elementType, ObservableList<? extends Node> delegate ) {
+    public ObservableListView( Class<T> elementType, ObservableList<? extends N> delegate ) {
         this.elementType = elementType;
         this.delegate = delegate;
     }
 
-    public ObservableList<? extends Node> getList() {
+    public ObservableList<? extends N> getList() {
         return delegate;
     }
 
@@ -34,6 +33,7 @@ public class ObservableListView<T> {
 
         @Override
         public boolean hasNext() {
+            nextItem = null;
             while ( iterator.hasNext() ) {
                 var next = iterator.next();
                 if ( elementType.isInstance( next ) ) {

@@ -27,15 +27,18 @@ class LogLine extends Parent implements SelectionHandler.SelectableNode {
 
     private static final int MAX_LINE_LENGTH = 5000;
 
+    private final int lineIndex;
     private String fullText = "";
     private final Label stdLine;
     private final BindableValue<Font> fontValue;
 
     LogLine( BindableValue<Font> fontValue,
+             int lineIndex,
              NumberBinding widthProperty,
              Paint bkgColor, Paint fillColor ) {
         this.stdLine = new Label();
         this.fontValue = fontValue;
+        this.lineIndex = lineIndex;
 
         stdLine.setBackground( FxUtils.simpleBackground( bkgColor ) );
         stdLine.setTextFill( fillColor );
@@ -53,6 +56,11 @@ class LogLine extends Parent implements SelectionHandler.SelectableNode {
     @Override
     public Node getNode() {
         return this;
+    }
+
+    @Override
+    public int getLineIndex() {
+        return lineIndex;
     }
 
     @Override

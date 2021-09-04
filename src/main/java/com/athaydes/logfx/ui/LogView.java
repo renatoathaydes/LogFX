@@ -34,6 +34,8 @@ import java.time.ZonedDateTime;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
@@ -73,6 +75,8 @@ public class LogView extends VBox implements SelectableContainer {
     private volatile Runnable onFileUpdate = DO_NOTHING;
 
     private DateTimeFormatGuess dateTimeFormatGuess = null;
+    private IntConsumer scrollToLineFunction = ( i ) -> {
+    };
     private final InvalidationListener expressionsChangeListener;
     private final InvalidationListener highlightGroupChangeListener;
 
@@ -106,7 +110,7 @@ public class LogView extends VBox implements SelectableContainer {
         LogLineColors logLineColors = highlighter.logLineColorsFor( "" );
 
         for ( int i = 0; i < MAX_LINES; i++ ) {
-            getChildren().add( new LogLine( config.fontProperty(), width,
+            getChildren().add( new LogLine( config.fontProperty(), i, width,
                     logLineColors.getBackground(), logLineColors.getFill() ) );
         }
 
@@ -124,9 +128,39 @@ public class LogView extends VBox implements SelectableContainer {
         return this;
     }
 
+    public void setScrollToLineFunction( IntConsumer scrollToLineFunction ) {
+        this.scrollToLineFunction = scrollToLineFunction;
+    }
+
     @Override
-    public ObservableListView<? extends SelectionHandler.SelectableNode> getSelectables() {
+    public void scrollToView( SelectionHandler.SelectableNode node ) {
+        scrollToLineFunction.accept( node.getLineIndex() );
+    }
+
+    @Override
+    public ObservableListView<? extends SelectionHandler.SelectableNode, Node> getSelectables() {
         return new ObservableListView<>( SelectionHandler.SelectableNode.class, getChildrenUnmodifiable() );
+    }
+
+    @Override
+    public CompletionStage<SelectionHandler.SelectableNode> nextSelectable() {
+        return loadNextSelectable( false );
+    }
+
+    @Override
+    public CompletionStage<SelectionHandler.SelectableNode> previousSelectable() {
+        return loadNextSelectable( true );
+    }
+
+    private CompletionStage<SelectionHandler.SelectableNode> loadNextSelectable( boolean up ) {
+        var future = new CompletableFuture<SelectionHandler.SelectableNode>();
+        moveBy( 1, up, () -> Platform.runLater( () -> {
+            var children = getChildren();
+            if ( !children.isEmpty() ) {
+                future.complete( lineAt( up ? 0 : children.size() - 1 ) );
+            }
+        } ) );
+        return future;
     }
 
     BooleanProperty allowRefreshProperty() {
@@ -173,22 +207,25 @@ public class LogView extends VBox implements SelectableContainer {
 
             log.trace( "Moving by deltaY={}, factor={}, lines={}", deltaY, scrollFactor, lines );
 
-            // we can only access the file reader inside its executor
-            fileReaderExecutor.execute( () -> {
-                Optional<? extends List<String>> result;
-                if ( deltaY > 0.0 ) {
-                    result = fileContentReader.moveUp( lines );
-                    result.ifPresent( this::addTopLines );
-                } else {
-                    result = fileContentReader.moveDown( lines );
-                    result.ifPresent( this::addBottomLines );
-                }
-                onFileExists.accept( result.isPresent() );
-                if ( result.isPresent() && !result.get().isEmpty() ) {
-                    useScrollFactor.accept( scrollFactor );
-                }
-            } );
+            moveBy( lines, deltaY > 0.0, () -> useScrollFactor.accept( scrollFactor ) );
         } ), 50 );
+    }
+
+    private void moveBy( int lines, boolean up, Runnable then ) {
+        fileReaderExecutor.execute( () -> {
+            Optional<? extends List<String>> result;
+            if ( up ) {
+                result = fileContentReader.moveUp( lines );
+                result.ifPresent( this::addTopLines );
+            } else {
+                result = fileContentReader.moveDown( lines );
+                result.ifPresent( this::addBottomLines );
+            }
+            onFileExists.accept( result.isPresent() );
+            if ( result.isPresent() && !result.get().isEmpty() ) {
+                then.run();
+            }
+        } );
     }
 
     private static double scaleScrollDelta( double deltaY ) {
