@@ -38,7 +38,7 @@ public final class DateTimeFormatGuesser {
     private final Collection<SingleDateTimeFormatGuess> dateTimeFormatGuesses;
     private final MultiDateTimeFormatGuess multiGuess;
 
-    private static DateTimeFormatGuesser STANDARD_INSTANCE;
+    private static volatile DateTimeFormatGuesser STANDARD_INSTANCE;
 
     static DateTimeFormatGuesser createStandard() {
         String time = "\\d{1,2}[:.]\\d{1,2}[:.]\\d{1,2}([:.]\\d{1,9})?(\\s{0,2}[+-]\\d{1,2}(:)?\\d{1,2})?";
@@ -237,7 +237,7 @@ public final class DateTimeFormatGuesser {
                     return dateTimeFromTemporal( formatter.parse(
                             matcher.group( DateTimeFormatGuesser.DATE_TIME_GROUP ) ) );
                 } catch ( Exception e ) {
-                    log.debug( "Failed to extract date from line due to {}: {}", e.toString(), line );
+                    log.debug( "Failed to extract date from line due to {}: {}", e, line );
                 }
             }
 
@@ -274,7 +274,7 @@ public final class DateTimeFormatGuesser {
                 return false;
             }
 
-            SingleDateTimeFormatGuess that = ( SingleDateTimeFormatGuess ) other;
+            var that = ( SingleDateTimeFormatGuess ) other;
 
             return pattern.equals( that.pattern ) && formatter.equals( that.formatter );
         }

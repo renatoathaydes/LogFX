@@ -86,7 +86,7 @@ public class Properties {
                 autoUpdatePeriodSecs = Long.parseLong( autoUpdatePeriod );
             } catch ( NumberFormatException e ) {
                 System.err.printf( "Invalid value for system property logfx.auto_update.check_period: %s (%s)\n",
-                        autoUpdatePeriod, e.toString() );
+                        autoUpdatePeriod, e );
             }
         }
         UPDATE_CHECK_PERIOD_SECONDS = autoUpdatePeriodSecs == null ? 24 * 60 * 60 : autoUpdatePeriodSecs;

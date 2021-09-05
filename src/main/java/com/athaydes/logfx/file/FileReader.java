@@ -13,6 +13,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.ListIterator;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -111,11 +112,7 @@ public class FileReader implements FileContentReader {
 
     @Override
     public void setLineFilter( Predicate<String> lineFilter ) {
-        if ( lineFilter == null ) {
-            this.lineFilter = NO_FILTER;
-        } else {
-            this.lineFilter = lineFilter;
-        }
+        this.lineFilter = Objects.requireNonNullElse( lineFilter, NO_FILTER );
     }
 
     @Override
@@ -163,7 +160,7 @@ public class FileReader implements FileContentReader {
         return result;
     }
 
-    @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnusedLabel", "UnnecessaryLabelOnContinueStatement" } )
+    @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnnecessaryLabelOnContinueStatement" } )
     @Override
     public FileQueryResult moveTo( ZonedDateTime dateTime,
                                    Function<String, Optional<ZonedDateTime>> dateExtractor ) {
@@ -175,7 +172,7 @@ public class FileReader implements FileContentReader {
         // in which part of the file we find the date-time, otherwise there's no need
         boolean requireFileLineAdjustment;
 
-        if ( !maybeLines.isPresent() || maybeLines.get().isEmpty() ) {
+        if ( maybeLines.isEmpty() || maybeLines.get().isEmpty() ) {
             log.debug( "No lines found in file, cannot move to given date: {}", dateTime );
             requireFileLineAdjustment = false;
         } else {
