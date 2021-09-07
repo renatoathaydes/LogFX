@@ -8,8 +8,7 @@ import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.file.FileChangeWatcher;
 import com.athaydes.logfx.file.FileContentReader;
-import com.athaydes.logfx.file.FileContentReader.FileQueryResult;
-import com.athaydes.logfx.file.OutsideRangeQueryResult;
+import com.athaydes.logfx.file.FileSearcher;
 import com.athaydes.logfx.iterable.ObservableListView;
 import com.athaydes.logfx.text.DateTimeFormatGuess;
 import com.athaydes.logfx.text.DateTimeFormatGuesser;
@@ -38,6 +37,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
@@ -264,32 +264,37 @@ public class LogView extends VBox implements SelectableContainer {
 
             long startTime = System.currentTimeMillis();
 
-            FileQueryResult result = fileContentReader.moveTo( dateTime, dateTimeFormatGuess::guessDateTime );
-            if ( result.isSuccess() ) {
-                if ( log.isInfoEnabled() ) {
-                    log.info( "Successfully found date (in {} ms): {}, result: {}",
-                            System.currentTimeMillis() - startTime, dateTime, result );
-                }
+            FileContentReader searchReader = fileContentReader.makeCopy();
+            var searcher = new FileSearcher( searchReader );
+            var comparisonsCount = new AtomicLong( 0 );
 
-                final int lineNumber = result.isAfterRange() ?
-                        MAX_LINES :
-                        ( result.isBeforeRange() ?
-                                1 :
-                                result.fileLineNumber() );
-                final boolean outOfRange = result instanceof OutsideRangeQueryResult;
-
-                onFileChange( () -> Platform.runLater( () -> {
-                    LogLine line = lineAt( lineNumber - 1 );
-                    line.animate( outOfRange ? Color.RED : Color.LAWNGREEN );
-                    whenDoneAcceptLineNumber.accept( lineNumber );
-                } ) );
-            } else {
-                log.warn( "Failed to open date-time in log, could not recognize dates in the log (took {} ms)",
+            var searchResult = searcher.search( line -> {
+                var lineDateTime = dateTimeFormatGuess.guessDateTime( line );
+                if ( lineDateTime.isEmpty() ) return FileSearcher.Comparison.UNKNOWN;
+                comparisonsCount.incrementAndGet();
+                return FileSearcher.Comparison.of( dateTime.compareTo( lineDateTime.get() ) );
+            } );
+            if ( searchResult.isEmpty() ) {
+                log.warn( "Failed to find date-time in log, could not recognize dates in the log (took {} ms)",
                         System.currentTimeMillis() - startTime );
 
-                Dialog.showMessage( "Unable to open date-time.\n" +
+                Dialog.showMessage( "Unable to go to date-time.\n" +
                         "The date-times in the file could not be recognized.", Dialog.MessageLevel.WARNING );
+                return;
             }
+
+            // the searchReader found a result, so we need to copy its state to the original reader
+            fileContentReader.copyState( searchReader );
+            final var result = searchResult.get();
+            if ( log.isInfoEnabled() ) {
+                log.info( "Successfully found date (took {} ms, {} comparisons): {}, result: {}",
+                        System.currentTimeMillis() - startTime, comparisonsCount.get(), dateTime, result );
+            }
+            onFileChange( () -> Platform.runLater( () -> {
+                LogLine line = lineAt( result.lineNumber() );
+                line.animate( result.resultCase() != FileSearcher.ResultCase.AT ? Color.RED : Color.LAWNGREEN );
+                whenDoneAcceptLineNumber.accept( result.lineNumber() );
+            } ) );
         } );
     }
 

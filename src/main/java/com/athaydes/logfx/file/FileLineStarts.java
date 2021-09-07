@@ -5,7 +5,7 @@ import java.util.TreeSet;
 /**
  * Representation of a file line start indexes.
  */
-class FileLineStarts {
+final class FileLineStarts {
 
     private final int size;
     private final TreeSet<Long> indexes = new TreeSet<>();
@@ -15,6 +15,17 @@ class FileLineStarts {
             throw new IllegalArgumentException( "Size must be positive" );
         }
         this.size = size;
+    }
+
+    FileLineStarts makeCopy() {
+        var clone = new FileLineStarts( size );
+        clone.indexes.addAll( this.indexes );
+        return clone;
+    }
+
+    void copyState( FileLineStarts lineStarts ) {
+        this.indexes.clear();
+        this.indexes.addAll( lineStarts.indexes );
     }
 
     void addFirst( long index ) {

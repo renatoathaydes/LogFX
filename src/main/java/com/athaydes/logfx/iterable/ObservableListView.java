@@ -7,10 +7,10 @@ import java.util.NoSuchElementException;
 
 public class ObservableListView<T, N> {
 
-    private final Class<T> elementType;
+    private final Class<? extends T> elementType;
     private final ObservableList<? extends N> delegate;
 
-    public ObservableListView( Class<T> elementType, ObservableList<? extends N> delegate ) {
+    public ObservableListView( Class<? extends T> elementType, ObservableList<N> delegate ) {
         this.elementType = elementType;
         this.delegate = delegate;
     }

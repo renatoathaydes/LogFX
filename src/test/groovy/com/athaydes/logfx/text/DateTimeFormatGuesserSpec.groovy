@@ -43,6 +43,7 @@ class DateTimeFormatGuesserSpec extends Specification {
 
         where: 'valid log lines and their expected date-times'
         lines << [
+                [ '2021-9-3T20:54:54.207+02:00 [file-change-watcher-1] INFO com.athaydes.logfx.file.FileChangeWatcher - Watching file ' ],
                 [ '2017-09-11T18:13:57.483+02:00 TRACE {worker-1} com.acme.Log event' ],
                 [ '2017-09-11T18:13:57:484+0400 TRACE {worker-1} com.acme.Log event' ],
                 [ '2017-9-14T19:23:53.499+02:00 [pool-6-thread-1] DEBUG com' ],
@@ -57,6 +58,7 @@ class DateTimeFormatGuesserSpec extends Specification {
         ]
 
         expectedDateTimes << [
+                [ dateTime( '2021-09-03T20:54:54.207+02:00' ) ],
                 [ dateTime( '2017-09-11T18:13:57.483+02:00' ) ],
                 [ dateTime( '2017-09-11T18:13:57.484+04:00' ) ],
                 [ dateTime( '2017-09-14T19:23:53.499+02:00' ) ],

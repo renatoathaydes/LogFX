@@ -8,14 +8,9 @@ import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
-import java.time.ZonedDateTime;
-import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
-import java.util.ListIterator;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.function.Predicate;
 
 import static com.athaydes.logfx.file.FileReader.LoadMode.MOVE;
@@ -34,48 +29,10 @@ public class FileReader implements FileContentReader {
         MOVE, REFRESH
     }
 
-    private enum SearchDirection {
-        UP, DOWN, ANY
-    }
-
-    private enum Comparison {
-        BEFORE, EQUAL, AFTER;
-
-        static <T> Comparison of( Comparable<T> a, T b ) {
-            int compareResult = a.compareTo( b );
-            return ( compareResult == 0 ) ? EQUAL :
-                    ( compareResult < 0 ) ? BEFORE : AFTER;
-        }
-    }
-
-    private static class EarlyExitFromFileWindow {
-        private final FileQueryResult fileQueryResult;
-        private final boolean skipWindow;
-
-        EarlyExitFromFileWindow( FileQueryResult fileQueryResult ) {
-            this.fileQueryResult = fileQueryResult;
-            this.skipWindow = false;
-        }
-
-        EarlyExitFromFileWindow( boolean skipWindow ) {
-            this.fileQueryResult = null;
-            this.skipWindow = skipWindow;
-        }
-
-        Optional<FileQueryResult> getFileQueryResult() {
-            return Optional.ofNullable( fileQueryResult );
-        }
-
-        boolean canSkipWindow() {
-            return skipWindow;
-        }
-    }
-
     private final File file;
     private final int fileWindowSize;
     private final int bufferSize;
     private final FileLineStarts lineStarts;
-    private final int maxLineParseFailuresAllowed;
 
     private Predicate<String> lineFilter = NO_FILTER;
 
@@ -94,7 +51,6 @@ public class FileReader implements FileContentReader {
         this.file = file;
         this.fileWindowSize = fileWindowSize;
         this.bufferSize = bufferSize;
-        this.maxLineParseFailuresAllowed = Math.min( 50, fileWindowSize );
 
         if ( log.isDebugEnabled() ) {
             String logfxLog = Properties.LOGFX_DIR.resolve( "logfx.log" ).toFile().getAbsolutePath();
@@ -108,6 +64,42 @@ public class FileReader implements FileContentReader {
 
         // 1 extra line is needed because we need to know the boundaries between lines
         this.lineStarts = new FileLineStarts( fileWindowSize + 1 );
+    }
+
+    public FileReader( FileReader other ) {
+        this.file = other.file;
+        this.fileWindowSize = other.fileWindowSize;
+        this.bufferSize = other.bufferSize;
+        this.lineStarts = other.lineStarts.makeCopy();
+        this.noLinesDown = other.noLinesDown;
+        this.noLinesUp = other.noLinesUp;
+        this.lineFilter = other.lineFilter;
+    }
+
+    @Override
+    public int fileWindowSize() {
+        return fileWindowSize;
+    }
+
+    @Override
+    public FileReader makeCopy() {
+        return new FileReader( this );
+    }
+
+    @Override
+    public void copyState( FileContentReader other ) {
+        if ( this.file != other.getFile() ) {
+            throw new IllegalStateException( "Different file reader cannot copy state" );
+        }
+        if ( other instanceof FileReader otherReader ) {
+            this.lineStarts.copyState( otherReader.lineStarts );
+            this.noLinesDown = otherReader.noLinesDown;
+            this.noLinesUp = otherReader.noLinesUp;
+            this.lineFilter = otherReader.lineFilter;
+        } else {
+            throw new IllegalStateException( "Different type of reader cannot copy state" );
+        }
+
     }
 
     @Override
@@ -158,201 +150,6 @@ public class FileReader implements FileContentReader {
         }
 
         return result;
-    }
-
-    @SuppressWarnings( { "UnnecessaryLabelOnBreakStatement", "UnnecessaryLabelOnContinueStatement" } )
-    @Override
-    public FileQueryResult moveTo( ZonedDateTime dateTime,
-                                   Function<String, Optional<ZonedDateTime>> dateExtractor ) {
-        log.trace( "Moving to date: {}", dateTime );
-        Optional<LinkedList<String>> maybeLines = refresh();
-        SearchDirection direction = SearchDirection.ANY;
-
-        // if the file is larger than the fileWindowSize, we need to adjust the line number according to
-        // in which part of the file we find the date-time, otherwise there's no need
-        boolean requireFileLineAdjustment;
-
-        if ( maybeLines.isEmpty() || maybeLines.get().isEmpty() ) {
-            log.debug( "No lines found in file, cannot move to given date: {}", dateTime );
-            requireFileLineAdjustment = false;
-        } else {
-            requireFileLineAdjustment = maybeLines.get().size() >= fileWindowSize;
-        }
-
-
-        mainLoop:
-        while ( maybeLines.isPresent() ) {
-            LinkedList<String> nextLines = maybeLines.get();
-
-            if ( nextLines.isEmpty() ) {
-                // reached file end or start
-                switch ( direction ) {
-                    case UP:
-                        log.debug( "Reached the top of the file without finding date {}", dateTime );
-                        return OutsideRangeQueryResult.BEFORE;
-                    case DOWN:
-                        log.debug( "Reached the bottom of the file without finding date {}", dateTime );
-                        return OutsideRangeQueryResult.AFTER;
-                    case ANY:
-                        break mainLoop;
-                }
-            }
-
-            if ( direction != SearchDirection.ANY ) {
-                EarlyExitFromFileWindow earlyExit = checkLastValidLine( nextLines, dateTime, dateExtractor, direction );
-                if ( earlyExit.getFileQueryResult().isPresent() ) {
-                    return earlyExit.getFileQueryResult().get();
-                } else if ( earlyExit.canSkipWindow() ) {
-                    maybeLines = moveDown( fileWindowSize );
-                    continue mainLoop;
-                }
-            }
-
-            int failedLines = 0;
-            int lineNumber = 0;
-            boolean isFirstLine = true;
-
-            Iterator<String> nextLinesIter = nextLines.iterator();
-            Optional<ZonedDateTime> lineDateTime = Optional.empty();
-
-            inspectFileWindow:
-            while ( nextLinesIter.hasNext() ) {
-                String line = "";
-
-                findNextValidDateTime:
-                while ( nextLinesIter.hasNext() && failedLines < maxLineParseFailuresAllowed ) {
-                    line = nextLinesIter.next();
-                    lineDateTime = dateExtractor.apply( line );
-                    lineNumber++;
-
-                    if ( lineDateTime.isPresent() ) {
-                        failedLines = 0;
-                        break findNextValidDateTime;
-                    }
-                    failedLines++;
-                }
-
-                if ( lineDateTime.isPresent() ) {
-                    Comparison lineComparison = Comparison.of(
-                            lineDateTime.get(), dateTime );
-
-                    if ( direction == SearchDirection.ANY ) {
-                        if ( lineComparison == Comparison.BEFORE ) {
-                            direction = SearchDirection.DOWN;
-                        } else {
-                            direction = SearchDirection.UP;
-                        }
-                    }
-
-                    if ( isFirstLine && direction == SearchDirection.UP && lineComparison == Comparison.AFTER ) {
-                        log.trace( "Searching UP and current line is AFTER target, skipping window" );
-                        break inspectFileWindow;
-                    }
-
-                    if ( lineComparison != Comparison.BEFORE ) {
-                        log.debug( "Found line, date comparison = {}, target date = {}, line: {}",
-                                lineComparison, dateTime, line );
-
-                        if ( requireFileLineAdjustment ) {
-                            return adjustFileWindowToStartAt( nextLines.size(),
-                                    ( lineComparison == Comparison.EQUAL ) ? lineNumber : lineNumber - 1 );
-                        } else {
-                            return new SuccessfulQueryResult( lineNumber );
-                        }
-                    }
-
-                }
-
-                if ( failedLines >= maxLineParseFailuresAllowed ) {
-                    log.info( "Too many log lines do not contain a valid date in file: {}. Cannot move to date {}",
-                            getFile(), dateTime );
-                    break mainLoop;
-                }
-
-                isFirstLine = false;
-            }
-
-            switch ( direction ) {
-                case UP:
-                    maybeLines = moveUp( fileWindowSize );
-                    break;
-                case ANY:
-                    direction = SearchDirection.DOWN; // and fall-through
-                case DOWN:
-                    maybeLines = moveDown( fileWindowSize );
-                    break;
-            }
-
-        }
-
-        return UnsuccessfulQueryResult.INSTANCE;
-    }
-
-    private EarlyExitFromFileWindow checkLastValidLine( List<String> nextLines,
-                                                        ZonedDateTime dateTime,
-                                                        Function<String, Optional<ZonedDateTime>> dateExtractor,
-                                                        SearchDirection direction ) {
-        int failedLines = 0;
-        ListIterator<String> reversedIterator = nextLines.listIterator( nextLines.size() );
-        Optional<ZonedDateTime> lastLineDateTime = Optional.empty();
-
-        while ( reversedIterator.hasPrevious() && failedLines < maxLineParseFailuresAllowed ) {
-            lastLineDateTime = dateExtractor.apply( reversedIterator.previous() );
-            if ( lastLineDateTime.isPresent() ) {
-                break;
-            }
-            failedLines++;
-        }
-
-        if ( lastLineDateTime.isPresent() ) {
-            Comparison lastLineComparison = Comparison.of( lastLineDateTime.get(), dateTime );
-            if ( direction == SearchDirection.UP && lastLineComparison != Comparison.AFTER ) {
-                log.trace( "Found line in the border between windows while searching UP" );
-                return new EarlyExitFromFileWindow(
-                        adjustFileWindowToStartAt( nextLines.size(), fileWindowSize - failedLines ) );
-            }
-
-            if ( direction == SearchDirection.DOWN && lastLineComparison == Comparison.BEFORE ) {
-                log.trace( "Skipping window, last line date = {}, target date = {}", lastLineDateTime.get(), dateTime );
-                return new EarlyExitFromFileWindow( true );
-            }
-        }
-
-        return new EarlyExitFromFileWindow( false );
-    }
-
-    FileQueryResult adjustFileWindowToStartAt( int nextLinesSize,
-                                               int lineNumber ) {
-        log.debug( "Adjusting file window to line {}, next lines count: {}", lineNumber, nextLinesSize );
-
-        boolean isOnFileEdge = nextLinesSize < fileWindowSize;
-
-        if ( lineNumber == 0 ) {
-            if ( isOnFileEdge ) {
-                return new SuccessfulQueryResult( fileWindowSize - nextLinesSize );
-            } else {
-                Optional<LinkedList<String>> linesUp = moveUp( 1 );
-                if ( linesUp.isPresent() && !linesUp.get().isEmpty() ) {
-                    return new SuccessfulQueryResult( 1 );
-                } else {
-                    return linesUp.isPresent() ?
-                            OutsideRangeQueryResult.BEFORE :
-                            UnsuccessfulQueryResult.INSTANCE;
-                }
-            }
-        }
-
-        if ( isOnFileEdge ) {
-            return new SuccessfulQueryResult( lineNumber + fileWindowSize - nextLinesSize );
-        } else {
-            Optional<? extends List<String>> nextLines = moveDown( lineNumber - 1 );
-            if ( nextLines.isPresent() ) {
-                int toAdjust = lineNumber - nextLines.get().size();
-                return new SuccessfulQueryResult( toAdjust );
-            } else {
-                return UnsuccessfulQueryResult.INSTANCE;
-            }
-        }
     }
 
     @Override
