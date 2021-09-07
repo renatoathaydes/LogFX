@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui
 
+import com.athaydes.logfx.iterable.ObservableListView
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.Node
@@ -13,22 +14,20 @@ class SelectionHandlerSpec extends Specification {
     def 'It is possible to select all nodes between two known nodes'() {
         given: 'A mocked parent'
         ObservableList<SelectionHandler.SelectableNode> observableChildren = FXCollections.observableArrayList()
-        def root = new Parent() {
-            @Override
-            ObservableList<Node> getChildrenUnmodifiable() {
-                observableChildren
-            }
+        def root = Mock( SelectableContainer ) {
+            getSelectables() >> new ObservableListView<Node, Node>( Node, observableChildren )
+            getNode() >> mockNode()
         }
 
         and: 'A SelectionHandler is created to handle the parent'
         SelectionHandler handler = new SelectionHandler( root )
 
         when: 'Several SelectableNodes are added as children to the parent'
-        def c0 = Mock( TestSelectableNode )
-        def c1 = Mock( TestSelectableNode )
-        def c2 = Mock( TestSelectableNode )
-        def c3 = Mock( TestSelectableNode )
-        def c4 = Mock( TestSelectableNode )
+        def c0 = mockNode()
+        def c1 = mockNode()
+        def c2 = mockNode()
+        def c3 = mockNode()
+        def c4 = mockNode()
 
         observableChildren.addAll( c0, c1, c2, c3, c4 )
 
@@ -68,6 +67,12 @@ class SelectionHandlerSpec extends Specification {
         4              | 3            || [ 3, 4 ]
         4              | 4            || [ 4 ]
 
+    }
+
+    private TestSelectableNode mockNode() {
+        Mock( TestSelectableNode ) {
+            getNode() >> Mock( TestSelectableNode )
+        }
     }
 
 }
