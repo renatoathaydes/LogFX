@@ -21,7 +21,6 @@ import javafx.scene.control.TextField;
 import javafx.scene.effect.MotionBlur;
 import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -220,13 +219,20 @@ public class Dialog {
         dialogStage.setHeight( height );
     }
 
-    public static void showConfirmDialog( String text ) {
+    public static void showQuestionDialog( String text, Map<String, Runnable> options ) {
         Platform.runLater( () -> {
-            Button okButton = new Button( "OK" );
-            Dialog dialog = new Dialog(
-                    new Text( text ),
-                    okButton );
-            okButton.setOnAction( event -> dialog.hide() );
+            var dialog = new Dialog( new Text( text ) );
+            dialog.setStyle( StageStyle.UNDECORATED );
+            var optionsBox = new HBox( 10 );
+            options.forEach( ( opt, action ) -> {
+                Button button = new Button( opt );
+                button.setOnAction( event -> {
+                    dialog.hide();
+                    action.run();
+                } );
+                optionsBox.getChildren().add( button );
+            } );
+            dialog.getBox().getChildren().add( optionsBox );
             dialog.show();
         } );
     }
@@ -248,32 +254,6 @@ public class Dialog {
             textField.setOnAction( ( event ) -> {
                 handleAnswer.accept( textField.getText() );
                 dialog.hide();
-            } );
-            dialog.show();
-        } );
-    }
-
-    public static void askForDecision( String question,
-                                       Map<String, Runnable> options,
-                                       String favouriteOption ) {
-        Platform.runLater( () -> {
-            var label = new Label( question );
-            var optionsBox = new HBox( 10 );
-            optionsBox.setAlignment( Pos.CENTER );
-            var dialog = new Dialog( label, new BorderPane( optionsBox ) );
-            dialog.setWidth( 500 );
-            dialog.setStyle( StageStyle.UNDECORATED );
-            dialog.doNotCloseOnEscapePressed();
-            options.forEach( ( opt, action ) -> {
-                var button = new Button( opt );
-                if ( opt.equals( favouriteOption ) ) {
-                    button.getStyleClass().add( "favourite-button" );
-                }
-                button.setOnAction( ( e ) -> {
-                    dialog.hide();
-                    action.run();
-                } );
-                optionsBox.getChildren().add( button );
             } );
             dialog.show();
         } );

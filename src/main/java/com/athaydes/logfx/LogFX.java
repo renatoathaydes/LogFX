@@ -17,12 +17,14 @@ import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.LogView;
 import com.athaydes.logfx.ui.LogViewPane;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
+import com.athaydes.logfx.ui.ProjectsDialog;
 import com.athaydes.logfx.ui.StartUpView;
 import com.athaydes.logfx.ui.TopViewMenu;
 import javafx.application.Application;
 import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.collections.SetChangeListener;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Bounds;
 import javafx.scene.Scene;
@@ -44,7 +46,6 @@ import org.slf4j.LoggerFactory;
 
 import java.awt.SplashScreen;
 import java.io.File;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -78,8 +79,7 @@ public final class LogFX extends Application {
     @MustCallOnJavaFXThread
     public LogFX() {
         hostServices.set( getHostServices() );
-        Path configFile = Properties.LOGFX_DIR.resolve( "config" );
-        this.config = new Config( configFile, taskRunner );
+        this.config = new Config( Properties.DEFAULT_LOGFX_CONFIG, taskRunner );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( stage, config.getObservableFiles(), this::open ),
@@ -91,6 +91,15 @@ public final class LogFX extends Application {
         topViewMenu = new TopViewMenu( logsPane, config );
 
         openFilesFromConfig();
+
+        config.getObservableFiles().addListener( ( SetChangeListener<? super LogFile> ) ( change ) -> {
+            if ( change.wasRemoved() ) {
+                logsPane.remove( change.getElementRemoved() );
+            }
+            if ( change.wasAdded() ) {
+                openViewFor( change.getElementAdded(), change.getSet().size() - 1 );
+            }
+        } );
     }
 
     @Override
@@ -232,12 +241,18 @@ public final class LogFX extends Application {
         showLogFxLog.setOnAction( ( event ) ->
                 open( LogConfigFile.INSTANCE.logFilePath.toFile() ) );
 
+        MenuItem changeProject = new MenuItem( "Open _Project" );
+        changeProject.setAccelerator( new KeyCodeCombination( KeyCode.P,
+                KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
+        changeProject.setOnAction( ( event ) ->
+                new ProjectsDialog( config ).showNear( root ) );
+
         MenuItem close = new MenuItem( "E_xit" );
         close.setAccelerator( new KeyCodeCombination( KeyCode.W,
                 KeyCombination.SHIFT_DOWN, KeyCombination.SHORTCUT_DOWN ) );
         close.setMnemonicParsing( true );
         close.setOnAction( ( event ) -> stage.close() );
-        menu.getItems().addAll( open, showLogFxLog, close );
+        menu.getItems().addAll( open, changeProject, showLogFxLog, close );
 
         return menu;
     }
@@ -287,6 +302,11 @@ public final class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     private boolean openViewFor( LogFile logFile, int index ) {
+        if ( logsPane.contains( logFile.file ) ) {
+            log.debug( "Will not open new view for {} as it is already open", logFile.file );
+            return false;
+        }
+
         log.debug( "Creating file reader and view for file {}", logFile.file );
 
         FileContentReader fileReader;

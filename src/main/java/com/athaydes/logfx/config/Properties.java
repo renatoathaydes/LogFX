@@ -2,10 +2,19 @@ package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.log.LogLevel;
 import com.athaydes.logfx.log.LogTarget;
+import com.athaydes.logfx.ui.Dialog;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
+import static com.athaydes.logfx.iterable.IterableUtils.append;
 
 /**
  * LogFX System Properties.
@@ -13,7 +22,9 @@ import java.util.Optional;
 public class Properties {
 
     public static final Path LOGFX_DIR;
+    public static final Path DEFAULT_LOGFX_CONFIG;
     public static final long UPDATE_CHECK_PERIOD_SECONDS;
+    public static final String DEFAULT_PROJECT_NAME = "Default";
 
     private static volatile LogLevel logLevel = null;
     private static volatile LogTarget logTarget = null;
@@ -44,6 +55,7 @@ public class Properties {
         }
 
         LOGFX_DIR = homeDir.toPath();
+        DEFAULT_LOGFX_CONFIG = LOGFX_DIR.resolve( "config" );
 
         String logLevelValue = System.getProperty( "logfx.log.level" );
 
@@ -106,5 +118,51 @@ public class Properties {
 
     public static boolean isRefreshStylesheet() {
         return refreshStylesheet;
+    }
+
+    public static Collection<String> listProjects() {
+        var projectsPath = LOGFX_DIR.resolve( Paths.get( "projects" ) );
+        Collection<String> projects = List.of();
+        if ( projectsPath.toFile().isDirectory() ) {
+            var files = projectsPath.toFile().listFiles();
+            if ( files != null && files.length != 0 ) {
+                projects = Stream.of( files )
+                        .map( File::getName )
+                        .sorted()
+                        .collect( Collectors.toList() );
+            }
+        }
+
+        return append( DEFAULT_PROJECT_NAME, projects );
+    }
+
+    public static Optional<Path> getProjectFile( String projectName ) {
+        if ( DEFAULT_PROJECT_NAME.equals( projectName ) ) {
+            return Optional.of( LOGFX_DIR.resolve( "config" ) );
+        }
+        var projectPath = LOGFX_DIR.resolve( Paths.get( "projects", projectName ) );
+        File file = projectPath.toFile();
+        if ( !file.getParentFile().isDirectory() ) {
+            var ok = file.getParentFile().mkdirs();
+            if ( !ok ) {
+                Dialog.showMessage( "Unable to create projects directory at: " + file.getParentFile(),
+                        Dialog.MessageLevel.ERROR );
+                return Optional.empty();
+            }
+        }
+        if ( !file.isFile() ) {
+            boolean ok;
+            try {
+                ok = file.createNewFile();
+            } catch ( IOException e ) {
+                Dialog.showMessage( "Cannot create project with given name: " + e, Dialog.MessageLevel.ERROR );
+                return Optional.empty();
+            }
+            if ( !ok ) {
+                Dialog.showMessage( "Unable to create project with given name", Dialog.MessageLevel.ERROR );
+                return Optional.empty();
+            }
+        }
+        return Optional.of( projectPath );
     }
 }

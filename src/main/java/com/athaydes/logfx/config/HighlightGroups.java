@@ -67,6 +67,10 @@ public final class HighlightGroups {
         configByGroupName.removeListener( listener );
     }
 
+    public void clear() {
+        configByGroupName.clear();
+    }
+
     void setListener( InvalidationListener listener ) {
         if ( invalidationListener != null ) throw new RuntimeException( "invalidation listener has already been set" );
         invalidationListener = listener;

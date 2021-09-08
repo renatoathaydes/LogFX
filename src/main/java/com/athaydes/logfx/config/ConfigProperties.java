@@ -18,6 +18,9 @@ import javafx.scene.text.Font;
 import java.util.LinkedHashSet;
 
 final class ConfigProperties {
+    private static final LogLineColors DEFAULT_LOG_LINE_COLORS = new LogLineColors( Color.BLACK, Color.LIGHTGREY );
+    private static final Font DEFAULT_FONT = Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" );
+
     final SimpleObjectProperty<LogLineColors> standardLogColors;
     final ObservableSet<LogFile> observableFiles;
     final SimpleObjectProperty<Orientation> panesOrientation;
@@ -28,13 +31,24 @@ final class ConfigProperties {
     final HighlightGroups highlightGroups;
 
     ConfigProperties() {
-        standardLogColors = new SimpleObjectProperty<>( new LogLineColors( Color.BLACK, Color.LIGHTGREY ) );
+        standardLogColors = new SimpleObjectProperty<>( DEFAULT_LOG_LINE_COLORS );
         observableFiles = FXCollections.observableSet( new LinkedHashSet<>( 4 ) );
         highlightGroups = new HighlightGroups( observableFiles );
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
         windowBounds = new SimpleObjectProperty<>( null );
         paneDividerPositions = FXCollections.observableArrayList();
-        font = new BindableValue<>( Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" ) );
+        font = new BindableValue<>( DEFAULT_FONT );
         enableFilters = new SimpleBooleanProperty( false );
+    }
+
+    void clear() {
+        standardLogColors.set( DEFAULT_LOG_LINE_COLORS );
+        observableFiles.clear();
+        highlightGroups.clear();
+        panesOrientation.set( Orientation.HORIZONTAL );
+        windowBounds.set( null );
+        paneDividerPositions.clear();
+        font.setValue( DEFAULT_FONT );
+        enableFilters.set( false );
     }
 }

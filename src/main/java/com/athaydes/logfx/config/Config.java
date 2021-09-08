@@ -41,7 +41,7 @@ public class Config {
 
     private static final Logger log = LoggerFactory.getLogger( Config.class );
 
-    private final Path path;
+    private Path path;
     private final ConfigProperties properties;
 
     public Config( Path path, TaskRunner taskRunner ) {
@@ -49,7 +49,7 @@ public class Config {
         this.properties = new ConfigProperties();
 
         if ( path.toFile().exists() ) {
-            readConfigFile( path );
+            readConfigFile();
         } else {
             properties.highlightGroups.getDefault()
                     .add( new HighlightExpression( "WARN", Color.YELLOW, Color.RED, false ) );
@@ -117,14 +117,28 @@ public class Config {
         return properties.enableFilters;
     }
 
-    private void readConfigFile( Path path ) {
+    public void loadConfig( Path path ) {
+        if ( path.toFile().isFile() ) {
+            this.path = path;
+            log.info( "Clearing LogFX properties" );
+            properties.clear();
+            log.info( "Loading config file: {}", path );
+            readConfigFile();
+        } else {
+            var message = "Config file is not a file: " + path;
+            log.info( message );
+            Dialog.showMessage( message + "\n\n", Dialog.MessageLevel.WARNING );
+        }
+    }
+
+    private void readConfigFile() {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
             new ConfigParser( properties ).parseConfigFile( null, lines );
         } catch ( Exception e ) {
             log.warn( "Error loading config", e );
-            Dialog.showConfirmDialog( "Could not read config file: " + path +
-                    "\n\n" + e );
+            Dialog.showMessage( "Could not read config file: " + path +
+                    "\n\n" + e, Dialog.MessageLevel.WARNING );
         }
     }
 
@@ -217,8 +231,8 @@ public class Config {
 
             writer.write( "\n" );
         } catch ( IOException e ) {
-            Dialog.showConfirmDialog( "Could not write config file: " + data.path +
-                    "\n\n" + e );
+            Dialog.showMessage( "Could not write config file: " + data.path +
+                    "\n\n" + e, Dialog.MessageLevel.ERROR );
         }
     }
 

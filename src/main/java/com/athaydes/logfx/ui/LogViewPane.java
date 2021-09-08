@@ -2,6 +2,7 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.HighlightGroups;
+import com.athaydes.logfx.data.LogFile;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
@@ -269,6 +270,12 @@ public final class LogViewPane {
     }
 
     @MustCallOnJavaFXThread
+    public boolean contains( File file ) {
+        return getAllLogViews().stream()
+                .anyMatch( v -> v.getLogView().getLogFile().file.equals( file ) );
+    }
+
+    @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile, int index, Consumer<LogView> editGroupForFile ) {
         LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups,
                 this::getAllLogViews, ( wrapper ) -> {
@@ -291,6 +298,14 @@ public final class LogViewPane {
                 pane.getItems().add( index, logViewWrapper );
             }
         }
+    }
+
+    @MustCallOnJavaFXThread
+    public void remove( LogFile logFile ) {
+        getAllLogViews().stream()
+                .filter( v -> v.getLogView().getLogFile() == logFile )
+                .findFirst()
+                .ifPresent( LogViewWrapper::closeView );
     }
 
     @MustCallOnJavaFXThread
