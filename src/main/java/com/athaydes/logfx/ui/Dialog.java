@@ -50,15 +50,11 @@ public class Dialog {
         INFO, WARNING, ERROR;
 
         int getDelay() {
-            switch ( this ) {
-                case INFO:
-                default:
-                    return 3;
-                case WARNING:
-                    return 5;
-                case ERROR:
-                    return 15;
-            }
+            return switch ( this ) {
+                case WARNING -> 5;
+                case ERROR -> 15;
+                case INFO -> 3;
+            };
         }
     }
 
@@ -166,14 +162,12 @@ public class Dialog {
 
     public void show( DialogPosition position ) {
         switch ( position ) {
-            case CENTER:
-                dialogStage.centerOnScreen();
-                break;
-            case TOP_CENTER:
+            case CENTER -> dialogStage.centerOnScreen();
+            case TOP_CENTER -> {
                 Window owner = dialogStage.getOwner();
                 dialogStage.setX( owner.getX() + ( owner.getWidth() * 0.25 ) );
                 dialogStage.setY( owner.getY() + 30 );
-                break;
+            }
         }
 
         dialogStage.show();
