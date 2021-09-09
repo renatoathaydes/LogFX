@@ -43,6 +43,7 @@ public class Config {
 
     private Path path;
     private final ConfigProperties properties;
+    private Runnable reloadAction;
 
     public Config( Path path, TaskRunner taskRunner ) {
         this.path = path;
@@ -124,6 +125,9 @@ public class Config {
             properties.clear();
             log.info( "Loading config file: {}", path );
             readConfigFile();
+            if ( reloadAction != null ) {
+                reloadAction.run();
+            }
         } else {
             var message = "Config file is not a file: " + path;
             log.info( message );
@@ -142,12 +146,19 @@ public class Config {
         }
     }
 
+    public void onReload( Runnable reloadAction ) {
+        if ( this.reloadAction != null ) {
+            throw new IllegalStateException( "Already set reloadAction" );
+        }
+        this.reloadAction = reloadAction;
+    }
+
     /**
      * The properties are all set in the JavaFX Thread, therefore we need to make copies of everything
      * in the JavaFX Thread before being able to safely use them in another Thread,
      * where we write the config file.
      *
-     * @param taskRunner
+     * @param taskRunner runner
      */
     private void dumpConfigToFile( TaskRunner taskRunner ) {
         var data = new ConfigData();

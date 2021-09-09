@@ -22,6 +22,7 @@ public final class HighlightGroups {
     public HighlightGroups( ObservableSet<LogFile> observableFiles ) {
         this.observableFiles = observableFiles;
         configByGroupName = FXCollections.observableMap( new LinkedHashMap<>( 4 ) );
+        configByGroupName.put( "", createNewExpressions( null ) );
     }
 
     public ObservableList<HighlightExpression> getByName( String name ) {
@@ -29,7 +30,7 @@ public final class HighlightGroups {
     }
 
     public ObservableList<HighlightExpression> getDefault() {
-        return configByGroupName.computeIfAbsent( "", this::createNewExpressions );
+        return configByGroupName.get( "" );
     }
 
     public ObservableList<HighlightExpression> add( String groupName ) {
@@ -38,6 +39,9 @@ public final class HighlightGroups {
     }
 
     public void remove( String groupName ) {
+        if ( groupName.isEmpty() ) {
+            return;
+        }
         configByGroupName.remove( groupName );
         observableFiles.stream()
                 .filter( it -> groupName.equals( it.getHighlightGroup() ) )
@@ -69,6 +73,7 @@ public final class HighlightGroups {
 
     public void clear() {
         configByGroupName.clear();
+        configByGroupName.put( "", createNewExpressions( null ) );
     }
 
     void setListener( InvalidationListener listener ) {

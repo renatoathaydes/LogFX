@@ -23,10 +23,10 @@ import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
 import static com.athaydes.logfx.ui.HighlightOptions.nextColor;
 
 public class HighlightGroupsView extends BorderPane {
+    private HighlightOptions defaultOption;
     private final ChoiceBox<HighlightOptions> optionsChoiceBox;
-    private final HighlightOptions defaultOption;
     private final HighlightGroups groups;
-    private final HighlightOptionsSelectorConverter selectorConverter;
+    private HighlightOptionsSelectorConverter selectorConverter;
 
     public HighlightGroupsView( Config config ) {
         groups = config.getHighlightGroups();
@@ -77,6 +77,16 @@ public class HighlightGroupsView extends BorderPane {
 
         setTop( selector );
         optionsChoiceBox.getSelectionModel().select( defaultOption );
+
+        config.onReload( () -> {
+            optionsChoiceBox.getSelectionModel().clearSelection();
+            optionsChoiceBox.getItems().clear();
+            defaultOption = populateChoiceBoxAndReturnDefaultOption( config, optionsChoiceBox.getItems(), groups );
+            selectorConverter = new HighlightOptionsSelectorConverter(
+                    optionsChoiceBox.getItems(), defaultOption, groups );
+            optionsChoiceBox.setConverter( selectorConverter );
+            optionsChoiceBox.getSelectionModel().select( defaultOption );
+        } );
     }
 
     public void setGroupFor( LogFile logFile ) {

@@ -27,7 +27,8 @@ final class HighlightOptionsSelectorConverter extends StringConverter<HighlightO
     @Override
     public String toString( HighlightOptions option ) {
         if ( option == defaultOption ) return DEFAULT_GROUP_DISPLAY_NAME;
-        return option.getGroupName();
+        // while LogFX switches projects, the converter may break temporarily
+        return option == null ? "<ERROR>" : option.getGroupName();
     }
 
     @Override
