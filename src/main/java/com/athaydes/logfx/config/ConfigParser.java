@@ -136,14 +136,9 @@ final class ConfigParser {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
                 switch ( line.trim() ) {
-                    case "enable":
-                        properties.enableFilters.set( true );
-                        break;
-                    case "disable":
-                        properties.enableFilters.set( false );
-                        break;
-                    default:
-                        logInvalidProperty( "filters", "filters", line, "value must be 'enable' or 'disable'" );
+                    case "enable" -> properties.enableFilters.set( true );
+                    case "disable" -> properties.enableFilters.set( false );
+                    default -> logInvalidProperty( "filters", "filters", line, "value must be 'enable' or 'disable'" );
                 }
             } else if ( !line.trim().isEmpty() ) {
                 parseConfigFile( line, lines );
@@ -212,7 +207,7 @@ final class ConfigParser {
                                     "Expected 2 parts, got " + parts.length );
                         } else try {
                             String[] separators = parts[ 1 ].split( "," );
-                            properties.paneDividerPositions.addAll( toDoubles( separators ) );
+                            properties.paneDividerPositions.setAll( toDoubles( separators ) );
                         } catch ( IllegalArgumentException e ) {
                             logInvalidProperty( "gui", "pane-dividers", parts[ 1 ],
                                     e.toString() );
@@ -306,16 +301,11 @@ final class ConfigParser {
             } else {
                 filteredString = line.substring( 0, thirdSpaceIndex );
             }
-            switch ( filteredString.toLowerCase() ) {
-                case "true":
-                    isFiltered = true;
-                    break;
-                case "false":
-                    isFiltered = false;
-                    break;
-                default:
-                    throw highlightParseError( "invalid value for filtered property", line );
-            }
+            isFiltered = switch ( filteredString.toLowerCase() ) {
+                case "true" -> true;
+                case "false" -> false;
+                default -> throw highlightParseError( "invalid value for filtered property", line );
+            };
 
             if ( thirdSpaceIndex > 0 && line.length() > thirdSpaceIndex + 1 ) {
                 line = line.substring( thirdSpaceIndex + 1 ).trim();
