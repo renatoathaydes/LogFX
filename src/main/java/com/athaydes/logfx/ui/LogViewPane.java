@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.concurrency.Cancellable;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
@@ -38,6 +39,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import java.util.stream.DoubleStream;
@@ -58,6 +60,8 @@ public final class LogViewPane {
     private final HighlightGroups highlightGroups;
 
     private final SplitPane pane = new SplitPane();
+
+    private final AtomicReference<Cancellable> previousDividerSettingTask = new AtomicReference<>();
 
     // a simple observable that changes state every time a change occurs in a pane divider
     // (changes in number of dividers as well as in their positions)
@@ -93,17 +97,20 @@ public final class LogViewPane {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't hide anything if there isn't more than 1 pane
             }
-            getFocusedView().ifPresent( wrapper ->
-                    taskRunner.repeat( 2, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
-                        int index = pane.getItems().indexOf( wrapper );
-                        if ( index == pane.getItems().size() - 1 ) {
-                            // last pane, so we can only hide by opening up the previous one
-                            pane.setDividerPosition( index - 1, 1.0 );
-                        } else if ( index >= 0 ) {
-                            // in all other cases, just hide the pane itself
-                            pane.setDividerPosition( index, 0.0 );
-                        }
-                    } ) ) );
+            getFocusedView().ifPresent( wrapper -> {
+                var previousTask = previousDividerSettingTask.get();
+                if ( previousTask != null ) previousTask.cancel();
+                previousDividerSettingTask.set( taskRunner.repeat( 2, Duration.ofMillis( 150 ), () -> Platform.runLater( () -> {
+                    int index = pane.getItems().indexOf( wrapper );
+                    if ( index == pane.getItems().size() - 1 ) {
+                        // last pane, so we can only hide by opening up the previous one
+                        pane.setDividerPosition( index - 1, 1.0 );
+                    } else if ( index >= 0 ) {
+                        // in all other cases, just hide the pane itself
+                        pane.setDividerPosition( index, 0.0 );
+                    }
+                } ) ) );
+            } );
         } );
 
         MenuItem maximizeMenuItem = new MenuItem( "Maximize" );
@@ -113,20 +120,23 @@ public final class LogViewPane {
             if ( pane.getItems().size() < 2 ) {
                 return; // we can't maximize anything if there isn't more than 1 pane
             }
-            getFocusedView().ifPresent( wrapper ->
-                    taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ),
-                            () -> Platform.runLater( () -> {
-                                int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
-                                for ( int i = 0; i <= topDividerIndex; i++ ) {
-                                    log.debug( "Setting divider [{}] to {}", i, 0.0 );
-                                    pane.setDividerPosition( i, 0.0 );
-                                }
+            getFocusedView().ifPresent( wrapper -> {
+                var previousTask = previousDividerSettingTask.get();
+                if ( previousTask != null ) previousTask.cancel();
+                previousDividerSettingTask.set( taskRunner.repeat( pane.getItems().size() - 1, Duration.ofMillis( 150 ),
+                        () -> Platform.runLater( () -> {
+                            int topDividerIndex = pane.getItems().indexOf( wrapper ) - 1;
+                            for ( int i = 0; i <= topDividerIndex; i++ ) {
+                                log.debug( "Setting divider [{}] to {}", i, 0.0 );
+                                pane.setDividerPosition( i, 0.0 );
+                            }
 
-                                for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
-                                    log.debug( "Setting divider [{}] to {}", i, 1.0 );
-                                    pane.setDividerPosition( i, 1.0 );
-                                }
-                            } ) ) );
+                            for ( int i = pane.getItems().size() - 2; i > topDividerIndex; i-- ) {
+                                log.debug( "Setting divider [{}] to {}", i, 1.0 );
+                                pane.setDividerPosition( i, 1.0 );
+                            }
+                        } ) ) );
+            } );
         } );
 
         MenuItem goToDateMenuItem = new MenuItem( "To date-time" );
@@ -358,6 +368,7 @@ public final class LogViewPane {
         return panesDividersObservable;
     }
 
+    @MustCallOnJavaFXThread
     public void setDividerPositions( List<Double> separators ) {
         double[] positions = separators.stream().mapToDouble( i -> i ).toArray();
 
@@ -368,13 +379,19 @@ public final class LogViewPane {
                             .collect( joining( ", " ) ) );
         }
 
-        taskRunner.repeat( positions.length, Duration.ofMillis( 150 ),
+        var previousTask = previousDividerSettingTask.get();
+        if ( previousTask != null ) previousTask.cancel();
+        previousDividerSettingTask.set( taskRunner.repeat( positions.length, Duration.ofMillis( 150 ),
                 () -> Platform.runLater( () -> {
                     for ( int i = 0; i < positions.length; i++ ) {
-                        log.debug( "Setting divider [{}] to {}", i, positions[ i ] );
-                        pane.setDividerPosition( i, positions[ i ] );
+                        if ( i < pane.getDividers().size() ) {
+                            log.debug( "Setting divider [{}] to {}", i, positions[ i ] );
+                            pane.setDividerPosition( i, positions[ i ] );
+                        } else {
+                            log.debug( "Ignoring divider position as it is beyond panes count" );
+                        }
                     }
-                } ) );
+                } ) ) );
     }
 
     @MustCallOnJavaFXThread

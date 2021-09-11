@@ -43,7 +43,7 @@ public class Config {
 
     private Path path;
     private final ConfigProperties properties;
-    private Runnable reloadAction;
+    private final List<Runnable> reloadActions = new ArrayList<>( 2 );
 
     public Config( Path path, TaskRunner taskRunner ) {
         this.path = path;
@@ -62,7 +62,7 @@ public class Config {
         log.debug( "Listening to changes on observable Lists" );
 
         InvalidationListener listener = ( event ) ->
-                taskRunner.runWithMaxFrequency( updateConfigFile, 2000L );
+                taskRunner.runWithMaxFrequency( updateConfigFile, 2000L, 1000L );
 
         properties.standardLogColors.addListener( listener );
         properties.highlightGroups.setListener( listener );
@@ -125,7 +125,7 @@ public class Config {
             properties.clear();
             log.info( "Loading config file: {}", path );
             readConfigFile();
-            if ( reloadAction != null ) {
+            for ( Runnable reloadAction : reloadActions ) {
                 reloadAction.run();
             }
         } else {
@@ -146,11 +146,13 @@ public class Config {
         }
     }
 
+    /**
+     * Add an action to run when config is loaded. This happens when the user changes which project is open.
+     *
+     * @param reloadAction action to run on config reload
+     */
     public void onReload( Runnable reloadAction ) {
-        if ( this.reloadAction != null ) {
-            throw new IllegalStateException( "Already set reloadAction" );
-        }
-        this.reloadAction = reloadAction;
+        reloadActions.add( reloadAction );
     }
 
     /**

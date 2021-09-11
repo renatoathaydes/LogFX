@@ -208,7 +208,7 @@ public class LogView extends VBox implements SelectableContainer {
             log.trace( "Moving by deltaY={}, factor={}, lines={}", deltaY, scrollFactor, lines );
 
             moveBy( lines, deltaY > 0.0, () -> useScrollFactor.accept( scrollFactor ) );
-        } ), 50 );
+        } ), 50L, 0L );
     }
 
     private void moveBy( int lines, boolean up, Runnable then ) {
@@ -334,13 +334,13 @@ public class LogView extends VBox implements SelectableContainer {
     private void onFileChange() {
         onFileUpdate.run();
         if ( allowRefresh.get() ) {
-            taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000 );
+            taskRunner.runWithMaxFrequency( this::immediateOnFileChange, 2_000L, 0L );
         }
     }
 
     private void onFileChange( Runnable andThen ) {
         if ( allowRefresh.get() ) {
-            taskRunner.runWithMaxFrequency( () -> immediateOnFileChange( andThen ), 2_000 );
+            taskRunner.runWithMaxFrequency( () -> immediateOnFileChange( andThen ), 2_000L, 0L );
         }
     }
 

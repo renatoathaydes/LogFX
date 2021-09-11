@@ -107,6 +107,7 @@ public final class ProjectsDialog {
                 } ) );
     }
 
+    @MustCallOnJavaFXThread
     private void openProject( String projectName ) {
         if ( projectName != null && !projectName.isBlank() ) {
             log.info( "Opening project '{}'", projectName );

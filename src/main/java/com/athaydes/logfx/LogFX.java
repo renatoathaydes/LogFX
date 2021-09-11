@@ -148,8 +148,12 @@ public final class LogFX extends Application {
         Platform.runLater( () -> {
             log.debug( "Setting initial divider positions to {}", config.getPaneDividerPositions() );
             logsPane.setDividerPositions( config.getPaneDividerPositions() );
+
+            // changes only flow from the panes to the config until config is reloaded again
+            final var dividersUpdater = new PaneDividersUpdater();
+
             logsPane.panesDividersProperty().addListener( observable ->
-                    config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() ) );
+                    taskRunner.runWithMaxFrequency( dividersUpdater, 2000L, 2000L ) );
 
             // all done, show the stage if necessary, then hide the splash screen
             if ( splashScreen != null ) {
@@ -158,7 +162,22 @@ public final class LogFX extends Application {
             }
         } );
 
+        config.onReload( () -> Platform.runLater( () -> {
+            log.debug( "Setting divider positions from config to {}", config.getPaneDividerPositions() );
+            logsPane.setDividerPositions( config.getPaneDividerPositions() );
+        } ) );
+
         FxUtils.setupStylesheet( scene );
+    }
+
+    private class PaneDividersUpdater implements Runnable {
+        @Override
+        public void run() {
+            Platform.runLater( () -> {
+                log.debug( "Running PaneDividersUpdater to update config to : {}", logsPane.getSeparatorsPositions() );
+                config.getPaneDividerPositions().setAll( logsPane.getSeparatorsPositions() );
+            } );
+        }
     }
 
     private void setupResizeListenersAndResize( Stage stage ) {
@@ -192,7 +211,7 @@ public final class LogFX extends Application {
         WindowBoundsUpdater windowBoundsUpdater = new WindowBoundsUpdater();
 
         InvalidationListener updateBounds = ( ignore ) ->
-                taskRunner.runWithMaxFrequency( windowBoundsUpdater, 1000L );
+                taskRunner.runWithMaxFrequency( windowBoundsUpdater, 1000L, 200L );
 
         stage.widthProperty().addListener( updateBounds );
         stage.heightProperty().addListener( updateBounds );

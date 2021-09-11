@@ -45,7 +45,7 @@ class TaskRunnerSpec extends Specification {
         def task = { taskExecutionTimes << ( System.currentTimeMillis() - startTime ) }
         def maxFrequencyInMs = 40
         10.times {
-            taskRunner.runWithMaxFrequency( task, maxFrequencyInMs )
+            taskRunner.runWithMaxFrequency( task, maxFrequencyInMs, 0 )
             latch.countDown()
             sleep 10
         }
@@ -80,7 +80,7 @@ class TaskRunnerSpec extends Specification {
 
         when: 'We request the task to run again'
         startTime = System.currentTimeMillis()
-        taskRunner.runWithMaxFrequency( task, maxFrequencyInMs )
+        taskRunner.runWithMaxFrequency( task, maxFrequencyInMs, 0 )
 
         then: 'The task runs again almost immediately (within 20 ms)'
         sleep 20

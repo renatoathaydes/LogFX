@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -91,9 +92,11 @@ public class TaskRunner {
      *
      * @param runnable         to run later
      * @param maxFrequencyInMs maximum frequency this runnable may run
+     * @param minDelayInMs minimum delay to run task if it can run immediately
      */
     public void runWithMaxFrequency( Runnable runnable,
-                                     long maxFrequencyInMs ) {
+                                     long maxFrequencyInMs,
+                                     long minDelayInMs ) {
         if ( maxFrequencyInMs < 1L ) {
             throw new IllegalArgumentException( "maxFrequencyInMs must be larger than 0" );
         }
@@ -131,14 +134,14 @@ public class TaskRunner {
 
         if ( shouldRunImmediately ) {
             log.trace( "Running task immediately: {}", runnable );
-            executor.execute( () -> {
+            executor.schedule( () -> {
                 try {
                     log.debug( "Running {}", runnable );
                     runnable.run();
                 } catch ( Exception e ) {
                     log.warn( "Error running runnable", e );
                 }
-            } );
+            }, minDelayInMs, TimeUnit.MILLISECONDS );
 
             // schedule to check again after a while if the task needs to run again
             executor.schedule( () -> {
@@ -157,18 +160,22 @@ public class TaskRunner {
 
                 if ( runAgain ) {
                     // run asynchronously, do not block the executor's Thread
-                    executor.execute( () -> runWithMaxFrequency( runnable, maxFrequencyInMs ) );
+                    executor.execute( () -> runWithMaxFrequency( runnable, maxFrequencyInMs, 0L ) );
                 }
-            }, maxFrequencyInMs, TimeUnit.MILLISECONDS );
+            }, maxFrequencyInMs + minDelayInMs, TimeUnit.MILLISECONDS );
         } else {
             log.trace( "Task was already scheduled to check if it needs to run, request to run ignored" );
         }
     }
 
     public Cancellable repeat( int count, Duration delayBetweenRepetitions, Runnable task ) {
-        AtomicReference<Cancellable> cancellable = new AtomicReference<>();
+        AtomicReference<CancellableFuture> cancellable = new AtomicReference<>();
         AtomicInteger counter = new AtomicInteger( 0 );
         Runnable taskWrapper = () -> {
+            var c = cancellable.get();
+            if ( c != null && c.future.isCancelled() ) {
+                return;
+            }
             try {
                 task.run();
             } finally {
@@ -178,7 +185,7 @@ public class TaskRunner {
             }
         };
 
-        cancellable.set( scheduleRepeatingTask( delayBetweenRepetitions, taskWrapper ) );
+        cancellable.set( ( CancellableFuture ) scheduleRepeatingTask( delayBetweenRepetitions, taskWrapper ) );
 
         return cancellable.get();
     }
@@ -187,16 +194,27 @@ public class TaskRunner {
         ScheduledFuture<?> future = executor.scheduleAtFixedRate(
                 task, 0L, period.toMillis(), TimeUnit.MILLISECONDS );
 
-        return () -> future.cancel( false );
-    }
-
-    public ScheduledExecutorService getExecutor() {
-        return executor;
+        return new CancellableFuture( future );
     }
 
     public void shutdown() {
         log.debug( "Shutting down TaskRunner" );
         executor.shutdown();
+    }
+
+    private static final class CancellableFuture implements Cancellable {
+        private final Future<?> future;
+
+        public CancellableFuture( Future<?> future ) {
+            this.future = future;
+        }
+
+        @Override
+        public void cancel() {
+            if ( !future.isCancelled() ) {
+                future.cancel( false );
+            }
+        }
     }
 
 }

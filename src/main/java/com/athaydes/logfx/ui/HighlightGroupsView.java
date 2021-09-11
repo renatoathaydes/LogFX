@@ -5,6 +5,7 @@ import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.text.HighlightExpression;
+import javafx.application.Platform;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
@@ -78,7 +79,7 @@ public class HighlightGroupsView extends BorderPane {
         setTop( selector );
         optionsChoiceBox.getSelectionModel().select( defaultOption );
 
-        config.onReload( () -> {
+        config.onReload( () -> Platform.runLater( () -> {
             optionsChoiceBox.getSelectionModel().clearSelection();
             optionsChoiceBox.getItems().clear();
             defaultOption = populateChoiceBoxAndReturnDefaultOption( config, optionsChoiceBox.getItems(), groups );
@@ -86,7 +87,7 @@ public class HighlightGroupsView extends BorderPane {
                     optionsChoiceBox.getItems(), defaultOption, groups );
             optionsChoiceBox.setConverter( selectorConverter );
             optionsChoiceBox.getSelectionModel().select( defaultOption );
-        } );
+        } ) );
     }
 
     public void setGroupFor( LogFile logFile ) {
