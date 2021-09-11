@@ -7,6 +7,7 @@ import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.NaNChecker.NaNException;
 import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
+import com.athaydes.logfx.iterable.IterableUtils;
 import com.athaydes.logfx.log.LogConfigFile;
 import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.BottomMessagePane;
@@ -302,19 +303,41 @@ public final class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     private void open( File file ) {
-        open( file, -1 );
+        open( file, -1, null );
     }
 
     @MustCallOnJavaFXThread
-    private void open( File file, int index ) {
+    private void open( File file, int index, FileDragAndDrop.DropTarget dropTarget ) {
         LogFile logFile = new LogFile( file );
         if ( config.getObservableFiles().contains( logFile ) ) {
             log.debug( "Tried to open file that is already opened, will focus on it" );
             logsPane.focusOn( file );
+        } else if ( dropTarget == null ) {
+            openViewFor( logFile, index );
         } else {
-            boolean accepted = openViewFor( logFile, index );
+            var accepted = openViewFor( logFile,
+                    dropTarget == FileDragAndDrop.DropTarget.AFTER ? index + 1 : index );
             if ( accepted ) {
+                if ( config.getPaneDividerPositions().isEmpty() ) return;
+                var dividers = new ArrayList<>( config.getPaneDividerPositions() );
+                if ( dropTarget == FileDragAndDrop.DropTarget.AFTER ) {
+                    // try to adjust the pane before the new position of the added pane so it won't break up the next pane
+                    if ( index < dividers.size() ) {
+                        dividers.set( index, IterableUtils.midPoint( dividers, index ) );
+                    }
+                    index += 1;
+                }
+                var midPoint = IterableUtils.midPoint( dividers, index );
                 config.getObservableFiles().add( logFile );
+                log.trace( "Inserted new file pane at index {}, current dividers={}, midPoint={}",
+                        index, dividers, midPoint );
+
+                if ( index >= dividers.size() ) {
+                    dividers.add( midPoint );
+                } else {
+                    dividers.add( index, midPoint );
+                }
+                logsPane.setDividerPositions( dividers );
             }
         }
     }
@@ -343,11 +366,7 @@ public final class LogFX extends Application {
             if ( droppedOnPaneIndex < 0 ) {
                 open( droppedFile );
             } else {
-                switch ( target ) {
-                    case BEFORE -> open( droppedFile, droppedOnPaneIndex );
-                    case AFTER -> open( droppedFile, droppedOnPaneIndex + 1 );
-                    default -> throw new IllegalStateException( "Unknown target: " + target.name() );
-                }
+                open( droppedFile, droppedOnPaneIndex, target );
             }
         } );
 
