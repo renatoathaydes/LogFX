@@ -15,9 +15,12 @@ import static com.athaydes.logfx.ui.FxUtils.resourcePath;
  */
 public class AboutLogFXView {
 
+    public static final int WIDTH = 500;
+    public static final int HEIGHT = 350;
+
     VBox createNode() {
         VBox contents = new VBox( 25 );
-        contents.setPrefSize( 500, 300 );
+        contents.setPrefSize( WIDTH, HEIGHT );
         contents.setAlignment( Pos.CENTER );
         contents.getStylesheets().add( resourcePath( "css/about.css" ) );
 
