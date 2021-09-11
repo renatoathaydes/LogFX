@@ -391,7 +391,8 @@ public class HighlightOptions extends VBox {
     public static Dialog showHighlightOptionsDialog( HighlightGroupsView highlightGroups ) {
         ScrollPane pane = new ScrollPane( highlightGroups );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
-        Dialog dialog = new Dialog( new Label( "Highlight Options" ), pane );
+        Dialog dialog = new Dialog( pane );
+        dialog.setTitle( "Highlight Options" );
         dialog.setSize( 880.0, 340.0 );
         dialog.setStyle( StageStyle.UTILITY );
         dialog.setResizable( false );

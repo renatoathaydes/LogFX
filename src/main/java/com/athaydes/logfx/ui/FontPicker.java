@@ -47,7 +47,8 @@ public class FontPicker {
         grid.add( new Label( "Size:" ), 0, 1 );
         grid.add( fontSizes, 1, 1 );
 
-        Dialog dialog = new Dialog( new Label( "Select a font" ), grid );
+        Dialog dialog = new Dialog(  grid );
+        dialog.setTitle( "Select a font" );
         dialog.setStyle( StageStyle.UTILITY );
         dialog.setAlwaysOnTop( true );
         dialog.setResizable( false );

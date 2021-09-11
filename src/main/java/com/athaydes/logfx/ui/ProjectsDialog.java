@@ -4,7 +4,6 @@ import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -34,7 +33,6 @@ public final class ProjectsDialog {
     }
 
     public void showFor( Stage stage ) {
-        var label = new Label( "Projects" );
         var buttonBox = new HBox( 10 );
         var optionsBox = new VBox( 2 );
         var optionsBoxScrollPane = new ScrollPane( optionsBox );
@@ -42,7 +40,8 @@ public final class ProjectsDialog {
         optionsBoxScrollPane.setMaxHeight( 250 );
         optionsBoxScrollPane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         optionsBoxScrollPane.setVbarPolicy( ScrollPane.ScrollBarPolicy.ALWAYS );
-        var dialog = new Dialog( label, optionsBoxScrollPane, buttonBox );
+        var dialog = new Dialog( optionsBoxScrollPane, buttonBox );
+        dialog.setTitle( "Manage Projects" );
         dialog.makeTransparentWhenLoseFocus();
         dialog.setWidth( 400 );
         dialog.setStyle( StageStyle.UTILITY );
