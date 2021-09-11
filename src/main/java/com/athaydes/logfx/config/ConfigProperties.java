@@ -4,6 +4,7 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.ui.FxUtils;
+import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
@@ -41,6 +42,7 @@ final class ConfigProperties {
         enableFilters = new SimpleBooleanProperty( false );
     }
 
+    @MustCallOnJavaFXThread
     void clear() {
         standardLogColors.set( DEFAULT_LOG_LINE_COLORS );
         observableFiles.clear();

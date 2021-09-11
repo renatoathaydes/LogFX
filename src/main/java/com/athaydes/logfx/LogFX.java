@@ -260,7 +260,7 @@ public final class LogFX extends Application {
         showLogFxLog.setOnAction( ( event ) ->
                 open( LogConfigFile.INSTANCE.logFilePath.toFile() ) );
 
-        MenuItem changeProject = new MenuItem( "Open _Project" );
+        MenuItem changeProject = new MenuItem( "Manage _Projects" );
         changeProject.setAccelerator( new KeyCodeCombination( KeyCode.P,
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         changeProject.setOnAction( ( event ) ->
