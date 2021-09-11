@@ -264,7 +264,7 @@ public final class LogFX extends Application {
         changeProject.setAccelerator( new KeyCodeCombination( KeyCode.P,
                 KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         changeProject.setOnAction( ( event ) ->
-                new ProjectsDialog( config ).showNear( root ) );
+                new ProjectsDialog( config ).showFor( stage ) );
 
         MenuItem close = new MenuItem( "E_xit" );
         close.setAccelerator( new KeyCodeCombination( KeyCode.W,

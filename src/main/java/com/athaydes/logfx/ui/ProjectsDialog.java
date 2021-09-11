@@ -3,12 +3,12 @@ package com.athaydes.logfx.ui;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
 import javafx.application.Platform;
-import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,7 +33,7 @@ public final class ProjectsDialog {
         this.config = config;
     }
 
-    public void showNear( Node root ) {
+    public void showFor( Stage stage ) {
         var label = new Label( "Projects" );
         var buttonBox = new HBox( 10 );
         var optionsBox = new VBox( 2 );
@@ -51,7 +51,7 @@ public final class ProjectsDialog {
                 ? DEFAULT_PROJECT_NAME
                 : currentProject.getFileName().toString();
         var defaultProjectButtonRef = new AtomicReference<Button>();
-        buildProjectMap().forEach( ( projectName, action ) -> {
+        buildProjectMap( stage ).forEach( ( projectName, action ) -> {
             var optionBox = new HBox( 2 );
 
             var optionButton = new Button( projectName );
@@ -72,7 +72,7 @@ public final class ProjectsDialog {
             } else {
                 deleteButton.setOnAction( ( e ) ->
                         Dialog.showQuestionDialog( "Are you sure you want to delete project " + projectName,
-                                Map.of( "Yes", () -> deleteProject( projectName, isCurrent,
+                                Map.of( "Yes", () -> deleteProject( projectName, isCurrent, stage,
                                                 () -> {
                                                     optionsBox.getChildren().remove( optionBox );
                                                     markCurrent( defaultProjectButtonRef.get() );
@@ -89,7 +89,7 @@ public final class ProjectsDialog {
         closeButton.setOnAction( ( e ) -> dialog.hide() );
         buttonBox.getChildren().add( closeButton );
 
-        buildCreateNewProjectMap( root ).forEach( ( text, action ) -> {
+        buildCreateNewProjectMap( stage ).forEach( ( text, action ) -> {
             var button = new Button( text );
             button.getStyleClass().add( "favourite-button" );
             button.setOnAction( e -> {
@@ -107,41 +107,43 @@ public final class ProjectsDialog {
         optionButton.getStyleClass().add( "favourite-button" );
     }
 
-    private Map<String, Runnable> buildProjectMap() {
+    private Map<String, Runnable> buildProjectMap( Stage stage ) {
         return Properties.listProjects().stream().collect(
-                toMap( Function.identity(), projectName -> () -> openProject( projectName ), ( a, b ) -> {
+                toMap( Function.identity(), projectName -> () -> openProject( projectName, stage ), ( a, b ) -> {
                     throw new IllegalStateException( "Cannot have projects with same name" );
                 }, LinkedHashMap::new ) );
     }
 
-    private Map<String, Runnable> buildCreateNewProjectMap( Node root ) {
+    private Map<String, Runnable> buildCreateNewProjectMap( Stage stage ) {
         return Map.of( "New Project", () ->
-                Dialog.askForInput( root.getScene(), "Project Name", null, projectName -> {
+                Dialog.askForInput( stage.getScene(), "Project Name", null, projectName -> {
                     if ( DEFAULT_PROJECT_NAME.equals( projectName ) ) {
                         Platform.runLater( () -> Dialog.showMessage(
                                 "Cannot create project named " + DEFAULT_PROJECT_NAME, WARNING ) );
                     } else {
                         log.info( "Creating new project '{}'", projectName );
-                        openProject( projectName );
+                        openProject( projectName, stage );
                     }
                 } ) );
     }
 
     @MustCallOnJavaFXThread
-    private void openProject( String projectName ) {
+    private void openProject( String projectName, Stage stage ) {
         if ( projectName != null && !projectName.isBlank() ) {
             log.info( "Opening project '{}'", projectName );
             Properties.getProjectFile( projectName ).ifPresent( config::loadConfig );
+            var title = "LogFX" + ( DEFAULT_PROJECT_NAME.equals( projectName ) ? "" : " (" + projectName + ")" );
+            stage.setTitle( title );
         }
     }
 
-    private void deleteProject( String projectName, boolean isCurrent, Runnable onDelete ) {
+    private void deleteProject( String projectName, boolean isCurrent, Stage stage, Runnable onDelete ) {
         if ( projectName != null && !projectName.isBlank() && !DEFAULT_PROJECT_NAME.equals( projectName ) ) {
             log.info( "Deleting project '{}'", projectName );
             Properties.getProjectFile( projectName ).ifPresentOrElse( p -> {
                 if ( isCurrent ) {
                     // deleting current project, open the default project first (which can't be deleted)
-                    openProject( DEFAULT_PROJECT_NAME );
+                    openProject( DEFAULT_PROJECT_NAME, stage );
                 }
                 var ok = p.toFile().delete();
                 if ( ok ) {
