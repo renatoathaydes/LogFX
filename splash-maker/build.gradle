@@ -16,6 +16,10 @@ dependencies {
     implementation rootProject
 }
 
+tasks.withType( JavaCompile ) {
+    dependsOn( rootProject.tasks.deps )
+}
+
 task createSplashScreen( type: JavaExec ) {
     classpath = sourceSets.main.runtimeClasspath
     systemProperty( "java.awt.headless", "true" )
