@@ -174,7 +174,7 @@ task fatJar( type: Jar ) {
     destinationDirectory = buildDir
     classifier "all"
     from {
-        configurations.fatJarRuntime.collect {
+        configurations.runtimeClasspath.collect {
             if ( it.isDirectory() ) return it
             zipTree( it ).matching {
                 // Licenses are acknowledged in our own license file
