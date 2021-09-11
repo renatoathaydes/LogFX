@@ -43,8 +43,9 @@ public final class ProjectsDialog {
         optionsBoxScrollPane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         optionsBoxScrollPane.setVbarPolicy( ScrollPane.ScrollBarPolicy.ALWAYS );
         var dialog = new Dialog( label, optionsBoxScrollPane, buttonBox );
+        dialog.makeTransparentWhenLoseFocus();
         dialog.setWidth( 400 );
-        dialog.setStyle( StageStyle.UNDECORATED );
+        dialog.setStyle( StageStyle.UTILITY );
         var currentProject = config.getCurrentConfigPath();
         var currentProjectName = Properties.DEFAULT_LOGFX_CONFIG.equals( currentProject )
                 ? DEFAULT_PROJECT_NAME

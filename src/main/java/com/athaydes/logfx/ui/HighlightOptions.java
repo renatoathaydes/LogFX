@@ -393,7 +393,7 @@ public class HighlightOptions extends VBox {
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
         Dialog dialog = new Dialog( new Label( "Highlight Options" ), pane );
         dialog.setSize( 880.0, 340.0 );
-        dialog.setStyle( StageStyle.UNDECORATED );
+        dialog.setStyle( StageStyle.UTILITY );
         dialog.setResizable( false );
         dialog.makeTransparentWhenLoseFocus();
         dialog.getBox().setAlignment( Pos.TOP_CENTER );
