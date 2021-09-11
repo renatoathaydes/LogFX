@@ -391,12 +391,19 @@ public class HighlightOptions extends VBox {
     public static Dialog showHighlightOptionsDialog( HighlightGroupsView highlightGroups ) {
         ScrollPane pane = new ScrollPane( highlightGroups );
         pane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
-        Dialog dialog = new Dialog( pane );
+        Dialog dialog = new Dialog( new Label( "Highlight Options" ), pane );
         dialog.setSize( 880.0, 340.0 );
-        dialog.setTitle( "Highlight Options" );
+        dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
         dialog.makeTransparentWhenLoseFocus();
         dialog.getBox().setAlignment( Pos.TOP_CENTER );
+
+        var paneButtons = new VBox( 10 );
+        var closeButton = new Button( "Close" );
+        closeButton.setOnAction( event -> dialog.hide() );
+        paneButtons.getChildren().add( closeButton );
+        dialog.getBox().getChildren().add( paneButtons );
+
         dialog.show();
         Platform.runLater( highlightGroups::onShow );
         return dialog;

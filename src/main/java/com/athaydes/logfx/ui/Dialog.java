@@ -215,7 +215,7 @@ public class Dialog {
 
     public static void showQuestionDialog( String text, Map<String, Runnable> options ) {
         Platform.runLater( () -> {
-            var dialog = new Dialog( new Text( text ) );
+            var dialog = new Dialog( new Label( text ) );
             dialog.setStyle( StageStyle.UNDECORATED );
             var optionsBox = new HBox( 10 );
             options.forEach( ( opt, action ) -> {
