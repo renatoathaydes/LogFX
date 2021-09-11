@@ -338,7 +338,7 @@ public final class LogFX extends Application {
 
         LogView view = new LogView( config, root.widthProperty(), logFile, fileReader, taskRunner );
 
-        FileDragAndDrop.install( view, logsPane, overlay, ( droppedFile, target ) -> {
+        FileDragAndDrop.install( view, logsPane, overlay, config.panesOrientationProperty(), ( droppedFile, target ) -> {
             int droppedOnPaneIndex = logsPane.indexOf( view );
             if ( droppedOnPaneIndex < 0 ) {
                 open( droppedFile );
