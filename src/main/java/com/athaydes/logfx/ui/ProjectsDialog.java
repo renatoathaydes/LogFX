@@ -7,9 +7,7 @@ import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
-import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
-import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 import javafx.stage.StageStyle;
 import org.slf4j.Logger;
@@ -17,9 +15,11 @@ import org.slf4j.LoggerFactory;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static com.athaydes.logfx.config.Properties.DEFAULT_PROJECT_NAME;
+import static com.athaydes.logfx.ui.Dialog.MessageLevel.ERROR;
 import static com.athaydes.logfx.ui.Dialog.MessageLevel.INFO;
 import static com.athaydes.logfx.ui.Dialog.MessageLevel.WARNING;
 import static java.util.stream.Collectors.toMap;
@@ -41,38 +41,52 @@ public final class ProjectsDialog {
         optionsBoxScrollPane.setMinHeight( 150 );
         optionsBoxScrollPane.setMaxHeight( 250 );
         optionsBoxScrollPane.setHbarPolicy( ScrollPane.ScrollBarPolicy.NEVER );
+        optionsBoxScrollPane.setVbarPolicy( ScrollPane.ScrollBarPolicy.ALWAYS );
         var dialog = new Dialog( label, optionsBoxScrollPane, buttonBox );
-        dialog.closeWhenLoseFocus();
         dialog.setWidth( 400 );
         dialog.setStyle( StageStyle.UNDECORATED );
+        var currentProject = config.getCurrentConfigPath();
+        var currentProjectName = Properties.DEFAULT_LOGFX_CONFIG.equals( currentProject )
+                ? DEFAULT_PROJECT_NAME
+                : currentProject.getFileName().toString();
+        var defaultProjectButtonRef = new AtomicReference<Button>();
         buildProjectMap().forEach( ( projectName, action ) -> {
             var optionBox = new HBox( 2 );
 
             var optionButton = new Button( projectName );
-            if ( DEFAULT_PROJECT_NAME.equals( projectName ) ) {
-                optionButton.getStyleClass().add( "favourite-button" );
+            optionButton.setPrefWidth( 305 );
+            optionButton.setMaxWidth( 305 );
+            var isCurrent = currentProjectName.equals( projectName );
+            if ( isCurrent ) {
+                markCurrent( optionButton );
             }
             optionButton.setOnAction( ( e ) -> {
                 dialog.hide();
                 action.run();
             } );
             var deleteButton = AwesomeIcons.createIconButton( AwesomeIcons.TRASH );
-            deleteButton.setOnAction( ( e ) -> {
-                dialog.hide();
-                Dialog.showQuestionDialog( "Are you sure you want to delete project " + projectName,
-                        Map.of( "Yes", () -> deleteProject( projectName ),
-                                "No", () -> {
-                                } ) );
-            } );
+            if ( DEFAULT_PROJECT_NAME.equals( projectName ) ) {
+                deleteButton.setDisable( true );
+                defaultProjectButtonRef.set( optionButton );
+            } else {
+                deleteButton.setOnAction( ( e ) ->
+                        Dialog.showQuestionDialog( "Are you sure you want to delete project " + projectName,
+                                Map.of( "Yes", () -> deleteProject( projectName, isCurrent,
+                                                () -> {
+                                                    optionsBox.getChildren().remove( optionBox );
+                                                    markCurrent( defaultProjectButtonRef.get() );
+                                                } ),
+                                        "No", () -> {
+                                        } ) ) );
+            }
 
             optionBox.getChildren().addAll( optionButton, deleteButton );
-            HBox.setHgrow( optionButton, Priority.ALWAYS );
-            optionsBox.getChildren().add( new BorderPane( optionBox ) );
+            optionsBox.getChildren().add( optionBox );
         } );
 
-        var cancelButton = new Button( "Cancel" );
-        cancelButton.setOnAction( ( e ) -> dialog.hide() );
-        buttonBox.getChildren().add( cancelButton );
+        var closeButton = new Button( "Close" );
+        closeButton.setOnAction( ( e ) -> dialog.hide() );
+        buttonBox.getChildren().add( closeButton );
 
         buildCreateNewProjectMap( root ).forEach( ( text, action ) -> {
             var button = new Button( text );
@@ -85,6 +99,11 @@ public final class ProjectsDialog {
         } );
 
         dialog.show();
+    }
+
+    private void markCurrent( Button optionButton ) {
+        optionButton.setDisable( true );
+        optionButton.getStyleClass().add( "favourite-button" );
     }
 
     private Map<String, Runnable> buildProjectMap() {
@@ -115,17 +134,22 @@ public final class ProjectsDialog {
         }
     }
 
-    private void deleteProject( String projectName ) {
-        if ( projectName != null && !projectName.isBlank() ) {
-            log.info( "Opening project '{}'", projectName );
-            Properties.getProjectFile( projectName ).ifPresent( p -> {
+    private void deleteProject( String projectName, boolean isCurrent, Runnable onDelete ) {
+        if ( projectName != null && !projectName.isBlank() && !DEFAULT_PROJECT_NAME.equals( projectName ) ) {
+            log.info( "Deleting project '{}'", projectName );
+            Properties.getProjectFile( projectName ).ifPresentOrElse( p -> {
+                if ( isCurrent ) {
+                    // deleting current project, open the default project first (which can't be deleted)
+                    openProject( DEFAULT_PROJECT_NAME );
+                }
                 var ok = p.toFile().delete();
                 if ( ok ) {
+                    onDelete.run();
                     Dialog.showMessage( "Project deleted successfully", INFO );
                 } else {
                     Dialog.showMessage( "Project could not be deleted", WARNING );
                 }
-            } );
+            }, () -> Dialog.showMessage( "Project does not exist", ERROR ) );
         }
     }
 

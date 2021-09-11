@@ -135,6 +135,10 @@ public class Config {
         }
     }
 
+    public Path getCurrentConfigPath() {
+        return path;
+    }
+
     private void readConfigFile() {
         try {
             Iterator<String> lines = Files.lines( path ).iterator();
