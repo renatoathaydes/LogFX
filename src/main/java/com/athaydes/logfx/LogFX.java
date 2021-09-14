@@ -373,6 +373,8 @@ public final class LogFX extends Application {
         logsPane.add( view, () -> config.getObservableFiles().remove( logFile ), index,
                 topViewMenu.getEditGroupCallback() );
 
+        config.getObservableFiles().add( logFile );
+
         return true;
     }
 
