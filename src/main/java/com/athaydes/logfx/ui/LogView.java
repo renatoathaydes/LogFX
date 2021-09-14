@@ -54,7 +54,7 @@ public class LogView extends VBox implements SelectableContainer {
     private static final Runnable DO_NOTHING = () -> {
     };
 
-    public static final int MAX_LINES = 256;
+    public static final int MAX_LINES = 512;
 
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
@@ -231,11 +231,9 @@ public class LogView extends VBox implements SelectableContainer {
     private static double scaleScrollDelta( double deltaY ) {
         double absDeltaY = Math.abs( deltaY );
         if ( absDeltaY < 0.001 ) return 0.0;
-        if ( absDeltaY < 1.0 ) return 0.02;
         if ( absDeltaY > 100.0 ) return 0.8;
         if ( absDeltaY > 50.0 ) return 0.5;
-        if ( absDeltaY > 10.0 ) return 0.2;
-        return 0.08;
+        return 0.2;
     }
 
     BooleanProperty tailingFileProperty() {
