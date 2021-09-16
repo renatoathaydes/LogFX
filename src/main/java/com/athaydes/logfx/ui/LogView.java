@@ -313,7 +313,8 @@ public class LogView extends VBox implements SelectableContainer {
         Optional<? extends List<String>> lines = fileContentReader.refresh();
         if ( lines.isPresent() ) {
             dateTimeFormatGuess = dateTimeFormatGuesser
-                    .guessDateTimeFormats( lines.get() ).orElse( null );
+                    .guessDateTimeFormats( lines.get() )
+                    .orElse( null );
         } else {
             log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}",
                     logFile );
