@@ -18,6 +18,7 @@ import java.util.regex.Pattern;
  * The pattern must use the given group to extract the date-time.
  */
 public record PatternBasedDateTimeFormatGuess(
+        String name,
         Pattern linePattern,
         DateTimeFormatter formatter
 ) implements DateTimeFormatGuess {

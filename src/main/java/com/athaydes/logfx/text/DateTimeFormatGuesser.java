@@ -31,10 +31,10 @@ public final class DateTimeFormatGuesser {
 
     private static volatile DateTimeFormatGuesser STANDARD_INSTANCE;
 
-    static DateTimeFormatGuesser createStandard() {
+    private static DateTimeFormatGuesser createStandard() {
         var prefixRegex = "[a-zA-Z\\[\\]_ -]{0,20}";
         var time = "\\d{1,2}:\\d{1,2}:\\d{1,2}";
-        var timeMs = time + "(\\.\\d{1,6})?";
+        var timeMs = time + "(\\.\\d{1,9})?";
 
         // 2017-09-11T18:13:57.483+02:00
         var isoDateTime = prefixRegex + namedGroup( DATE_TIME_GROUP,
@@ -47,24 +47,31 @@ public final class DateTimeFormatGuesser {
                         namedGroup( TIMEZONE_GROUP, "\\s+(GMT|[+-]\\d{4})" ) );
 
         // Tue Aug 11 21:55:22 CEST 2020
-        String commonDateTime = prefixRegex + namedGroup( DATE_TIME_GROUP,
+        var commonDateTime = prefixRegex + namedGroup( DATE_TIME_GROUP,
                 "(\\w{3}\\s+)?\\w{3}\\s+\\d{1,2}\\s+" + time +
                         namedGroup( TIMEZONE_GROUP, "\\s+\\w{1,10}\\s+\\d{2,4}" ) );
 
         // 10/Oct/2000:13:55:36 -0700
-        String ncsaCommonLogFormat = prefixRegex + namedGroup( DATE_TIME_GROUP,
+        var ncsaCommonLogFormat = prefixRegex + namedGroup( DATE_TIME_GROUP,
                 "\\w{1,10}[/\\-.]\\w{1,10}[/\\-.]\\d{2,4}([T\\s:]|\\s{1,2})" + time +
                         namedGroup( TIMEZONE_GROUP, "\\s{0,2}[+-]\\d{1,2}(:)?\\d{1,2}" ) + "?" );
 
+        // 2020-06-21 18:33:34-07
+        var appleDateTime = prefixRegex + namedGroup( DATE_TIME_GROUP,
+                "\\d{1,4}-\\d{1,2}-\\d{1,2}\\s+" + timeMs +
+                        namedGroup( TIMEZONE_GROUP, "[+-]\\d{1,2}" ) );
+
         return new DateTimeFormatGuesser( List.of(
-                new PatternBasedDateTimeFormatGuess( Pattern.compile( isoDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][z]" ) ),
-                new PatternBasedDateTimeFormatGuess( Pattern.compile( commonDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "[EE ]MMM dd HH:mm:ss[.SSS][ zzz][ yyyy]" ) ),
-                new PatternBasedDateTimeFormatGuess( Pattern.compile( ncsaCommonLogFormat + ".*" ),
-                        DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]" ) ),
-                new PatternBasedDateTimeFormatGuess( Pattern.compile( rfc1123DateTime + ".*" ),
-                        DateTimeFormatter.RFC_1123_DATE_TIME ) )
+                new PatternBasedDateTimeFormatGuess( "ISO", Pattern.compile( isoDateTime + ".*" ),
+                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][z]" ) ),
+                new PatternBasedDateTimeFormatGuess( "Common", Pattern.compile( commonDateTime + ".*" ),
+                        DateTimeFormatter.ofPattern( "[EE ]MMM dd HH:mm:ss[.SSS][.SS][.S][ zzz][ yyyy]" ) ),
+                new PatternBasedDateTimeFormatGuess( "NCSA", Pattern.compile( ncsaCommonLogFormat + ".*" ),
+                        DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][:SS][:S][ Z]" ) ),
+                new PatternBasedDateTimeFormatGuess( "RFC-1123", Pattern.compile( rfc1123DateTime + ".*" ),
+                        DateTimeFormatter.RFC_1123_DATE_TIME ),
+                new PatternBasedDateTimeFormatGuess( "APPLE", Pattern.compile( appleDateTime + ".*" ),
+                        DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) ) )
         );
     }
 

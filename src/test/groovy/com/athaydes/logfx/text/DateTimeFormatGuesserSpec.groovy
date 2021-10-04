@@ -49,6 +49,7 @@ class DateTimeFormatGuesserSpec extends Specification {
         where: 'valid log lines and their expected date-times'
         lines << [
                 [ '2021-9-3T20:54:54.207+02:00 [file-change-watcher-1] INFO com.athaydes.logfx.file.FileChangeWatcher - Watching file ' ],
+                [ '2021-9-3T20:54:51.97+02:00' ],
                 [ '2017-09-11T18:13:57.483+02:00 TRACE {worker-1} com.acme.Log event' ],
                 [ '2017-9-14T19:23:53.499+02:00 [pool-6-thread-1] DEBUG com' ],
                 [ '2013-2-23T5:6:7 [pool-6-thread-1] DEBUG com' ],
@@ -59,10 +60,12 @@ class DateTimeFormatGuesserSpec extends Specification {
                 [ '[Fri, 09 Sep 2011 10:42:29 +0200] [core:error]' ],
                 [ '[Fri, 09 Sep 2011 10:42:29 -0530] [core:error]' ],
                 [ '[10/Oct/2000:13:55:36 -0700] INFO hello' ],
+                [ '2020-06-21 18:32:45-07 INFO hello' ],
         ]
 
         expectedDateTimes << [
                 [ dateTime( '2021-09-03T20:54:54.207+02:00' ) ],
+                [ dateTime( '2021-09-03T20:54:51.97+02:00' ) ],
                 [ dateTime( '2017-09-11T18:13:57.483+02:00' ) ],
                 [ dateTime( '2017-09-14T19:23:53.499+02:00' ) ],
                 [ dateTime( '2013-02-23T05:06:07.000' ) ],
@@ -73,6 +76,7 @@ class DateTimeFormatGuesserSpec extends Specification {
                 [ dateTime( '2011-09-09T10:42:29+02:00' ) ],
                 [ dateTime( '2011-09-09T10:42:29-05:30' ) ],
                 [ dateTime( '2000-10-10T13:55:36-07:00' ) ],
+                [ dateTime( '2020-06-21T18:32:45-07:00' ) ],
         ]
     }
 
@@ -83,7 +87,7 @@ class DateTimeFormatGuesserSpec extends Specification {
                 'This line has no date-time',
                 '2017-09-14T19:23:53.499+02:00 [pool-6-thread-1] DEBUG com',
                 '2013-02-23T05:06:07 [pool-6-thread-1] DEBUG com',
-                'INFO 2017-09-11T18:13:57.485+04:00 {worker-1} com.acme.Log event',
+                '2017-09-11T18:13:57.485+04:00 {worker-1} com.acme.Log event',
                 'INFO [Fri, 01 Sep 20017 22:02:55 GMT] - 22',
                 'Sun, 03 Nov 2019 14:22:00 GMT: msg',
                 'This line has no date-time',
@@ -98,7 +102,7 @@ class DateTimeFormatGuesserSpec extends Specification {
 
         def patterns = [
                 // 2017-09-11T18:13:57.483+02:00
-                namedGroup( DATE_TIME_GROUP, "\\d{1,4}-\\d{1,4}-\\d{1,4}(T|\\s{1,2})$time$tz" ),
+                namedGroup( DATE_TIME_GROUP, "\\d{1,4}-\\d{1,4}-\\d{1,4}(T|\\s{1,2})$time$tz?" ),
 
                 // Tue, 3 Jun 2008 11:05:30 GMT
                 namedGroup( DATE_TIME_GROUP, "\\w{1,3},\\s+\\d{1,2}\\s+\\w{1,10}\\s+\\d{2,4}\\s+$time" +
@@ -113,10 +117,10 @@ class DateTimeFormatGuesserSpec extends Specification {
         ].collect { Pattern.compile( "${it}.*" ) }
 
         def guesser = new DateTimeFormatGuesser( [
-                new PatternBasedDateTimeFormatGuess( patterns[ 0 ], DateTimeFormatter.ISO_DATE_TIME ),
-                new PatternBasedDateTimeFormatGuess( patterns[ 1 ], DateTimeFormatter.RFC_1123_DATE_TIME ),
-                new PatternBasedDateTimeFormatGuess( patterns[ 2 ], DateTimeFormatter.RFC_1123_DATE_TIME ),
-                new PatternBasedDateTimeFormatGuess( patterns[ 3 ],
+                new PatternBasedDateTimeFormatGuess( 'iso', patterns[ 0 ], DateTimeFormatter.ISO_DATE_TIME ),
+                new PatternBasedDateTimeFormatGuess( 'rfc1', patterns[ 1 ], DateTimeFormatter.RFC_1123_DATE_TIME ),
+                new PatternBasedDateTimeFormatGuess( 'rfc2', patterns[ 2 ], DateTimeFormatter.RFC_1123_DATE_TIME ),
+                new PatternBasedDateTimeFormatGuess( 'ncsa', patterns[ 3 ],
                         DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]", Locale.ENGLISH ) ),
         ] )
 
@@ -139,7 +143,7 @@ class DateTimeFormatGuesserSpec extends Specification {
 
     def "A single line with a valid date-time is enough for the guesser to guess a formatter correctly"() {
         given: 'The standard date-time format guesser'
-        def guesser = DateTimeFormatGuesser.createStandard()
+        def guesser = DateTimeFormatGuesser.standard()
 
         and: 'Lots of lines, only one of which has a valid date-time'
         def lines = generateRandomLines( 100 )
