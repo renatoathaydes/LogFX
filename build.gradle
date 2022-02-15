@@ -108,14 +108,13 @@ configurations {
 dependencies {
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
 
-    testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.8'
-    testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.0-groovy-3.0', {
+    testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.9'
+    testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.1-M2-groovy-3.0', {
         transitive = false
     }
-    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.0-groovy-3.0', {
+    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.2.0-groovy-3.0', {
         transitive = false
     }
-    testImplementation group: 'junit', name: 'junit', version: '4.13.2'
     testImplementation group: 'cglib', name: 'cglib-nodep', version: '3.3.0'
     testImplementation group: 'com.google.code.tempus-fugit', name: 'tempus-fugit', version: '1.1'
 }
