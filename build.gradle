@@ -13,8 +13,8 @@ group 'com.athaydes.logfx'
 version '1.0-RC15'
 description 'A beautiful log viewer capable of handling large files'
 
-sourceCompatibility = JavaVersion.VERSION_16
-targetCompatibility = JavaVersion.VERSION_16
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
 
 mainClassName = "com.athaydes.logfx/com.athaydes.logfx.LogFX"
 
