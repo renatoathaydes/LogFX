@@ -2,6 +2,7 @@ package com.athaydes.logfx.file
 
 import com.athaydes.logfx.concurrency.TaskRunner
 import groovy.transform.CompileStatic
+import org.junit.jupiter.api.condition.OS
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 import spock.lang.Specification
@@ -49,6 +50,10 @@ class FileChangeWatcherSpec extends Specification {
                                           Duration timeToWaitForNoFurtherEvents,
                                           String description ) {
         assertEventWithin timeout, description
+        if ( OS.WINDOWS.currentOs ) {
+            // allow double events on Windows
+            skipEventsWithin( Duration.ofMillis( 500 ) )
+        }
         assertNoEventsFor timeToWaitForNoFurtherEvents, description
     }
 
@@ -57,6 +62,13 @@ class FileChangeWatcherSpec extends Specification {
                 "First Event '$description' did not occur within timeout"
         // just throw away possible second event
         eventQueue.poll( timeout2.toMillis(), TimeUnit.MILLISECONDS )
+    }
+
+    private void skipEventsWithin( Duration timeout ) {
+        def max = System.currentTimeMillis() + timeout.toMillis()
+        while ( System.currentTimeMillis() < max ) {
+            eventQueue.poll( 10, TimeUnit.MILLISECONDS )
+        }
     }
 
     private void assertEventWithin( Duration timeout, String description ) {
