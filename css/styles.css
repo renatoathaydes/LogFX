@@ -99,3 +99,9 @@ code {
   background-color: #333333;
   color: white;
 }
+
+.footnotes {
+  font-style: italic;
+  color: gray;
+  margin: 0 1em 0 1em;
+}
