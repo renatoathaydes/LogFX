@@ -50,8 +50,8 @@
              alt="LogFX 1.0 running on Windows 10" class="slide">
         {{ end }}
     {{ end }}
-
-    <p>LogFX is quite lightweight, yet has many useful features:</p>
+    <div>
+    <p>LogFX is quite lightweight <sup><a href="#note-1">1</a></sup>, yet has many useful features:</p>
 
     <ul class="log">
         <li><span>extremely fast to open and navigate large files.</span></li>
@@ -62,8 +62,18 @@
         <li><span>filter content based on highlight expressions.</span></li>
         <li><span>highly customizable look via JavaFX CSS (refreshes instantly).</span></li>
         <li><span>keyboard friendly (shortcuts for everything).</span></li>
-        <li><span>auto-updates itself, so you always have the latest features.</span></li>
+        <li><span>organize groups of files and highlight rules into Projects.</span></li>
     </ul>
+    <div>
+    <small id="note-1" class="footnotes">
+        <div>[1] LogFX is an approximately 35MB download, including the JavaFX runtime, or a tiny 270KB jar
+            if you already have an appropriate JVM!</div>
+        <div>It can run with as little as 25MB of RAM (edit the launcher script, <code>bin/logfx</code>
+            by adding <code>-Xmx25m</code> to the <code>VM_OPTIONS</code> environment variable if you want to restrict LogFX memory!).
+        </div>
+    </small>
+    </div>
+    </div>
     <div class="big-area documentation">
         <a href="{{eval baseURL }}/docs/index.html"><div>Documentation</div></a>
         <a href="{{eval baseURL }}/docs/index.html">{{ include /static/svg/_book.svg }}</a>
@@ -71,6 +81,10 @@
     <div class="big-area contact-me">
         <a href="{{eval baseURL }}/contact.html"><div>Get in touch</div></a>
         <a href="{{eval baseURL }}/contact.html">{{ include /static/svg/_comments-smiley.svg }}</a>
+    </div>
+    <div class="big-area license">
+        <a href="https://github.com/renatoathaydes/LogFX/blob/master/LICENSE"><div>Fully Open Source (GPL-3.0 License)</div></a>
+        <a href="https://github.com/renatoathaydes/LogFX/blob/master/LICENSE">{{ include /static/svg/_tag.svg }}</a>
     </div>
 </main>
 {{ include fragments/_footer.html }}

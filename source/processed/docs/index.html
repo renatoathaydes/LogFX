@@ -88,9 +88,10 @@ LogFX is capable of doing, this page is for you.</p>
         <li><a href="#goto-date">Go to a certain date-time</a></li>
         <li><a href="#highlight">Highlighting content</a></li>
         <li><a href="#filter">Filtering content</a></li>
+        <li><a href="#copying">Copying content</a></li>
+        <li><a href="#projects">Grouping files and highlight rules into Projects</a></li>
         <li><a href="#context-menu">The context menu</a></li>
         <li><a href="#buttons-menu">The buttons menu</a></li>
-        <li><a href="#auto-update">Controlling LogFX auto-updates</a></li>
         <li><a href="#system-properties">Customizing LogFX with system properties</a></li>
         <li><a href="#style-logfx">Styling LogFX's appearance</a></li>
     </ol>
@@ -115,7 +116,7 @@ can find it easily later on.
 <p>To start LogFX, run the <code>bin/logfx</code> file on Linux and Mac, or <code>bin/logfx.bat</code> on Windows,
 within that directory.
 </p>
-<p>LogFX can also be downloaded as an executable (and tiny) jar. Open the section below for details:</p>
+<p>LogFX can also be downloaded as small jar file. Open the section below for details:</p>
 <details>
     <summary>Running LogFX from a Jar (for Java users)</summary>
     <section>
@@ -123,19 +124,18 @@ within that directory.
         <code>java -jar logfx-all.jar</code>.</p>
     <p>Get the jar with this command (change VERSION to the latest LogFX version):</p>
     <pre><code>
-VERSION="1.0" && \\
-curl -sSfLv https://jcenter.bintray.com/com/athaydes/logfx/logfx/$VERSION/logfx-$VERSION-all.jar -o logfx.jar
+VERSION="1.0" && \
+curl https://repo1.maven.org/maven2/com/athaydes/logfx/logfx/$VERSION/logfx-$VERSION-all.jar -o logfx.jar
     </code></pre>
-    <p>This works! But you must have Java 11+ with the JavaFX modules available by default.</p>
+    <p>This works! But you must have Java 17+ with the JavaFX modules available by default.</p>
     <p>An easy way to get an appropriate, free JVM which includes JavaFX, is to download a
         <code>JDK FX package</code> from <a href="https://www.azul.com/downloads/zulu-community/?version=java-11-lts&architecture=x86-64-bit&package=jdk-fx">
             Azul (Zulu Community)</a>, or <code>Liberica JDK</code> from <a href="https://bell-sw.com/">BellSoft</a>.</p>
     <div class="note">
         <p>Both Azul and BellSoft make their JavaFX-friendly JVM distributions available on <a href="https://sdkman.io/">SDKMAN!</a>.</p>
-        <p>Installing them with SDKMAN! is as easy as running <code>sdk use java 11.0.5.fx-zulu</code> or
-            <code>sdk use java 14.0.0.fx</code> on the terminal.</p>
+        <p>Installing them with SDKMAN! is as easy as running <code>sdk use java 17.0.2.fx-zulu</code> on the terminal.</p>
     </div>
-    <p>Another option is to use a standard JDK11+ distribution, and download the JavaFX modules separately from
+    <p>Another option is to use a standard JDK17+ distribution, and download the JavaFX modules separately from
         <a href="https://openjfx.io/">openjfx.io</a>.</p>
     </section>
 </details>
@@ -208,7 +208,34 @@ content. Log lines matching rules that are not selected for filtering are NOT di
 on the top-right of the brightened area that can be used to toggle filtering), only log lines matching these two rules 
 (i.e. log lines containing the words <code>error</code> or <code>warn</code>) will be displayed.</p>
 <p>When filtering is enabled, a very prominent green bar at the bottom of the log file pane alerts of that fact, as shown below.</p>
-<img src="{{eval baseURL}}/images/filter-enabled.png" alt="LogFX Filter enabled">
+<img src="{{eval baseURL}}/images/filter-enabled.png" alt="LogFX Filter enabled" />
+
+<h2 id="copying">Copying content</h2>
+<p>To copy the contents of one or more lines on a log file, simply select the lines with the mouse, then press
+<code class="shortcut">Meta+C</code> or right-click and select <code>Copy Selection</code>, as in most programs.</p>
+<div class="note">
+<p>To navigate up and down, you can use the arrow keys, or <code>Ctrl+N</code> (next line) and <code>Ctrl+P</code> (previous line).</p>
+</div>
+<p>Double-click on a line to be able to select only a particular part of the text on a line. Notice that even though you may edit
+the text when you double-click, LogFX will never write back any changes to the log file (log files are immutable!).</p>
+<img src="{{eval baseURL}}/images/selecting-line-text.png" alt="Selecting text from a log line" />
+
+<h2 id="projects">Grouping files and highlight rules into Projects</h2>
+<p>When using LogFX, you'll often have a few logs open to track what's going on with your product. However, you might
+sometimes want to switch to work on another product with completely different logs and highlighting rules!</p>
+<p>For this scenario, LogFX has <em>Projects</em>.</p>
+<p>A Project is basically a container that includes:</p>
+<ul>
+    <li>Log files currently opened</li>
+    <li>Pane positions</li>
+    <li>Highlighting rules and groups</li>
+    <li>Font size</li>
+    <li>Filters</li>
+</ul>
+<p>In other words, all user interface aspects are stored separately in each Project.</p>
+<p>The screen capture below shows how switching between different projects
+    (<code class="shortcut">Meta+Shift+P</code> or <code class="menu">File > Manage Projects</code>) is seamless:</p>
+<img width="650px" src="{{eval baseURL}}/images/logfx-projects.gif" alt="Projects in LogFX">
 
 <h2 id="context-menu">The context menu</h2>
 <p>To open the context menu, right-click on a log, enter <code class="shortcut">Meta+E</code> or go to the Menu
@@ -233,19 +260,6 @@ on the top-right of the brightened area that can be used to toggle filtering), o
     <span>Pause updates to the file.</span>
     {{ eval closeButton }}
     <span>Close the file.</span>
-</div>
-
-<h2 id="auto-update">Controlling LogFX auto-updates</h2>
-<p>LogFX, by default, will check for a new release at most once a day, and only on startup.</p>
-<p>If there is a new version available, its assets will be downloaded in the background. A message informs the user
-when the new version is ready to be installed - which currently requires a restart.</p>
-<p>If you would like to opt-out from auto-updates, just unselect the option in the
-<code class="menu">Help > Auto-update LogFX?</code> Menu, or use the shortcut <code class="shortcut">Meta+Alt+A</code>.
-</p>
-<div class="note">
-    <p>To change how often LogFX checks for updates when starting up, use a system property,
-        as explained in the next section.
-    </p>
 </div>
 
 <h2 id="system-properties">Customizing LogFX with system properties</h2>
