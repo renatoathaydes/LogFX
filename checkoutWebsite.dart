@@ -15,15 +15,16 @@ main(List<String> args) async {
   print('Done!');
 }
 
-Future<void> cleanup({String branch, String dir}) async {
+Future<void> cleanup({required String branch, required String dir}) async {
   print('Cleaning up directory "$dir" and worktree!');
   await Directory(dir).recreateEmpty();
   ['git', 'worktree', 'prune'].execute();
 }
 
-Future<void> checkout({String branch, String dir}) async {
+Future<void> checkout({required String branch, required String dir}) async {
   print('Checking out branch "$branch" into directory "$dir"!');
-  await ['git', 'worktree', 'add', '-B', branch, dir, 'origin/$branch'].execute();
+  await ['git', 'worktree', 'add', '-B', branch, dir, 'origin/$branch']
+      .execute();
 }
 
 Future<String> currentBranch() {
@@ -51,7 +52,7 @@ Future<void> createEmptyBranch(String name) async {
 
 extension Exec on List<String> {
   Future<ProcessResult> execute(
-      {bool checkStatus = true, String wrkDir}) async {
+      {bool checkStatus = true, String wrkDir = '.'}) async {
     final res = await Process.run(this.first, this.skip(1).toList(),
         runInShell: true, workingDirectory: wrkDir);
     if (checkStatus && res.exitCode != 0) {

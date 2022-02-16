@@ -1,10 +1,5 @@
 import 'dart:io'
-    show
-        exit,
-        FileSystemEntity,
-        FileSystemEntityType,
-        File,
-        Directory;
+    show exit, FileSystemEntity, FileSystemEntityType, File, Directory;
 
 import 'checkoutWebsite.dart';
 
@@ -26,7 +21,8 @@ main(List<String> args) async {
   print('Done!');
 }
 
-Future<void> generateSite({String source, String destination}) async {
+Future<void> generateSite(
+    {required String source, required String destination}) async {
   var destDir = Directory(destination);
   print("Generating website with Magnanimous.");
   await ['magnanimous', '-globalctx=_github_global_context']
