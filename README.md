@@ -34,7 +34,7 @@ logfx/bin/logfx
 
 [Windows](https://github.com/renatoathaydes/LogFX/releases/latest) - `logfx-<version>-windows.zip`
 
-### Fat Jar (requires Java 16+ with JavaFX)
+### Fat Jar (requires Java 17+ with JavaFX)
 
 * download the jar from the command-line or your browser:
 
@@ -47,7 +47,7 @@ VERSION=<latest_version> && \
 ```
 
 > Size of the jar as of version `0.6.1`: 289 KB. *Not MB!*
-> UPDATE: Version 1.0's jar size: 316Kb. 
+> UPDATE: Version 1.0's jar size: 272Kb. 
 
 Run with:
 
@@ -55,7 +55,7 @@ Run with:
 java -jar logfx.jar
 ```
 
-> Hint: to get Java 16 with JavaFX included, use [SDKMAN!](https://sdkman.io/)
+> Hint: to get Java 17 with JavaFX included, use [SDKMAN!](https://sdkman.io/)
 
 ## Screenshots
 

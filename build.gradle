@@ -216,6 +216,7 @@ publishing {
         mavenJava( MavenPublication ) {
             artifactId = 'logfx'
             from components.java
+            artifact fatJar
             pom {
                 inceptionYear = '2017'
                 name = project.name
