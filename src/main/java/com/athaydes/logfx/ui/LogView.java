@@ -25,6 +25,7 @@ import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
+import javafx.util.Pair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -150,6 +151,14 @@ public class LogView extends VBox implements SelectableContainer {
     @Override
     public CompletionStage<SelectionHandler.SelectableNode> previousSelectable() {
         return loadNextSelectable( true );
+    }
+
+    public Optional<Pair<SelectionHandler.SelectableNode, SelectionHandler.SelectableNode>> getSelectableEnds() {
+        var children = getChildren();
+        if (!children.isEmpty()) {
+            return Optional.of(new Pair<>(lineAt(0), lineAt(children.size() - 1)));
+        }
+        return Optional.empty();
     }
 
     private CompletionStage<SelectionHandler.SelectableNode> loadNextSelectable( boolean up ) {

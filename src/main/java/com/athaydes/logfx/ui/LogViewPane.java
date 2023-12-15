@@ -80,6 +80,10 @@ public final class LogViewPane {
                 .flatMap( wrapper -> wrapper.logView.getSelectionHandler().getSelection() )
                 .ifPresent( content -> Clipboard.getSystemClipboard().setContent( content ) ) );
 
+        MenuItem selectAllMenuItem = new MenuItem( "Select All" );
+        selectAllMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.A, KeyCombination.SHORTCUT_DOWN ) );
+        selectAllMenuItem.setOnAction( event -> selectAllLogViewRows() );
+
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.SHORTCUT_DOWN ) );
         closeMenuItem.setOnAction( ( event ) ->
@@ -181,6 +185,7 @@ public final class LogViewPane {
 
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
+                selectAllMenuItem,
                 new SeparatorMenuItem(),
                 toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
@@ -229,6 +234,14 @@ public final class LogViewPane {
         if ( showEmptyPanel ) {
             pane.getItems().add( startUpViewGetter.get() );
         }
+    }
+
+    public void selectAllLogViewRows() {
+        getFocusedView().ifPresent(view -> {
+            var handler = view.getLogView().getSelectionHandler();
+            view.getLogView().getSelectableEnds().ifPresent(ends ->
+                    handler.selectAllBetween(ends.getKey(), ends.getValue()));
+        });
     }
 
     public ObjectProperty<Orientation> orientationProperty() {
