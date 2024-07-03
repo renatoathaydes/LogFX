@@ -4,6 +4,7 @@ import com.athaydes.logfx.concurrency.IdentifiableRunnable;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.data.LinesScroller;
+import com.athaydes.logfx.data.LinesSetter;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.file.FileChangeWatcher;
@@ -31,19 +32,16 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.time.ZonedDateTime;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.function.DoubleConsumer;
 import java.util.function.IntConsumer;
 import java.util.function.Predicate;
-import java.util.stream.Collectors;
 
 /**
  * View of a log file.
@@ -68,7 +66,9 @@ public class LogView extends VBox implements SelectableContainer {
     private final TaskRunner taskRunner;
     private final SelectionHandler selectionHandler;
     private final DateTimeFormatGuesser dateTimeFormatGuesser = DateTimeFormatGuesser.standard();
-    private final LinesScroller linesScroller = new LinesScroller( MAX_LINES, this::lineContent, this::setLine );
+    private final LinesScroller linesScroller = new LinesScroller( MAX_LINES, this::lineContent,
+            new LinesSetter( this::updateLines ) );
+    private final ReentrantLock linesLock = new ReentrantLock( true );
 
     private volatile Consumer<Boolean> onFileExists = ( ignore ) -> {
     };
@@ -155,8 +155,8 @@ public class LogView extends VBox implements SelectableContainer {
 
     public Optional<Pair<SelectionHandler.SelectableNode, SelectionHandler.SelectableNode>> getSelectableEnds() {
         var children = getChildren();
-        if (!children.isEmpty()) {
-            return Optional.of(new Pair<>(lineAt(0), lineAt(children.size() - 1)));
+        if ( !children.isEmpty() ) {
+            return Optional.of( new Pair<>( lineAt( 0 ), lineAt( children.size() - 1 ) ) );
         }
         return Optional.empty();
     }
@@ -309,12 +309,16 @@ public class LogView extends VBox implements SelectableContainer {
         this.onFileUpdate = onFileUpdate;
     }
 
-    private void setLine( int index, String line ) {
-        LogLine logLine = lineAt( index );
-        // avoid wasting resources
-        if ( logLine.getText().equals( line ) ) return;
-        LogLineColors logLineColors = highlighter.logLineColorsFor( line );
-        logLine.setText( line, logLineColors );
+    private String lineContent( int index ) {
+        return lineAt( index ).getText();
+    }
+
+    private void updateLines( List<LinesSetter.LineChange> changes ) {
+        var allLines = new String[ MAX_LINES ];
+        for ( var change : changes ) {
+            allLines[ change.index() ] = change.text();
+        }
+        updateWith( List.of( allLines ) );
     }
 
     // must be called from fileReaderExecutor Thread
@@ -365,7 +369,7 @@ public class LogView extends VBox implements SelectableContainer {
                 fileContentReader.tail();
             }
             Optional<? extends List<String>> lines = fileContentReader.refresh();
-            lines.ifPresent( list -> updateWith( list.iterator() ) );
+            lines.ifPresent( this::updateWith );
             try {
                 onFileExists.accept( lines.isPresent() );
             } finally {
@@ -374,40 +378,68 @@ public class LogView extends VBox implements SelectableContainer {
         } );
     }
 
-    private void updateWith( Iterator<String> lines ) {
-        int index = 0;
+    private void updateWith( List<String> lines ) {
+        taskRunner.runAsync( () -> {
+            int index = 0;
+            // unlock happens either when an error happens in this Thread or when all lines have been updated
+            linesLock.lock();
+            var cancelled = new AtomicBoolean( false );
+            var latch = new CountDownLatch( Math.max( lines.size(), MAX_LINES ) );
 
-        while ( lines.hasNext() ) {
-            final int currentIndex = index;
-            final String lineText = lines.next();
-            Platform.runLater( () -> {
-                LogLine line = lineAt( currentIndex );
-                updateLine( line, lineText );
-            } );
-            index++;
-        }
+            try {
+                for ( ; index < lines.size() && !cancelled.get(); index++ ) {
+                    final String lineText = lines.get( index );
 
-        // fill the remaining lines with the empty String
-        for ( ; index < MAX_LINES; index++ ) {
-            final int currentIndex = index;
-            Platform.runLater( () -> {
-                LogLine line = lineAt( currentIndex );
-                updateLine( line, "" );
-            } );
-        }
+                    // null line: leave the line alone and proceed
+                    if ( lineText == null ) {
+                        latch.countDown();
+                        continue;
+                    }
+                    final int currentIndex = index;
+                    Platform.runLater( () -> {
+                        if ( cancelled.get() ) return;
+                        try {
+                            LogLine line = lineAt( currentIndex );
+                            line.setText( lineText, highlighter.logLineColorsFor( lineText ) );
+                        } finally {
+                            latch.countDown();
+                        }
+                    } );
+                }
+
+                // fill the remaining lines with the empty String
+                for ( ; index < MAX_LINES; index++ ) {
+                    final int currentIndex = index;
+                    Platform.runLater( () -> {
+                        if ( cancelled.get() ) return;
+                        try {
+                            LogLine line = lineAt( currentIndex );
+                            line.setText( "", highlighter.logLineColorsFor( "" ) );
+                        } finally {
+                            latch.countDown();
+                        }
+                    } );
+                }
+            } catch ( Exception e ) {
+                cancelled.set( true );
+                linesLock.unlock();
+                return;
+            }
+
+            try {
+                var ok = latch.await( 15, TimeUnit.SECONDS );
+                if ( !ok ) {
+                    log.warn( "Timeout while trying to update log lines" );
+                }
+            } catch ( InterruptedException e ) {
+                log.warn( "Interrupted while trying to update log lines" );
+            } finally {
+                cancelled.set( true );
+                linesLock.unlock();
+            }
+        } );
     }
 
-    @MustCallOnJavaFXThread
-    private void updateLine( LogLine line, String text ) {
-        LogLineColors logLineColors = highlighter.logLineColorsFor( text );
-        line.setText( text, logLineColors );
-    }
-
-    private String lineContent( int index ) {
-        return lineAt( index ).getText();
-    }
-
-    @MustCallOnJavaFXThread
     private LogLine lineAt( int index ) {
         return ( LogLine ) getChildren().get( index );
     }
@@ -467,7 +499,7 @@ public class LogView extends VBox implements SelectableContainer {
             if ( config.filtersEnabledProperty().get() ) {
                 List<HighlightExpression> filteredExpressions = observableExpressions.stream()
                         .filter( HighlightExpression::isFiltered )
-                        .collect( Collectors.toList() );
+                        .toList();
                 return Optional.of( ( line ) -> filteredExpressions.stream()
                         .anyMatch( ( exp ) -> exp.matches( line ) ) );
             } else {
@@ -485,6 +517,9 @@ public class LogView extends VBox implements SelectableContainer {
                 observableExpressions = config.getHighlightGroups().getDefault();
                 Platform.runLater( () -> logFile.highlightGroupProperty().setValue( "" ) );
             }
+
+            // observableExpressions cannot be null here
+            //noinspection DataFlowIssue
             observableExpressions.addListener( expressionsChangeListener );
         }
 
