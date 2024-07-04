@@ -36,10 +36,12 @@ public class AwesomeIcons {
     public static final String HELP = "\ue718";
     public static final String TRASH = "\ue605";
     public static final String CLOCK = "\ue66e";
+    public static final String GAP = "\uE675";
     public static final String PAUSE = "\ue6ae";
     public static final String PENCIL = "\ue61c";
     public static final String PLUS = "\ue61a";
     public static final String LIST_UL = "\ue6c3";
     public static final String DUPLICATE = "\uE62F";
+
 
 }

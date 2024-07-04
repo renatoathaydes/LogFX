@@ -689,7 +689,10 @@ public final class LogViewPane {
                 }
             } );
 
-            timeGap = new SimpleBooleanProperty( false );
+            ToggleButton timeGapButton = AwesomeIcons.createToggleButton( AwesomeIcons.GAP );
+            this.timeGap = timeGapButton.selectedProperty();
+            timeGapButton.setTooltip( new Tooltip( "Display time gaps" ) );
+            timeGapButton.setOnAction( event -> timeGap.set( !timeGap.getValue() ) );
 
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setTooltip( new Tooltip( "Close file" ) );
@@ -706,7 +709,7 @@ public final class LogViewPane {
             } );
 
             rightAlignedBox.getChildren().addAll( highlightRulesButton, goToDateButton,
-                    tailFileButton, pauseRefreshButton, closeButton );
+                    timeGapButton, tailFileButton, pauseRefreshButton, closeButton );
 
             setLeft( leftAlignedBox );
             setCenter( groupSelector );
