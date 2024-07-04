@@ -31,7 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.*;
@@ -55,9 +57,12 @@ public class LogView extends VBox implements SelectableContainer {
 
     public static final int MAX_LINES = 512;
 
+    private static final Duration minGapDuration = Duration.ofMillis( 50 );
+
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
     private final BooleanProperty allowRefresh = new SimpleBooleanProperty( true );
+    private final BooleanProperty showTimeGap = new SimpleBooleanProperty( false );
     private final Config config;
     private final LogLineHighlighter highlighter;
     private final FileContentReader fileContentReader;
@@ -96,6 +101,10 @@ public class LogView extends VBox implements SelectableContainer {
         this.expressionsChangeListener = ( Observable o ) -> immediateOnFileChange();
 
         logFile.highlightGroupProperty().addListener( expressionsChangeListener );
+        showTimeGap.addListener( ( Observable o ) -> {
+            log.debug( "Updated time gap property: {}", o );
+            updateWith( getLines() );
+        } );
 
         this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile );
 
@@ -249,6 +258,10 @@ public class LogView extends VBox implements SelectableContainer {
         return tailingFile;
     }
 
+    BooleanProperty timeGapProperty() {
+        return showTimeGap;
+    }
+
     void toTop() {
         fileReaderExecutor.execute( () -> {
             fileContentReader.top();
@@ -259,7 +272,7 @@ public class LogView extends VBox implements SelectableContainer {
     void goTo( ZonedDateTime dateTime, IntConsumer whenDoneAcceptLineNumber ) {
         fileReaderExecutor.execute( () -> {
             if ( dateTimeFormatGuess == null ) {
-                findFileDateTimeFormatterFromFileContents();
+                findFileDateTimeFormatterFromFileContents( Optional.empty() );
             }
             if ( dateTimeFormatGuess == null ) {
                 log.warn( "Could not guess date-time format from this log file, " +
@@ -313,6 +326,14 @@ public class LogView extends VBox implements SelectableContainer {
         return lineAt( index ).getText();
     }
 
+    private List<String> getLines() {
+        var result = new ArrayList<String>( MAX_LINES );
+        for ( int i = 0; i < MAX_LINES; i++ ) {
+            result.add( lineContent( i ) );
+        }
+        return result;
+    }
+
     private void updateLines( List<LinesSetter.LineChange> changes ) {
         var allLines = new String[ MAX_LINES ];
         for ( var change : changes ) {
@@ -322,11 +343,12 @@ public class LogView extends VBox implements SelectableContainer {
     }
 
     // must be called from fileReaderExecutor Thread
-    private void findFileDateTimeFormatterFromFileContents() {
-        Optional<? extends List<String>> lines = fileContentReader.refresh();
-        if ( lines.isPresent() ) {
+    private void findFileDateTimeFormatterFromFileContents(
+            @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<List<String>> lines ) {
+        Optional<? extends List<String>> maybeLines = lines.or( fileContentReader::refresh );
+        if ( maybeLines.isPresent() ) {
             dateTimeFormatGuess = dateTimeFormatGuesser
-                    .guessDateTimeFormats( lines.get() )
+                    .guessDateTimeFormats( maybeLines.get() )
                     .orElse( null );
         } else {
             log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}",
@@ -379,7 +401,8 @@ public class LogView extends VBox implements SelectableContainer {
     }
 
     private void updateWith( List<String> lines ) {
-        taskRunner.runAsync( () -> {
+        final boolean computeTimeGap = showTimeGap.get();
+        fileReaderExecutor.execute( () -> {
             int index = 0;
             // unlock happens either when an error happens in this Thread or when all lines have been updated
             linesLock.lock();
@@ -389,18 +412,24 @@ public class LogView extends VBox implements SelectableContainer {
             try {
                 for ( ; index < lines.size() && !cancelled.get(); index++ ) {
                     final String lineText = lines.get( index );
+                    final String prevLineText = ( index > 0 && computeTimeGap )
+                            ? lines.get( index - 1 )
+                            : null;
 
                     // null line: leave the line alone and proceed
                     if ( lineText == null ) {
                         latch.countDown();
                         continue;
                     }
+
+                    var timeGap = prevLineText == null ? null : resolveTimeGap( prevLineText, lineText, Optional.of( lines ) );
                     final int currentIndex = index;
+
                     Platform.runLater( () -> {
                         if ( cancelled.get() ) return;
                         try {
                             LogLine line = lineAt( currentIndex );
-                            line.setText( lineText, highlighter.logLineColorsFor( lineText ) );
+                            line.setText( lineText, highlighter.logLineColorsFor( lineText ), timeGap );
                         } finally {
                             latch.countDown();
                         }
@@ -414,7 +443,7 @@ public class LogView extends VBox implements SelectableContainer {
                         if ( cancelled.get() ) return;
                         try {
                             LogLine line = lineAt( currentIndex );
-                            line.setText( "", highlighter.logLineColorsFor( "" ) );
+                            line.setText( "", highlighter.logLineColorsFor( "" ), null );
                         } finally {
                             latch.countDown();
                         }
@@ -438,6 +467,25 @@ public class LogView extends VBox implements SelectableContainer {
                 linesLock.unlock();
             }
         } );
+    }
+
+    // must be called from fileReaderExecutor Thread
+    private Duration resolveTimeGap( String prevLineText, String lineText,
+                                     @SuppressWarnings( "OptionalUsedAsFieldOrParameterType" ) Optional<List<String>> allLines ) {
+        if ( dateTimeFormatGuess == null ) {
+            findFileDateTimeFormatterFromFileContents( allLines );
+        }
+        var guess = dateTimeFormatGuess;
+        if ( guess != null ) {
+            var gap = guess.guessDateTime( prevLineText ).flatMap( prev ->
+                            guess.guessDateTime( lineText )
+                                    .map( t -> Duration.between( prev, t ) ) )
+                    .orElse( null );
+            var showGap = gap != null && gap.compareTo( minGapDuration ) > 0;
+            log.debug( "Resolved time gap: {}, display? {}", gap, showGap );
+            return showGap ? gap : null;
+        }
+        return null;
     }
 
     private LogLine lineAt( int index ) {
