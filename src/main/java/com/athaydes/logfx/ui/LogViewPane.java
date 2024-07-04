@@ -6,26 +6,12 @@ import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.beans.property.BooleanProperty;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.ObjectProperty;
-import javafx.beans.property.SimpleObjectProperty;
+import javafx.beans.property.*;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
-import javafx.scene.control.Button;
-import javafx.scene.control.ContextMenu;
-import javafx.scene.control.MenuItem;
-import javafx.scene.control.ScrollPane;
-import javafx.scene.control.SeparatorMenuItem;
-import javafx.scene.control.SplitPane;
-import javafx.scene.control.ToggleButton;
-import javafx.scene.control.Tooltip;
-import javafx.scene.input.Clipboard;
-import javafx.scene.input.KeyCode;
-import javafx.scene.input.KeyCodeCombination;
-import javafx.scene.input.KeyCombination;
-import javafx.scene.input.MouseEvent;
+import javafx.scene.control.*;
+import javafx.scene.input.*;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -79,6 +65,10 @@ public final class LogViewPane {
         copyMenuItem.setOnAction( event -> getFocusedView()
                 .flatMap( wrapper -> wrapper.logView.getSelectionHandler().getSelection() )
                 .ifPresent( content -> Clipboard.getSystemClipboard().setContent( content ) ) );
+
+        MenuItem selectAllMenuItem = new MenuItem( "Select All" );
+        selectAllMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.A, KeyCombination.SHORTCUT_DOWN ) );
+        selectAllMenuItem.setOnAction( event -> selectAllLogViewRows() );
 
         MenuItem closeMenuItem = new MenuItem( "Close" );
         closeMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.W, KeyCombination.SHORTCUT_DOWN ) );
@@ -179,12 +169,18 @@ public final class LogViewPane {
         tailMenuItem.setOnAction( event -> getFocusedView()
                 .ifPresent( LogViewWrapper::switchTailFile ) );
 
+        MenuItem timeGapMenuItem = new MenuItem( "Display time gaps (on/off)" );
+        timeGapMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
+        timeGapMenuItem.setOnAction( event -> getFocusedView()
+                .ifPresent( LogViewWrapper::switchTimeGap ) );
+
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
+                selectAllMenuItem,
                 new SeparatorMenuItem(),
                 toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
-                pauseMenuItem,
+                pauseMenuItem, timeGapMenuItem,
                 new SeparatorMenuItem(),
                 minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
 
@@ -229,6 +225,14 @@ public final class LogViewPane {
         if ( showEmptyPanel ) {
             pane.getItems().add( startUpViewGetter.get() );
         }
+    }
+
+    public void selectAllLogViewRows() {
+        getFocusedView().ifPresent( view -> {
+            var handler = view.getLogView().getSelectionHandler();
+            view.getLogView().getSelectableEnds().ifPresent( ends ->
+                    handler.selectAllBetween( ends.getKey(), ends.getValue() ) );
+        } );
     }
 
     public ObjectProperty<Orientation> orientationProperty() {
@@ -488,6 +492,8 @@ public final class LogViewPane {
             header.tailFileProperty().bindBidirectional( logView.tailingFileProperty() );
             logView.allowRefreshProperty().bind( header.pauseRefreshProperty().not() );
 
+            header.timeGapProperty().bindBidirectional( logView.timeGapProperty() );
+
             logView.setOnFileExists( ( fileExists ) -> {
                 if ( fileExists ) {
                     if ( !isShowingFileContents() ) {
@@ -509,7 +515,7 @@ public final class LogViewPane {
             return logView;
         }
 
-        public LogViewScrollPane getScrollPane() {
+        private LogViewScrollPane getScrollPane() {
             return scrollPane;
         }
 
@@ -566,6 +572,15 @@ public final class LogViewPane {
             }
         }
 
+        private boolean isTimeGapDisplayed() {
+            return header.timeGapProperty().get();
+        }
+
+        private void setDisplayTimeGap( boolean displayTimeGap ) {
+            log.debug( "Display time gap: {}", displayTimeGap );
+            header.timeGapProperty().setValue( displayTimeGap );
+        }
+
         @MustCallOnJavaFXThread
         boolean isTailingFile() {
             return header.tailFileProperty().get();
@@ -598,6 +613,11 @@ public final class LogViewPane {
         }
 
         @MustCallOnJavaFXThread
+        void switchTimeGap() {
+            setDisplayTimeGap( !isTimeGapDisplayed() );
+        }
+
+        @MustCallOnJavaFXThread
         void scrollTo( int lineNumber ) {
             double vvalue = ( double ) lineNumber / ( MAX_LINES - 1 );
             log.debug( "Setting scroll to {} for line number {}", vvalue, lineNumber );
@@ -609,6 +629,7 @@ public final class LogViewPane {
     private static class LogViewHeader extends BorderPane {
 
         private final BooleanProperty tailFile;
+        private final BooleanProperty timeGap;
         private final BooleanProperty pauseRefresh;
         private final HighlightGroupSelector groupSelector;
 
@@ -668,6 +689,8 @@ public final class LogViewPane {
                 }
             } );
 
+            timeGap = new SimpleBooleanProperty( false );
+
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setTooltip( new Tooltip( "Close file" ) );
             closeButton.setOnAction( event -> closeLogView.run() );
@@ -696,6 +719,10 @@ public final class LogViewPane {
 
         BooleanProperty tailFileProperty() {
             return tailFile;
+        }
+
+        BooleanProperty timeGapProperty() {
+            return timeGap;
         }
 
         BooleanProperty pauseRefreshProperty() {

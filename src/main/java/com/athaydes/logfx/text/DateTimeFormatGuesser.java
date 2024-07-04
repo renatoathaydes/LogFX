@@ -5,17 +5,10 @@ import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.regex.Pattern;
 
-import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP;
-import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.TIMEZONE_GROUP;
-import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.namedGroup;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.*;
 
 /**
  * A utility class that can be used to guess the format of dates within a log file
@@ -35,6 +28,12 @@ public final class DateTimeFormatGuesser {
         var prefixRegex = "[a-zA-Z\\[\\]_ -]{0,20}";
         var time = "\\d{1,2}:\\d{1,2}:\\d{1,2}";
         var timeMs = time + "(\\.\\d{1,9})?";
+        var timeMs2 = time + "\\:\\d{1,9}";
+
+        // 2024-07-02T14:20:14:009+0000
+        var isoDateTime2 = prefixRegex + namedGroup( DATE_TIME_GROUP,
+                "\\d{1,4}-\\d{1,4}-\\d{1,4}T" + timeMs2 +
+                        namedGroup( TIMEZONE_GROUP, "\\s{0,2}[+-]\\d{4}" ) );
 
         // 2017-09-11T18:13:57.483+02:00
         var isoDateTime = prefixRegex + namedGroup( DATE_TIME_GROUP,
@@ -62,8 +61,10 @@ public final class DateTimeFormatGuesser {
                         namedGroup( TIMEZONE_GROUP, "[+-]\\d{1,2}" ) );
 
         return new DateTimeFormatGuesser( List.of(
+                new PatternBasedDateTimeFormatGuess( "ISO2", Pattern.compile( isoDateTime2 + ".*" ),
+                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][:SS][:S][xx]" ) ),
                 new PatternBasedDateTimeFormatGuess( "ISO", Pattern.compile( isoDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][z]" ) ),
+                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][zzz]" ) ),
                 new PatternBasedDateTimeFormatGuess( "Common", Pattern.compile( commonDateTime + ".*" ),
                         DateTimeFormatter.ofPattern( "[EE ]MMM dd HH:mm:ss[.SSS][.SS][.S][ zzz][ yyyy]" ) ),
                 new PatternBasedDateTimeFormatGuess( "NCSA", Pattern.compile( ncsaCommonLogFormat + ".*" ),

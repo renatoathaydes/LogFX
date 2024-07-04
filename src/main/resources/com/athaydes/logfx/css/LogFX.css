@@ -85,6 +85,16 @@ Label {
     -fx-padding: 0 5 0 5;
 }
 
+.log-line.with-time-gap {
+}
+
+.log-line-time-gap {
+    -fx-background-color: #efefefff;
+    -fx-background-image: url("/com/athaydes/logfx/images/timegap.png");
+    -fx-padding: 0 0 0 100px;
+    -fx-text-fill: black;
+}
+
 .log-line.selected {
     -fx-background-color: -fx-focus-color;
     -fx-text-fill: derive(-fx-focus-color, -80%);
