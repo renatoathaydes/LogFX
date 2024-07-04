@@ -6,23 +6,24 @@ plugins {
     id 'application'
     id 'maven-publish'
     id 'signing'
-    id 'org.javamodularity.moduleplugin' version '1.7.0'
+    id 'org.javamodularity.moduleplugin' version '1.8.15'
 }
 
 group 'com.athaydes.logfx'
 version '1.0'
 description 'A beautiful log viewer capable of handling large files'
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
-
-mainClassName = "com.athaydes.logfx/com.athaydes.logfx.LogFX"
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    mainClassName "com.athaydes.logfx/com.athaydes.logfx.LogFX"
+}
 
 repositories {
     mavenCentral()
 }
 
-tasks.withType( JavaCompile ) {
+tasks.withType( JavaCompile ).configureEach {
     options.encoding = 'UTF-8'
 }
 
@@ -30,17 +31,17 @@ def libs = "${buildDir}/libs"
 def image = "${buildDir}/image"
 ext.splashImage = "${image}/bin/logfx-logo"
 
-task deps( type: Copy ) {
+tasks.register( 'deps',  Copy ) {
     from configurations.runtimeClasspath
     into libs
 }
 
-task copyShellScriptToImage( type: Copy ) {
+tasks.register( 'copyShellScriptToImage',  Copy ) {
     from "src/main/sh/logfx${Os.isFamily( Os.FAMILY_WINDOWS ) ? '.bat' : ''}"
     into "$image/bin"
 }
 
-task jlink( type: Exec ) {
+tasks.register('jlink',  Exec ) {
     dependsOn jar, deps
     finalizedBy copyShellScriptToImage, project( ':splash-maker' ).tasks.withType( JavaExec )
     inputs.files( sourceSets*.allSource )
@@ -57,17 +58,17 @@ task jlink( type: Exec ) {
     doFirst { new File( image ).deleteDir() }
 }
 
-task packageImage( type: Zip ) {
+tasks.register( 'packageImage',  Zip ) {
     outputs.upToDateWhen { false }
     dependsOn jlink, copyShellScriptToImage
     from image
     into "logfx"
     include '**/*'
-    archiveName "logfx-${project.version}.zip"
-    destinationDir buildDir
+    archiveFileName = "logfx-${project.version}.zip"
+    destinationDirectory = layout.buildDirectory
 }
 
-task jpackage( type: Exec ) {
+tasks.register('jpackage',  Exec ) {
     dependsOn jlink
     def osOptions = Os.isFamily( Os.FAMILY_WINDOWS )
             ? [ '--win-per-user-install',
@@ -91,7 +92,7 @@ task jpackage( type: Exec ) {
             '--type', 'deb',
             '--vendor', 'Renato Athades',
             '--license-file', 'LICENSE',
-            '--dest', buildDir ]
+            '--dest', layout.buildDirectory.get() ]
     def jpackage = System.getProperty( 'java.home' ) + '/bin/jpackage'
     commandLine( [ jpackage ] + options )
 }
@@ -106,7 +107,7 @@ configurations {
 }
 
 dependencies {
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: '1.8.0-beta4'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.13'
 
     testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.9'
     testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.1-M2-groovy-3.0', {
@@ -131,12 +132,12 @@ test {
     }
 
     reports {
-        junitXml.enabled( true )
+        junitXml.required = true
     }
 }
 
-task generateJavaSources(
-        description: 'Generates Java sources based on the java-templates directory' ) {
+tasks.register( 'generateJavaSources' ) {
+    description = 'Generates Java sources based on the java-templates directory'
     def properties = [ logfxVersion: version ]
     def templates = fileTree( dir: 'src/main/java-templates' )
 //    def destination = file( generatedJavaSources )
@@ -159,21 +160,21 @@ task generateJavaSources(
 
 compileJava.dependsOn generateJavaSources
 
-task fatJar( type: Jar ) {
+tasks.register( 'fatJar',  Jar ) {
     manifest {
         attributes 'Implementation-Title': 'LogFX',
                 'Implementation-Version': project.version,
                 'Implementation-Vendor': 'Renato Athaydes',
                 'Main-Class': 'com.athaydes.logfx.LogFX'
     }
-    destinationDirectory = buildDir
-    classifier "all"
+    destinationDirectory = layout.buildDirectory
+    archiveClassifier = 'all'
     from {
         configurations.runtimeClasspath.collect {
             if ( it.isDirectory() ) return it
             zipTree( it ).matching {
                 // Licenses are acknowledged in our own license file
-                exclude 'META-INF/LICENSE'
+                exclude 'META-INF/LICENSE.txt'
             }
         }
     }

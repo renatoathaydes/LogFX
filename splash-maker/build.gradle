@@ -5,8 +5,10 @@ plugins {
 group 'com.athaydes.logfx'
 version '1.0'
 
-sourceCompatibility = JavaVersion.VERSION_17
-targetCompatibility = JavaVersion.VERSION_17
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
 
 repositories {
     mavenCentral()
@@ -16,11 +18,11 @@ dependencies {
     implementation rootProject
 }
 
-tasks.withType( JavaCompile ) {
+tasks.withType( JavaCompile ).configureEach {
     dependsOn( rootProject.tasks.deps )
 }
 
-task createSplashScreen( type: JavaExec ) {
+tasks.register('createSplashScreen', JavaExec ) {
     classpath = sourceSets.main.runtimeClasspath
     systemProperty( "java.awt.headless", "true" )
     mainClass.set( 'com.athaydes.logfx.splash.SplashMaker' )

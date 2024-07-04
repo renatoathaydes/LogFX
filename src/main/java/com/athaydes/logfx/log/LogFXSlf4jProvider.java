@@ -8,9 +8,4 @@ public class LogFXSlf4jProvider extends SubstituteServiceProvider {
     public ILoggerFactory getLoggerFactory() {
         return new LogFXLogFactory();
     }
-
-    @Override
-    public String getRequesteApiVersion() {
-        return "1.8";
-    }
 }
