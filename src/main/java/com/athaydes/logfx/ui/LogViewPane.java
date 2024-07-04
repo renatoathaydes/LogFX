@@ -6,7 +6,10 @@ import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.beans.property.*;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
@@ -171,8 +174,7 @@ public final class LogViewPane {
 
         MenuItem timeGapMenuItem = new MenuItem( "Display time gaps (on/off)" );
         timeGapMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
-        timeGapMenuItem.setOnAction( event -> getFocusedView()
-                .ifPresent( LogViewWrapper::switchTimeGap ) );
+        timeGapMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::switchTimeGap ) );
 
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
@@ -614,7 +616,13 @@ public final class LogViewPane {
 
         @MustCallOnJavaFXThread
         void switchTimeGap() {
-            setDisplayTimeGap( !isTimeGapDisplayed() );
+            final var doDisplay = !isTimeGapDisplayed();
+            Runnable setter = () -> setDisplayTimeGap( doDisplay );
+            if ( doDisplay ) {
+                new TimeGapEditor( logView, setter ).show();
+            } else {
+                setter.run();
+            }
         }
 
         @MustCallOnJavaFXThread
