@@ -2,5 +2,5 @@
 
 set DIR=%~dp0
 
-set VM_OPTIONS=-splash:%DIR%logfx-logo.png -Xms32m -XX:+UseSerialGC
-"%DIR%java" %VM_OPTIONS% -m com.athaydes.logfx/com.athaydes.logfx.LogFX %*
+set VM_OPTIONS=-Xms32m -XX:+UseSerialGC
+"%DIR%java" -splash:"%DIR%logfx-logo.png" %VM_OPTIONS% -m com.athaydes.logfx/com.athaydes.logfx.LogFX %*
