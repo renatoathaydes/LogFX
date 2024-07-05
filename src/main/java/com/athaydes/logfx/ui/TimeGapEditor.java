@@ -24,11 +24,12 @@ public class TimeGapEditor {
         dialog = new Dialog( root );
         dialog.setStyle( StageStyle.UNDECORATED );
         dialog.setResizable( false );
+        dialog.setWidth( 360.0 );
 
         Label label = new Label( "Set the minimum time gap to display in milliseconds:" );
 
         IntField valueField = new IntField( selectedLogView.getMinTimeGap().getValue() );
-        valueField.setMinWidth( 240.0 );
+        valueField.setMaxWidth( 120.0 );
         valueField.setTooltip( new Tooltip( "Enter the number of milliseconds (zero or larger)" ) );
 
         Button goButton = new Button( "OK" );

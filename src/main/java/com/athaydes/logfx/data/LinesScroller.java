@@ -18,6 +18,7 @@ public final class LinesScroller {
     }
 
     public void setTopLines( List<String> lines ) {
+        if ( lines.isEmpty() ) return;
         int shift = Math.min( listSize, lines.size() );
         lineSetter.withSetter( setter -> {
             if ( shift < listSize ) {
@@ -31,6 +32,7 @@ public final class LinesScroller {
     }
 
     public void setBottomLines( List<String> lines ) {
+        if ( lines.isEmpty() ) return;
         int shift = Math.min( listSize, lines.size() );
         lineSetter.withSetter( setter -> {
             int linesOffset;

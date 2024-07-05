@@ -99,10 +99,13 @@ public class LogView extends VBox implements SelectableContainer {
         this.expressionsChangeListener = ( Observable o ) -> immediateOnFileChange();
 
         logFile.highlightGroupProperty().addListener( expressionsChangeListener );
+
         showTimeGap.addListener( ( Observable o ) -> {
             log.debug( "Updated time gap enabled property: {}", o );
-            updateWith( getLines() );
+            refreshView();
         } );
+
+        minGapInMillis.addListener( o -> log.debug( "Set min time gap to {}", o ) );
 
         this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile );
 
@@ -229,6 +232,10 @@ public class LogView extends VBox implements SelectableContainer {
 
             moveBy( lines, deltaY > 0.0, () -> useScrollFactor.accept( scrollFactor ) );
         } ), 50L, 0L );
+
+        // much less frequently, also refresh the view to update time gaps
+        taskRunner.runWithMaxFrequency( new IdentifiableRunnable( "update-time-gaps", this::refreshView ),
+                1_500L, 250L );
     }
 
     private void moveBy( int lines, boolean up, Runnable then ) {
@@ -260,8 +267,22 @@ public class LogView extends VBox implements SelectableContainer {
         return tailingFile;
     }
 
-    BooleanProperty timeGapProperty() {
+    BooleanProperty showTimeGapProperty() {
         return showTimeGap;
+    }
+
+    /**
+     * Refresh the view without reloading from the file.
+     */
+    @MustCallOnJavaFXThread
+    void refreshView() {
+        updateWith( getLines() );
+    }
+
+    @MustCallOnJavaFXThread
+    void switchTimeGap() {
+        var doDisplay = !showTimeGap.get();
+        showTimeGap.set( doDisplay );
     }
 
     void toTop() {
@@ -350,11 +371,15 @@ public class LogView extends VBox implements SelectableContainer {
         Optional<? extends List<String>> maybeLines = lines.or( fileContentReader::refresh );
         DateTimeFormatGuess result = null;
         if ( maybeLines.isPresent() ) {
-            result = dateTimeFormatGuesser
-                    .guessDateTimeFormats( maybeLines.get() )
-                    .orElse( null );
-            if ( result != null ) {
-                dateTimeFormatGuess = result;
+            if ( dateTimeFormatGuess == null ) {
+                result = dateTimeFormatGuesser
+                        .guessDateTimeFormats( maybeLines.get() )
+                        .orElse( null );
+                if ( result != null ) {
+                    dateTimeFormatGuess = result;
+                }
+            } else {
+                result = dateTimeFormatGuess;
             }
         } else {
             log.warn( "Unable to extract any date-time formatters from file as the file could not be read: {}",
@@ -365,10 +390,12 @@ public class LogView extends VBox implements SelectableContainer {
     }
 
     private void addTopLines( List<String> topLines ) {
+        log.debug( "Setting {} top lines", topLines.size() );
         Platform.runLater( () -> linesScroller.setTopLines( topLines ) );
     }
 
     private void addBottomLines( List<String> bottomLines ) {
+        log.debug( "Setting {} bottom lines", bottomLines.size() );
         Platform.runLater( () -> linesScroller.setBottomLines( bottomLines ) );
     }
 
@@ -409,6 +436,7 @@ public class LogView extends VBox implements SelectableContainer {
 
     private void updateWith( List<String> lines ) {
         Objects.requireNonNull( lines );
+        log.debug( "Refreshing view with {} lines", lines.size() );
         final var minTimeGap = Duration.ofMillis( this.minGapInMillis.get() );
         final DateTimeFormatGuess timeFormatGuess;
         if ( showTimeGap.get() ) {
@@ -441,7 +469,7 @@ public class LogView extends VBox implements SelectableContainer {
                         var time = timeFormatGuess.guessDateTime( lineText ).orElse( null );
                         timeGap = previousTime == null ? null :
                                 getIfGreater( minTimeGap, Duration.between( previousTime, time ) );
-                        previousTime = time;
+                        if ( time != null ) previousTime = time;
                     }
 
                     final int currentIndex = index;

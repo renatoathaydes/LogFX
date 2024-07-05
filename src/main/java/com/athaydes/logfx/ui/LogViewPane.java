@@ -174,7 +174,15 @@ public final class LogViewPane {
 
         MenuItem timeGapMenuItem = new MenuItem( "Display time gaps (on/off)" );
         timeGapMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
-        timeGapMenuItem.setOnAction( event -> getFocusedView().ifPresent( LogViewWrapper::switchTimeGap ) );
+        timeGapMenuItem.setOnAction( event -> getFocusedView().ifPresent( view -> view.logView.switchTimeGap() ) );
+
+        MenuItem timeGapEditorMenuItem = new MenuItem( "Edit min time gap" );
+        timeGapEditorMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
+        timeGapEditorMenuItem.setOnAction( event -> getFocusedView().ifPresent( view ->
+                new TimeGapEditor( view.logView, () -> {
+                    // no need to refresh the view if the time gaps are not being shown
+                    if ( view.logView.showTimeGapProperty().get() ) view.logView.refreshView();
+                } ).show() ) );
 
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
@@ -182,7 +190,7 @@ public final class LogViewPane {
                 new SeparatorMenuItem(),
                 toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
-                pauseMenuItem, timeGapMenuItem,
+                pauseMenuItem, timeGapMenuItem, timeGapEditorMenuItem,
                 new SeparatorMenuItem(),
                 minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
 
@@ -494,8 +502,6 @@ public final class LogViewPane {
             header.tailFileProperty().bindBidirectional( logView.tailingFileProperty() );
             logView.allowRefreshProperty().bind( header.pauseRefreshProperty().not() );
 
-            header.timeGapProperty().bindBidirectional( logView.timeGapProperty() );
-
             logView.setOnFileExists( ( fileExists ) -> {
                 if ( fileExists ) {
                     if ( !isShowingFileContents() ) {
@@ -574,15 +580,6 @@ public final class LogViewPane {
             }
         }
 
-        private boolean isTimeGapDisplayed() {
-            return header.timeGapProperty().get();
-        }
-
-        private void setDisplayTimeGap( boolean displayTimeGap ) {
-            log.debug( "Display time gap: {}", displayTimeGap );
-            header.timeGapProperty().setValue( displayTimeGap );
-        }
-
         @MustCallOnJavaFXThread
         boolean isTailingFile() {
             return header.tailFileProperty().get();
@@ -615,17 +612,6 @@ public final class LogViewPane {
         }
 
         @MustCallOnJavaFXThread
-        void switchTimeGap() {
-            final var doDisplay = !isTimeGapDisplayed();
-            Runnable setter = () -> setDisplayTimeGap( doDisplay );
-            if ( doDisplay ) {
-                new TimeGapEditor( logView, setter ).show();
-            } else {
-                setter.run();
-            }
-        }
-
-        @MustCallOnJavaFXThread
         void scrollTo( int lineNumber ) {
             double vvalue = ( double ) lineNumber / ( MAX_LINES - 1 );
             log.debug( "Setting scroll to {} for line number {}", vvalue, lineNumber );
@@ -637,7 +623,6 @@ public final class LogViewPane {
     private static class LogViewHeader extends BorderPane {
 
         private final BooleanProperty tailFile;
-        private final BooleanProperty timeGap;
         private final BooleanProperty pauseRefresh;
         private final HighlightGroupSelector groupSelector;
 
@@ -698,9 +683,8 @@ public final class LogViewPane {
             } );
 
             ToggleButton timeGapButton = AwesomeIcons.createToggleButton( AwesomeIcons.GAP );
-            this.timeGap = timeGapButton.selectedProperty();
             timeGapButton.setTooltip( new Tooltip( "Display time gaps" ) );
-            timeGapButton.setOnAction( event -> timeGap.set( !timeGap.getValue() ) );
+            timeGapButton.selectedProperty().bindBidirectional( logView.showTimeGapProperty() );
 
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setTooltip( new Tooltip( "Close file" ) );
@@ -730,10 +714,6 @@ public final class LogViewPane {
 
         BooleanProperty tailFileProperty() {
             return tailFile;
-        }
-
-        BooleanProperty timeGapProperty() {
-            return timeGap;
         }
 
         BooleanProperty pauseRefreshProperty() {

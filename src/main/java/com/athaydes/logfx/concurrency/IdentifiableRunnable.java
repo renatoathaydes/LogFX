@@ -28,4 +28,11 @@ public final class IdentifiableRunnable implements Runnable {
     public int hashCode() {
         return id.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return "IdentifiableRunnable{" +
+                "id=" + id +
+                '}';
+    }
 }
