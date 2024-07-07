@@ -54,7 +54,6 @@ HighlightGroupSelector .label {
 Label {
     -fx-font-family: Lucida;
     -fx-font-size: 14px;
-    -fx-font-weight: bold;
 }
 
 .text-input.error {
