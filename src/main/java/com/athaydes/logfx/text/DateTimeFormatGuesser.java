@@ -119,6 +119,8 @@ public final class DateTimeFormatGuesser {
         long start = System.currentTimeMillis();
 
         for ( String line : lines ) {
+            if ( line == null || line.isBlank() ) continue;
+
             // only look for dates within the first 250 characters
             line = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
             boolean patternFound = false;

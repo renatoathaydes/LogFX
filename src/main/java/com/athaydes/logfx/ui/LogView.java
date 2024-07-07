@@ -35,8 +35,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -274,9 +276,15 @@ public class LogView extends VBox implements SelectableContainer {
     /**
      * Refresh the view without reloading from the file.
      */
-    @MustCallOnJavaFXThread
     void refreshView() {
-        updateWith( getLines() );
+        fileReaderExecutor.execute( () -> {
+            linesLock.lock();
+            try {
+                updateWith( getLines() );
+            } finally {
+                linesLock.unlock();
+            }
+        } );
     }
 
     @MustCallOnJavaFXThread
@@ -362,7 +370,14 @@ public class LogView extends VBox implements SelectableContainer {
         for ( var change : changes ) {
             allLines[ change.index() ] = change.text();
         }
-        updateWith( List.of( allLines ) );
+        fileReaderExecutor.execute( () -> {
+            linesLock.lock();
+            try {
+                updateWith( List.of( allLines ) );
+            } finally {
+                linesLock.unlock();
+            }
+        } );
     }
 
     // must be called from fileReaderExecutor Thread
@@ -425,7 +440,14 @@ public class LogView extends VBox implements SelectableContainer {
                 fileContentReader.tail();
             }
             Optional<? extends List<String>> lines = fileContentReader.refresh();
-            lines.ifPresent( this::updateWith );
+            lines.ifPresent( it -> {
+                linesLock.lock();
+                try {
+                    updateWith( it );
+                } finally {
+                    linesLock.unlock();
+                }
+            } );
             try {
                 onFileExists.accept( lines.isPresent() );
             } finally {
@@ -434,6 +456,7 @@ public class LogView extends VBox implements SelectableContainer {
         } );
     }
 
+    // Must call from the fileReaderExecutor Threads, caller should acquire the linesLock!!
     private void updateWith( List<String> lines ) {
         Objects.requireNonNull( lines );
         log.debug( "Refreshing view with {} lines", lines.size() );
@@ -444,78 +467,53 @@ public class LogView extends VBox implements SelectableContainer {
         } else {
             timeFormatGuess = null;
         }
-        fileReaderExecutor.execute( () -> {
-            int index = 0;
-            // unlock happens either when an error happens in this Thread or when all lines have been updated
-            linesLock.lock();
-            var cancelled = new AtomicBoolean( false );
-            var latch = new CountDownLatch( Math.max( lines.size(), MAX_LINES ) );
-            ZonedDateTime previousTime = null;
 
-            try {
-                for ( ; index < lines.size() && !cancelled.get(); index++ ) {
-                    final String lineText = lines.get( index );
+        Duration[] timeGaps = timeFormatGuess == null
+                ? null
+                : computeTimeGaps( timeFormatGuess, minTimeGap, lines );
 
-                    // null line: leave the line alone and proceed
-                    if ( lineText == null ) {
-                        latch.countDown();
-                        continue;
-                    }
+        Platform.runLater( () -> {
+            var startTime = System.currentTimeMillis();
+            var index = 0;
+            for ( ; index < lines.size(); index++ ) {
+                final String lineText = lines.get( index );
 
-                    Duration timeGap;
-                    if ( timeFormatGuess == null ) {
-                        timeGap = null;
-                    } else {
-                        var time = timeFormatGuess.guessDateTime( lineText ).orElse( null );
-                        timeGap = previousTime == null ? null :
-                                getIfGreater( minTimeGap, Duration.between( previousTime, time ) );
-                        if ( time != null ) previousTime = time;
-                    }
-
-                    final int currentIndex = index;
-
-                    Platform.runLater( () -> {
-                        if ( cancelled.get() ) return;
-                        try {
-                            LogLine line = lineAt( currentIndex );
-                            line.setText( lineText, highlighter.logLineColorsFor( lineText ), timeGap );
-                        } finally {
-                            latch.countDown();
-                        }
-                    } );
+                // null line: leave the line alone and proceed
+                if ( lineText == null ) {
+                    continue;
                 }
 
-                // fill the remaining lines with the empty String
-                for ( ; index < MAX_LINES; index++ ) {
-                    final int currentIndex = index;
-                    Platform.runLater( () -> {
-                        if ( cancelled.get() ) return;
-                        try {
-                            LogLine line = lineAt( currentIndex );
-                            line.setText( "", highlighter.logLineColorsFor( "" ), null );
-                        } finally {
-                            latch.countDown();
-                        }
-                    } );
-                }
-            } catch ( Exception e ) {
-                cancelled.set( true );
-                linesLock.unlock();
-                return;
+                lineAt( index ).setText( lineText,
+                        highlighter.logLineColorsFor( lineText ),
+                        timeGaps == null ? null : timeGaps[ index ] );
             }
 
-            try {
-                var ok = latch.await( 15, TimeUnit.SECONDS );
-                if ( !ok ) {
-                    log.warn( "Timeout while trying to update log lines" );
-                }
-            } catch ( InterruptedException e ) {
-                log.warn( "Interrupted while trying to update log lines" );
-            } finally {
-                cancelled.set( true );
-                linesLock.unlock();
+            // fill the remaining lines with the empty String
+            for ( ; index < MAX_LINES; index++ ) {
+                lineAt( index ).setText( "", highlighter.logLineColorsFor( "" ), null );
             }
+            log.debug( "Refreshed all lines in {} ms", System.currentTimeMillis() - startTime );
         } );
+    }
+
+    private static Duration[] computeTimeGaps( DateTimeFormatGuess timeFormatGuess,
+                                               Duration minTimeGap,
+                                               List<String> lines ) {
+        var startTime = System.currentTimeMillis();
+        var result = new Duration[ lines.size() ];
+        ZonedDateTime previousTime = null;
+        for ( int i = 0; i < lines.size(); i++ ) {
+            var lineText = lines.get( i );
+            if ( lineText == null ) continue;
+            var time = timeFormatGuess.guessDateTime( lineText ).orElse( null );
+            var timeGap = previousTime == null || time == null ? null :
+                    getIfGreater( minTimeGap, Duration.between( previousTime, time ) );
+            result[ i ] = timeGap;
+            if ( time != null ) previousTime = time;
+        }
+        log.debug( "Computed time gaps in {} ms", System.currentTimeMillis() - startTime );
+
+        return result;
     }
 
     private static Duration getIfGreater( Duration minTimeGap, Duration duration ) {
