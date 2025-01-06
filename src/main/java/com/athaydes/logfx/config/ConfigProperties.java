@@ -5,12 +5,14 @@ import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
+import javafx.beans.InvalidationListener;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.ObservableSet;
+import javafx.collections.SetChangeListener;
 import javafx.geometry.Bounds;
 import javafx.geometry.Orientation;
 import javafx.scene.paint.Color;
@@ -22,6 +24,7 @@ final class ConfigProperties {
     private static final LogLineColors DEFAULT_LOG_LINE_COLORS = new LogLineColors( Color.BLACK, Color.LIGHTGREY );
     private static final Font DEFAULT_FONT = Font.font( FxUtils.isMac() ? "Monaco" : "Courier New" );
 
+    final BooleanProperty onLogFileChange = new SimpleBooleanProperty();
     final SimpleObjectProperty<LogLineColors> standardLogColors;
     final ObservableSet<LogFile> observableFiles;
     final SimpleObjectProperty<Orientation> panesOrientation;
@@ -29,6 +32,7 @@ final class ConfigProperties {
     final ObservableList<Double> paneDividerPositions;
     final BindableValue<Font> font;
     final BooleanProperty enableFilters;
+    final BooleanProperty displayTimeGaps;
     final HighlightGroups highlightGroups;
 
     ConfigProperties() {
@@ -40,7 +44,20 @@ final class ConfigProperties {
         paneDividerPositions = FXCollections.observableArrayList();
         font = new BindableValue<>( DEFAULT_FONT );
         enableFilters = new SimpleBooleanProperty( false );
+        displayTimeGaps = new SimpleBooleanProperty( false );
+        observableFiles.addListener( ( SetChangeListener<? super LogFile> ) ( change ) -> {
+            if ( change.wasAdded() ) {
+                change.getElementAdded().minTimeGap.addListener( flipFileChange );
+            }
+            if ( change.wasRemoved() ) {
+                change.getElementRemoved().minTimeGap.removeListener( flipFileChange );
+            }
+        } );
     }
+
+    private InvalidationListener flipFileChange = ( ignore ) -> {
+        onLogFileChange.set( !onLogFileChange.getValue() );
+    };
 
     @MustCallOnJavaFXThread
     void clear() {
@@ -52,5 +69,6 @@ final class ConfigProperties {
         paneDividerPositions.clear();
         font.setValue( DEFAULT_FONT );
         enableFilters.set( false );
+        displayTimeGaps.set( false );
     }
 }

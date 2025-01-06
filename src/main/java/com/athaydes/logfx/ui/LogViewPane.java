@@ -6,6 +6,7 @@ import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
+import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -638,9 +639,21 @@ public final class LogViewPane {
             HBox leftAlignedBox = new HBox( 2.0 );
             HBox rightAlignedBox = new HBox( 2.0 );
 
+            HBox minTimeGapBox = new HBox( 5.0 );
+            minTimeGapBox.setVisible( logView.showTimeGapProperty().get() );
+
             Button fileNameLabel = new Button();
             fileNameLabel.setMinWidth( 5.0 );
             fileNameLabel.setTooltip( new Tooltip( file.getAbsolutePath() ) );
+
+            Label minTimeGapLabel = new Label();
+            minTimeGapLabel.getStyleClass().add( "min-time-gap-label" );
+            minTimeGapLabel.textProperty().bind( Bindings.convert( logView.getMinTimeGap() ) );
+
+            Label minTimeGapLabelLabel = new Label( "min-gap:" );
+            minTimeGapLabelLabel.getStyleClass().add( "min-time-gap-label" );
+
+            minTimeGapBox.getChildren().addAll( minTimeGapLabelLabel, minTimeGapLabel );
 
             Runnable updateFileLabel = () -> {
                 if ( file.exists() ) {
@@ -663,7 +676,7 @@ public final class LogViewPane {
             logView.onFileUpdate( updateFileLabel );
             updateFileLabel.run();
 
-            leftAlignedBox.getChildren().add( fileNameLabel );
+            leftAlignedBox.getChildren().addAll( fileNameLabel, minTimeGapBox );
 
             Button highlightRulesButton = AwesomeIcons.createIconButton( AwesomeIcons.LIST_UL );
             highlightRulesButton.setTooltip( new Tooltip( "Edit highlight rules for this file" ) );
@@ -685,6 +698,8 @@ public final class LogViewPane {
             ToggleButton timeGapButton = AwesomeIcons.createToggleButton( AwesomeIcons.GAP );
             timeGapButton.setTooltip( new Tooltip( "Display time gaps" ) );
             timeGapButton.selectedProperty().bindBidirectional( logView.showTimeGapProperty() );
+            timeGapButton.selectedProperty().addListener( ( selected ) ->
+                    minTimeGapBox.setVisible( ( ( BooleanProperty ) selected ).get() ) );
 
             Button closeButton = AwesomeIcons.createIconButton( AwesomeIcons.CLOSE );
             closeButton.setTooltip( new Tooltip( "Close file" ) );

@@ -9,8 +9,7 @@ import spock.lang.Unroll
 
 import java.util.regex.Pattern
 
-import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.V1
-import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.V2
+import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.*
 
 @Unroll
 class ConfigParserSpec extends Specification {
@@ -53,21 +52,28 @@ class ConfigParserSpec extends Specification {
 
     def "Can parse log lines from config"() {
         when: 'a log-file line is parsed'
-        def logLine = ConfigParser.parseLogFileLine( line )
+        def logLine = ConfigParser.parseLogFileLine( line, version )
 
         then: 'the expected LogFile is obtained'
         logLine.file == new File( expectedFile )
         logLine.highlightGroup == expectedGroup
+        logLine.minTimeGap.get() == expectedMinTimeGap
 
         where:
-        line                   | expectedFile        | expectedGroup
-        '  hello'              | 'hello'             | ''
-        'hello  '              | 'hello'             | ''
-        ' /var/log/serv.log'   | '/var/log/serv.log' | ''
-        '  []hello'            | 'hello'             | ''
-        '  [my group]/var/log' | '/var/log'          | 'my group'
-        '  [gr]  /var/log'     | '/var/log'          | 'gr'
-        '  [gr]  /var/log[0]'  | '/var/log[0]'       | 'gr'
+        version | line                     | expectedFile        | expectedGroup | expectedMinTimeGap
+        V3      | '  hello'                | 'hello'             | ''            | 1_000L
+        V3      | 'hello  '                | 'hello'             | ''            | 1_000L
+        V3      | ' /var/log/serv.log'     | '/var/log/serv.log' | ''            | 1_000L
+        V3      | '  []hello'              | 'hello'             | ''            | 1_000L
+        V3      | '  [my group]/var/log'   | '/var/log'          | 'my group'    | 1_000L
+        V3      | '  [gr]  /var/log'       | '/var/log'          | 'gr'          | 1_000L
+        V3      | '  [gr]  /var/log[0]'    | '/var/log[0]'       | 'gr'          | 1_000L
+        V3      | '  [gr]10,  /var/log[0]' | '10,  /var/log[0]'  | 'gr'          | 1_000L
+        V3      | '  42,/var/log[0]'       | '42,/var/log[0]'    | ''            | 1_000L
+        V4      | '  hello'                | 'hello'             | ''            | 1_000L
+        V4      | '  [gr]/var/log[0]'      | '/var/log[0]'       | 'gr'          | 1_000L
+        V4      | '  [gr]10,  /var/log[0]' | '/var/log[0]'       | 'gr'          | 10L
+        V4      | '  42,/var/log[0]'       | '/var/log[0]'       | ''            | 42L
     }
 
     def "Errors when parsing invalid highlight expressions"() {
@@ -129,7 +135,7 @@ class ConfigParserSpec extends Specification {
 
         when: 'the config is parsed'
         def config = new ConfigProperties()
-        new ConfigParser( config ).parseConfigFile( null, sampleConfig.split( '\n' ).iterator() )
+        new ConfigParser( config ).parseConfigFile( sampleConfig.split( '\n' ).iterator() )
 
         then: 'all configuration is loaded'
         config.standardLogColors.value.background == Color.BLACK
@@ -182,7 +188,7 @@ class ConfigParserSpec extends Specification {
 
         when: 'the config is parsed'
         def config = new ConfigProperties()
-        new ConfigParser( config ).parseConfigFile( null, sampleConfig.split( '\n' ).iterator() )
+        new ConfigParser( config ).parseConfigFile( sampleConfig.split( '\n' ).iterator() )
 
         then: 'all configuration is loaded'
         config.standardLogColors.value.background == Color.BLACK
@@ -213,6 +219,44 @@ class ConfigParserSpec extends Specification {
         config.highlightGroups.getDefault().collect() == defaultHighlights
         config.highlightGroups.getByName( '' ).collect() == defaultHighlights
         config.highlightGroups.getByName( 'Extra Rules' )?.collect() == extraHighlights
+    }
+
+    def 'Errors on invalid config'() {
+        when: 'an invalid config is parsed'
+        def config = new ConfigProperties()
+        new ConfigParser( config ).parseConfigFile( sampleConfig.split( '\n' ).iterator() )
+
+        then:
+        def error = thrown( IllegalArgumentException )
+        error.message == expectedMessage
+
+        where:
+        sampleConfig                     || expectedMessage
+        """\
+        |version:
+        |  V3
+        |filters:
+        |files:
+        |  myfile.txt
+        |""".stripMargin()    || "Expected indented line after 'filters' but got 'files:'"
+
+        """\
+        |version:
+        |files:
+        |  myfile.txt
+        |""".stripMargin()    || "Expected indented line after 'version' but got 'files:'"
+
+        """\
+        |version:
+        |  V3
+        |standard-log-colors:
+        |expressions:
+        |filters:
+        |  disable
+        |time-gaps:
+        |gui:
+        |  disable
+        """.stripMargin()     || "Expected indented line after 'time-gaps' but got 'gui:'"
     }
 
     private static String path( String linuxPath ) {

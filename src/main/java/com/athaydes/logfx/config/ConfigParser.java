@@ -24,10 +24,16 @@ import static java.util.stream.Collectors.toList;
 
 final class ConfigParser {
 
-    private static final Pattern FILE_LINE_PATTERN = Pattern.compile( "\\s+\\[(.*)]\\s*(.+)\\s*" );
+    private static final Pattern FILE_LINE_PATTERN_V3 = Pattern.compile(
+            "\\s+(\\[(?<group>.*)])?\\s*(?<name>.+)\\s*" );
+
+    private static final Pattern FILE_LINE_PATTERN_V4 = Pattern.compile(
+            "\\s+(\\[(?<group>.*)])?" +
+                    "(?<timegap>\\d+,)?\\s*" +
+                    "(?<name>.+)\\s*" );
 
     enum ConfigVersion {
-        V1, V2, V3;
+        V1, V2, V3, V4;
 
         public boolean isAfter( ConfigVersion version ) {
             return ordinal() > version.ordinal();
@@ -43,29 +49,45 @@ final class ConfigParser {
         this.properties = properties;
     }
 
-    void parseConfigFile( String currentLine, Iterator<String> lines ) {
-        String line;
-        if ( currentLine != null ) {
-            line = currentLine;
-        } else if ( lines.hasNext() ) {
-            line = lines.next();
-        } else {
-            return; // no lines left
-        }
-
-        switch ( line.trim() ) {
-            case "version:":
-                parseVersion( lines );
-            case "standard-log-colors:":
-                parseStandardLogColors( lines );
-            case "expressions:":
-                parseExpressions( lines );
-            case "filters:":
-                parseFilters( lines );
-            case "files:":
-                parseFiles( lines );
-            case "gui:":
-                parseGuiSection( lines );
+    void parseConfigFile( Iterator<String> lines ) {
+        String currentLine = null;
+        while ( currentLine != null || lines.hasNext() ) {
+            String line = currentLine == null ? lines.next() : currentLine;
+            switch ( line.trim() ) {
+                case "version:":
+                    parseVersion( lines );
+                    currentLine = null;
+                    break;
+                case "standard-log-colors:":
+                    currentLine = parseStandardLogColors( lines );
+                    break;
+                case "expressions:":
+                    currentLine = parseExpressions( lines );
+                    break;
+                case "filters:":
+                    parseFilters( lines );
+                    currentLine = null;
+                    break;
+                case "time-gaps:":
+                    parseTimeGaps( lines );
+                    currentLine = null;
+                    break;
+                case "files:":
+                    currentLine = parseFiles( lines );
+                    break;
+                case "gui:":
+                    currentLine = parseGuiSection( lines );
+                    break;
+                case "auto_update:":
+                    // not currently used, skip it
+                    if ( lines.hasNext() ) {
+                        lines.next();
+                    }
+                    currentLine = null;
+                    break;
+                default:
+                    throw new IllegalArgumentException( "Non-existing config section: '" + line + "'" );
+            }
         }
     }
 
@@ -79,12 +101,12 @@ final class ConfigParser {
                     logInvalidProperty( "version", "version", line.trim(), "Unknown version" );
                 }
             } else {
-                parseConfigFile( line, lines );
+                invalidLine( line, "version" );
             }
         }
     }
 
-    private void parseStandardLogColors( Iterator<String> lines ) {
+    private String parseStandardLogColors( Iterator<String> lines ) {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
@@ -101,13 +123,13 @@ final class ConfigParser {
                     logInvalidProperty( "standard-log-colors", "number of colors", line, null );
                 }
             } else if ( !line.trim().isEmpty() ) {
-                parseConfigFile( line, lines );
-                break;
+                return line;
             }
         }
+        return null;
     }
 
-    private void parseExpressions( Iterator<String> lines ) {
+    private String parseExpressions( Iterator<String> lines ) {
         boolean firstLine = true;
         String group = "";
         while ( lines.hasNext() ) {
@@ -125,10 +147,10 @@ final class ConfigParser {
                 }
                 firstLine = false;
             } else if ( !line.trim().isEmpty() ) {
-                parseConfigFile( line, lines );
-                break;
+                return line;
             }
         }
+        return null;
     }
 
     private void parseFilters( Iterator<String> lines ) {
@@ -140,36 +162,66 @@ final class ConfigParser {
                     case "disable" -> properties.enableFilters.set( false );
                     default -> logInvalidProperty( "filters", "filters", line, "value must be 'enable' or 'disable'" );
                 }
-            } else if ( !line.trim().isEmpty() ) {
-                parseConfigFile( line, lines );
+            } else {
+                invalidLine( line, "filters" );
             }
         }
     }
 
-    private void parseFiles( Iterator<String> lines ) {
+    private void parseTimeGaps( Iterator<String> lines ) {
+        if ( lines.hasNext() ) {
+            String line = lines.next();
+            if ( line.startsWith( " " ) ) {
+                String lineTrimmed = line.trim();
+                switch ( lineTrimmed ) {
+                    case "enable" -> properties.displayTimeGaps.set( true );
+                    case "disable" -> properties.displayTimeGaps.set( false );
+                    default ->
+                            logInvalidProperty( "time-gaps", "time-gaps", line, "value must be 'enable' or 'disable'" );
+                }
+            } else {
+                invalidLine( line, "time-gaps" );
+            }
+        }
+    }
+
+    private String parseFiles( Iterator<String> lines ) {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
                 if ( properties.observableFiles.size() >= FileOpener.MAX_OPEN_FILES ) {
                     log.warn( "Cannot open file {}. Too many open files.", line );
                 } else {
-                    properties.observableFiles.add( parseLogFileLine( line ) );
+                    properties.observableFiles.add( parseLogFileLine( line, version ) );
                 }
             } else if ( !line.trim().isEmpty() ) {
-                parseConfigFile( line, lines );
-                break;
+                return line;
             }
         }
+        return null;
     }
 
-    static LogFile parseLogFileLine( String line ) {
-        Matcher matcher = FILE_LINE_PATTERN.matcher( line );
-        return matcher.matches()
-                ? new LogFile( new File( matcher.group( 2 ) ), matcher.group( 1 ) )
-                : new LogFile( new File( line.trim() ) );
+    static LogFile parseLogFileLine( String line, ConfigVersion version ) {
+        boolean v4OrHigher = version.isAfter( ConfigVersion.V3 );
+        Matcher matcher = v4OrHigher
+                ? FILE_LINE_PATTERN_V4.matcher( line )
+                : FILE_LINE_PATTERN_V3.matcher( line );
+        if ( matcher.matches() ) {
+            String timeGapGroup = v4OrHigher ? matcher.group( "timegap" ) : null;
+            String group = matcher.group( "group" );
+            String name = matcher.group( "name" );
+            if ( group == null ) group = "";
+            if ( timeGapGroup != null ) {
+                // remove the trailing comma
+                long timeGap = Long.parseLong( timeGapGroup.substring( 0, timeGapGroup.length() - 1 ) );
+                return new LogFile( new File( name ), group, timeGap );
+            }
+            return new LogFile( new File( name ), group );
+        }
+        return new LogFile( new File( line.trim() ) );
     }
 
-    private void parseGuiSection( Iterator<String> lines ) {
+    private String parseGuiSection( Iterator<String> lines ) {
         while ( lines.hasNext() ) {
             String line = lines.next();
             if ( line.startsWith( " " ) ) {
@@ -238,10 +290,10 @@ final class ConfigParser {
                         break;
                 }
             } else if ( !line.trim().isEmpty() ) {
-                parseConfigFile( line, lines );
-                break;
+                return line;
             }
         }
+        return null;
     }
 
     static HighlightExpression parseHighlightExpression( String line, ConfigVersion version )
@@ -346,5 +398,9 @@ final class ConfigParser {
         if ( error != null ) {
             log.warn( "Error: {}", error );
         }
+    }
+
+    private static void invalidLine( String line, String section ) {
+        throw new IllegalArgumentException( "Expected indented line after '" + section + "' but got '" + line + "'" );
     }
 }

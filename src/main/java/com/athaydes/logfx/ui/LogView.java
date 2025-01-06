@@ -19,7 +19,10 @@ import javafx.beans.InvalidationListener;
 import javafx.beans.Observable;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.NumberBinding;
-import javafx.beans.property.*;
+import javafx.beans.property.BooleanProperty;
+import javafx.beans.property.LongProperty;
+import javafx.beans.property.ReadOnlyDoubleProperty;
+import javafx.beans.property.SimpleBooleanProperty;
 import javafx.collections.ObservableList;
 import javafx.scene.Node;
 import javafx.scene.layout.VBox;
@@ -61,8 +64,7 @@ public class LogView extends VBox implements SelectableContainer {
     private final ExecutorService fileReaderExecutor = Executors.newSingleThreadExecutor();
     private final BooleanProperty tailingFile = new SimpleBooleanProperty( false );
     private final BooleanProperty allowRefresh = new SimpleBooleanProperty( true );
-    private final BooleanProperty showTimeGap = new SimpleBooleanProperty( false );
-    private final IntegerProperty minGapInMillis = new SimpleIntegerProperty( 1_000 );
+    private final BooleanProperty showTimeGap;
     private final Config config;
     private final LogLineHighlighter highlighter;
     private final FileContentReader fileContentReader;
@@ -102,12 +104,11 @@ public class LogView extends VBox implements SelectableContainer {
 
         logFile.highlightGroupProperty().addListener( expressionsChangeListener );
 
+        showTimeGap = config.displayTimeGapsProperty();
         showTimeGap.addListener( ( Observable o ) -> {
             log.debug( "Updated time gap enabled property: {}", o );
             refreshView();
         } );
-
-        minGapInMillis.addListener( o -> log.debug( "Set min time gap to {}", o ) );
 
         this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile );
 
@@ -145,8 +146,8 @@ public class LogView extends VBox implements SelectableContainer {
         this.scrollToLineFunction = scrollToLineFunction;
     }
 
-    IntegerProperty getMinTimeGap() {
-        return minGapInMillis;
+    LongProperty getMinTimeGap() {
+        return logFile.minTimeGap;
     }
 
     @Override
@@ -460,7 +461,7 @@ public class LogView extends VBox implements SelectableContainer {
     private void updateWith( List<String> lines ) {
         Objects.requireNonNull( lines );
         log.debug( "Refreshing view with {} lines", lines.size() );
-        final var minTimeGap = Duration.ofMillis( this.minGapInMillis.get() );
+        final var minTimeGap = Duration.ofMillis( getMinTimeGap().get() );
         final DateTimeFormatGuess timeFormatGuess;
         if ( showTimeGap.get() ) {
             timeFormatGuess = findFileDateTimeFormatterFromFileContents( Optional.of( lines ) );

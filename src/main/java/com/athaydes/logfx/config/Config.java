@@ -25,15 +25,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.stream.Collectors.joining;
 
@@ -66,12 +58,14 @@ public class Config {
 
         properties.standardLogColors.addListener( listener );
         properties.highlightGroups.setListener( listener );
+        properties.onLogFileChange.addListener( listener );
         properties.observableFiles.addListener( listener );
         properties.panesOrientation.addListener( listener );
         properties.windowBounds.addListener( listener );
         properties.paneDividerPositions.addListener( listener );
         properties.font.addListener( listener );
         properties.enableFilters.addListener( listener );
+        properties.displayTimeGaps.addListener( listener );
 
         // keep track of logFiles's groups
         properties.observableFiles.forEach( f -> f.highlightGroupProperty().addListener( listener ) );
@@ -118,6 +112,10 @@ public class Config {
         return properties.enableFilters;
     }
 
+    public BooleanProperty displayTimeGapsProperty() {
+        return properties.displayTimeGaps;
+    }
+
     public void loadConfig( Path path ) {
         if ( path.toFile().isFile() ) {
             this.path = path;
@@ -140,9 +138,9 @@ public class Config {
     }
 
     private void readConfigFile() {
-        try {
-            Iterator<String> lines = Files.lines( path ).iterator();
-            new ConfigParser( properties ).parseConfigFile( null, lines );
+        try ( var fileLines = Files.lines( path ) ) {
+            Iterator<String> lines = fileLines.iterator();
+            new ConfigParser( properties ).parseConfigFile( lines );
         } catch ( Exception e ) {
             log.warn( "Error loading config", e );
             Dialog.showMessage( "Could not read config file: " + path +
@@ -173,6 +171,7 @@ public class Config {
         Platform.runLater( () -> data.logLineColors = properties.standardLogColors.get() );
         Platform.runLater( () -> data.highlightExpressions = new HashMap<>( properties.highlightGroups.toMap() ) );
         Platform.runLater( () -> data.enableFilters = properties.enableFilters.getValue() );
+        Platform.runLater( () -> data.displayTimeGaps = properties.displayTimeGaps.getValue() );
         Platform.runLater( () -> data.files = new LinkedHashSet<>( properties.observableFiles ) );
         Platform.runLater( () -> data.orientation = properties.panesOrientation.get() );
         Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
@@ -188,8 +187,9 @@ public class Config {
 
         try ( FileWriter writer = new FileWriter( data.path ) ) {
 
+            var versions = ConfigParser.ConfigVersion.values();
             writer.write( "version:\n  " );
-            writer.write( ConfigParser.ConfigVersion.V3.name() );
+            writer.write( versions[ versions.length - 1 ].name() );
             writer.write( "\nstandard-log-colors:\n" );
             writer.write( "  " + data.logLineColors.getBackground() + " " + data.logLineColors.getFill() );
             writer.write( "\n" );
@@ -214,6 +214,9 @@ public class Config {
             writer.write( "filters:\n  " );
             writer.write( data.enableFilters ? "enable\n" : "disable\n" );
 
+            writer.write( "time-gaps:\n  " );
+            writer.write( data.displayTimeGaps ? "enable\n" : "disable\n" );
+
             writer.write( "auto_update:\n  " );
             writer.write( data.autoUpdate ? "enable\n" : "disable\n" );
 
@@ -225,6 +228,9 @@ public class Config {
                     writer.write( '[' );
                     writer.write( group );
                     writer.write( ']' );
+                }
+                if ( file.minTimeGap.get() != LogFile.DEFAULT_MIN_TIME_GAP ) {
+                    writer.write( file.minTimeGap.get() + "," );
                 }
                 writer.write( file.file.getAbsolutePath() );
                 writer.write( "\n" );
@@ -257,6 +263,7 @@ public class Config {
         volatile LogLineColors logLineColors;
         volatile Map<String, Collection<HighlightExpression>> highlightExpressions;
         volatile boolean enableFilters;
+        volatile boolean displayTimeGaps;
         volatile boolean autoUpdate;
         volatile Set<LogFile> files;
         volatile Orientation orientation;

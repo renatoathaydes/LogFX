@@ -13,7 +13,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.StageStyle;
 
-import java.util.OptionalInt;
+import java.util.OptionalLong;
 
 public class TimeGapEditor {
     private final Dialog dialog;
@@ -28,7 +28,7 @@ public class TimeGapEditor {
 
         Label label = new Label( "Set the minimum time gap to display in milliseconds:" );
 
-        IntField valueField = new IntField( selectedLogView.getMinTimeGap().getValue() );
+        LongField valueField = new LongField( selectedLogView.getMinTimeGap().getValue() );
         valueField.setMaxWidth( 120.0 );
         valueField.setTooltip( new Tooltip( "Enter the number of milliseconds (zero or larger)" ) );
 
@@ -58,19 +58,19 @@ public class TimeGapEditor {
         dialog.show();
     }
 
-    private static class IntField extends TextField {
+    private static class LongField extends TextField {
 
         private final BooleanProperty valid = new SimpleBooleanProperty( true );
 
-        private int value;
+        private long value;
 
-        IntField( int value ) {
+        LongField( long value ) {
             this.value = value;
-            setText( Integer.toString( value ) );
+            setText( Long.toString( value ) );
             textProperty().addListener( ( observable, oldValue, newValue ) -> {
-                var maybeValue = getPositiveInt( newValue );
+                var maybeValue = getPositiveLong( newValue );
                 if ( maybeValue.isPresent() ) {
-                    this.value = maybeValue.getAsInt();
+                    this.value = maybeValue.getAsLong();
                     valid.set( true );
                     getStyleClass().remove( "error" );
                 } else {
@@ -82,12 +82,12 @@ public class TimeGapEditor {
             } );
         }
 
-        private OptionalInt getPositiveInt( String newValue ) {
+        private OptionalLong getPositiveLong( String newValue ) {
             try {
-                var i = Integer.parseInt( newValue );
-                return i >= 0 ? OptionalInt.of( i ) : OptionalInt.empty();
+                var i = Long.parseLong( newValue );
+                return i >= 0 ? OptionalLong.of( i ) : OptionalLong.empty();
             } catch ( NumberFormatException ignore ) {
-                return OptionalInt.empty();
+                return OptionalLong.empty();
             }
         }
 
@@ -95,7 +95,7 @@ public class TimeGapEditor {
             return valid;
         }
 
-        int getValue() {
+        long getValue() {
             return value;
         }
     }

@@ -52,7 +52,7 @@ HighlightGroupSelector .label {
 }
 
 Label {
-    -fx-font-family: Lucida;
+    -fx-font-family: Verdana;
     -fx-font-size: 14px;
 }
 
@@ -92,6 +92,7 @@ Label {
     -fx-background-image: url("jrt:/com.athaydes.logfx/com/athaydes/logfx/images/timegap.png");
     -fx-padding: 0 0 0 100px;
     -fx-text-fill: black;
+    -fx-font-size: 10;
 }
 
 .log-line.selected {
@@ -140,4 +141,11 @@ LogView.dropping-files {
 .drop-file-pane.dropping-files {
     -fx-border-width: 2px;
     -fx-border-color: derive(-fx-base, 80%);
+}
+
+.min-time-gap-label {
+    -fx-font-style: italic;
+    -fx-font-size: 14;
+    -fx-padding: 4 0 2 2;
+    -fx-text-fill: yellowgreen;
 }
