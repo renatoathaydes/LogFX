@@ -1,5 +1,20 @@
 ## LogFX Release Notes
 
+## 1.1
+
+> 06 Jan 2025
+
+* fixed log file view sometimes getting out of sync with file.
+* better time formats supported.
+* optionally show time gaps between log lines.
+* fixed Windows launcher when directory path has whitespace.
+
+## 1.0
+
+> 15 Feb 2022
+
+* Stable release!
+
 ## 0.9.1
 
 > 19 Aug 2019
