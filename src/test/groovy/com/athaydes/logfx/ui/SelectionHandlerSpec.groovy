@@ -4,7 +4,6 @@ import com.athaydes.logfx.iterable.ObservableListView
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.scene.Node
-import javafx.scene.Parent
 import spock.lang.Specification
 import spock.lang.Unroll
 
@@ -15,7 +14,7 @@ class SelectionHandlerSpec extends Specification {
         given: 'A mocked parent'
         ObservableList<SelectionHandler.SelectableNode> observableChildren = FXCollections.observableArrayList()
         def root = Mock( SelectableContainer ) {
-            getSelectables() >> new ObservableListView<Node, Node>( Node, observableChildren )
+            getSelectables() >> new ObservableListView<Node, SelectionHandler.SelectableNode>( Node, observableChildren )
             getNode() >> mockNode()
         }
 
@@ -37,9 +36,9 @@ class SelectionHandlerSpec extends Specification {
 
         then: 'The expected items are selected'
         def expectedSelected = observableChildren.withIndex().findAll {
-            expectedSelectedIndexes.contains( it.second as int )
+            expectedSelectedIndexes.contains( it[ 1 ] as int )
         }.collect {
-            it.first
+            it[ 0 ]
         }
         // test sanity check
         expectedSelectedIndexes.size() == expectedSelected.size()

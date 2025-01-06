@@ -8,7 +8,12 @@ class LinesScrollerSpec extends Specification {
     def lines = ( 1..100 ).collect { it.toString() }
 
     @Subject
-    def lineScroller = new LinesScroller( 100, { i -> lines[ i ] }, { i, s -> lines[ i ] = s } )
+    def lineScroller = new LinesScroller( 100, { Integer i -> lines[ i ] },
+            new LinesSetter( { List<LinesSetter.LineChange> changes ->
+                for ( change in changes ) {
+                    lines.set change.index(), change.text()
+                }
+            } ) )
 
     def 'LineScroller must be able to scroll by adding lines on the top'() {
         when: '10 lines are added to the top of the list'

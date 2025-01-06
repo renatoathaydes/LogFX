@@ -116,7 +116,7 @@ dependencies {
     testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.2.0-groovy-3.0', {
         transitive = false
     }
-    testImplementation group: 'cglib', name: 'cglib-nodep', version: '3.3.0'
+    testImplementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.15.11'
     testImplementation group: 'com.google.code.tempus-fugit', name: 'tempus-fugit', version: '1.1'
 }
 
