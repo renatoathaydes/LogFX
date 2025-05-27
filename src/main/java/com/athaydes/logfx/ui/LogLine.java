@@ -10,6 +10,7 @@ import javafx.beans.binding.NumberBinding;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
@@ -79,22 +80,39 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
         //   * a timeGap Label AND the stdLine Label
         //   * OR a TextField (editable line)
         var child = getChildren().get( 0 );
-        getChildren().clear();
         if ( child == stdLine || child == timeGap ) {
-            var textField = new TextField( fullText );
-            textField.setFont( fontValue.getValue() );
-            textField.minWidthProperty().bind( stdLine.minWidthProperty() );
-            textField.focusedProperty().addListener( ( ignore ) -> {
-                if ( !textField.isFocused() ) swapSelectableText();
-            } );
-            getChildren().add( textField );
-            Platform.runLater( textField::requestFocus );
+            setLineEditingChildren();
         } else {
-            if ( displayTimeGap ) {
-                getChildren().add( timeGap );
-            }
-            getChildren().add( stdLine );
+            setDefaultChildren();
         }
+    }
+
+    @MustCallOnJavaFXThread
+    private void setDefaultChildren() {
+        getChildren().clear();
+        if ( displayTimeGap ) {
+            getChildren().add( timeGap );
+        }
+        getChildren().add( stdLine );
+    }
+
+    @MustCallOnJavaFXThread
+    private void setLineEditingChildren() {
+        getChildren().clear();
+        var textField = new TextField( fullText );
+        textField.setFont( fontValue.getValue() );
+        textField.minWidthProperty().bind( stdLine.minWidthProperty() );
+        textField.focusedProperty().addListener( ( ignore ) -> {
+            if ( !textField.isFocused() ) swapSelectableText();
+        } );
+        textField.setOnKeyPressed( event -> {
+            if ( event.getCode() == KeyCode.ESCAPE ) {
+                // focus on something else in order to trigger the listener above
+                requestFocus();
+            }
+        } );
+        getChildren().add( textField );
+        Platform.runLater( textField::requestFocus );
     }
 
     /**
