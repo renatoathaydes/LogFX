@@ -18,9 +18,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static com.athaydes.logfx.config.Properties.DEFAULT_PROJECT_NAME;
-import static com.athaydes.logfx.ui.Dialog.MessageLevel.ERROR;
-import static com.athaydes.logfx.ui.Dialog.MessageLevel.INFO;
-import static com.athaydes.logfx.ui.Dialog.MessageLevel.WARNING;
+import static com.athaydes.logfx.ui.Dialog.MessageLevel.*;
 import static java.util.stream.Collectors.toMap;
 
 public final class ProjectsDialog {
@@ -70,14 +68,13 @@ public final class ProjectsDialog {
                 defaultProjectButtonRef.set( optionButton );
             } else {
                 deleteButton.setOnAction( ( e ) ->
-                        Dialog.showQuestionDialog( "Are you sure you want to delete project " + projectName,
+                        Dialog.showQuestionDialog( "Are you sure you want to delete project '" + projectName + "'?",
                                 Map.of( "Yes", () -> deleteProject( projectName, isCurrent, stage,
                                                 () -> {
                                                     optionsBox.getChildren().remove( optionBox );
                                                     markCurrent( defaultProjectButtonRef.get() );
                                                 } ),
-                                        "No", () -> {
-                                        } ) ) );
+                                        "No", optionsBox::requestFocus ) ) );
             }
 
             optionBox.getChildren().addAll( optionButton, deleteButton );

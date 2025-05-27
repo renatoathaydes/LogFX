@@ -1,13 +1,6 @@
 package com.athaydes.logfx.ui;
 
-import javafx.animation.Animation;
-import javafx.animation.FadeTransition;
-import javafx.animation.Interpolator;
-import javafx.animation.KeyFrame;
-import javafx.animation.KeyValue;
-import javafx.animation.ParallelTransition;
-import javafx.animation.Timeline;
-import javafx.animation.Transition;
+import javafx.animation.*;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -25,11 +18,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
-import javafx.stage.Modality;
-import javafx.stage.Stage;
-import javafx.stage.StageStyle;
-import javafx.stage.Window;
-import javafx.stage.WindowEvent;
+import javafx.stage.*;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -216,6 +205,7 @@ public class Dialog {
     public static void showQuestionDialog( String text, Map<String, Runnable> options ) {
         Platform.runLater( () -> {
             var dialog = new Dialog( new Label( text ) );
+            dialog.setWidth( Math.max( Math.min( text.length() * 12, 1200 ), 100 ) );
             dialog.setStyle( StageStyle.UNDECORATED );
             var optionsBox = new HBox( 10 );
             options.forEach( ( opt, action ) -> {

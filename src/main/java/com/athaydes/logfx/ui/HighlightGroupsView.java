@@ -17,10 +17,9 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 
-import static com.athaydes.logfx.ui.AwesomeIcons.DUPLICATE;
-import static com.athaydes.logfx.ui.AwesomeIcons.PENCIL;
-import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
-import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
+import java.util.Map;
+
+import static com.athaydes.logfx.ui.AwesomeIcons.*;
 import static com.athaydes.logfx.ui.HighlightOptions.nextColor;
 
 public class HighlightGroupsView extends BorderPane {
@@ -170,10 +169,16 @@ public class HighlightGroupsView extends BorderPane {
     private EventHandler<ActionEvent> handleDeleteGroup( HighlightGroups groups ) {
         return ( ignore ) -> {
             HighlightOptions option = optionsChoiceBox.getSelectionModel().getSelectedItem();
+
+            // do not allow deleting default group
             if ( option == defaultOption ) return;
-            optionsChoiceBox.getItems().remove( option );
-            groups.remove( option.getGroupName() );
-            optionsChoiceBox.getSelectionModel().select( defaultOption );
+
+            Dialog.showQuestionDialog( "Are you sure you want to delete group '" + option.getGroupName() + "'?",
+                    Map.of( "Yes", () -> {
+                        optionsChoiceBox.getItems().remove( option );
+                        groups.remove( option.getGroupName() );
+                        optionsChoiceBox.getSelectionModel().select( defaultOption );
+                    }, "No", optionsChoiceBox::requestFocus ) );
         };
     }
 
