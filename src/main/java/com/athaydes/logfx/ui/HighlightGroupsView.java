@@ -161,6 +161,11 @@ public class HighlightGroupsView extends BorderPane {
                             int index = optionsChoiceBox.getSelectionModel().getSelectedIndex();
                             optionsChoiceBox.getItems().remove( index );
                             optionsChoiceBox.getItems().add( index, opt );
+
+                            Platform.runLater( () -> {
+                                optionsChoiceBox.getSelectionModel().clearSelection();
+                                optionsChoiceBox.getSelectionModel().select( opt );
+                            } );
                         }
                     } );
         };
