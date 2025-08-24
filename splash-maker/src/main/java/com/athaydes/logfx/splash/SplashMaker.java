@@ -112,11 +112,27 @@ public final class SplashMaker extends Application implements JbTask {
         return view.getImage();
     }
 
+    /**
+     * jb task runner.
+     *
+     * @param args command-line arguments provided by the user
+     */
     @Override
     public void run( String... args ) {
-        SplashMaker.launch( args );
+        String imageFile;
+        if ( args.length == 1 ) {
+            imageFile = args[ 0 ];
+        } else {
+            imageFile = "build/image/bin/logfx-logo";
+        }
+        Application.launch( SplashMaker.class, imageFile );
     }
 
+    /**
+     * Main method, run by Gradle.
+     *
+     * @param args given by the Gradle runner
+     */
     public static void main( String[] args ) {
         launch( args );
     }

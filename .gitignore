@@ -12,3 +12,8 @@
 
 # Generated file
 src/common/java/com/athaydes/logfx/Constants.java
+
+# jb
+.jb-cache/
+# lock files
+!.jb-cache/*.json

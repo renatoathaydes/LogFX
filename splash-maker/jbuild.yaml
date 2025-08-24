@@ -1,0 +1,12 @@
+group: com.athaydes.logfx
+module: logfx-jb-extension
+version: '0.0.0'
+
+source-dirs: [ src/main/java, ../src/common/java ]
+resource-dirs: [ ../src/common/resources ]
+
+run-java-args: ["-Djava.awt.headless=true"]
+
+dependencies:
+  com.athaydes.jbuild:jbuild-api:0.12.0:
+    scope: compile-only
