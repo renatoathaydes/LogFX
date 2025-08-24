@@ -11,6 +11,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.Background;
 import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.CornerRadii;
+import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -86,6 +87,23 @@ public class FxUtils {
             resetStylesheet.run();
         }
 
+    }
+
+    /**
+     * Converts a Paint color to a CSS RGB code.
+     *
+     * @param paint the color to convert
+     * @return CSS RGB code string
+     */
+    public static String toRGBCode( Paint paint ) {
+        if ( paint instanceof Color color ) {
+            return String.format( "#%02X%02X%02X",
+                    ( int ) ( color.getRed() * 255 ),
+                    ( int ) ( color.getGreen() * 255 ),
+                    ( int ) ( color.getBlue() * 255 ) );
+        }
+        // fallback for non-Color Paint objects
+        return paint.toString();
     }
 
     /**

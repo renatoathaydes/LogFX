@@ -11,15 +11,12 @@ import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
-import javafx.scene.layout.BackgroundFill;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
 
 import java.time.Duration;
-import java.util.List;
-
 
 /**
  * Node holding a single log line in a {@link LogView}.
@@ -47,8 +44,8 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
         timeGap.getStyleClass().add( "log-line-time-gap" );
         timeGap.minWidthProperty().bind( widthProperty );
 
-        stdLine.setBackground( FxUtils.simpleBackground( bkgColor ) );
-        stdLine.setTextFill( fillColor );
+        stdLine.setStyle( String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
+                FxUtils.toRGBCode( fillColor ), FxUtils.toRGBCode( bkgColor ) ) );
         stdLine.fontProperty().bind( fontValue );
         stdLine.minWidthProperty().bind( widthProperty );
         stdLine.getStyleClass().add( "log-line" );
@@ -129,8 +126,9 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
                 ? fullText.substring( 0, MAX_LINE_LENGTH ) + "..."
                 : fullText;
         stdLine.setText( uiText );
-        stdLine.setBackground( FxUtils.simpleBackground( colors.getBackground() ) );
-        stdLine.setTextFill( colors.getFill() );
+        String colorStyle = String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
+                FxUtils.toRGBCode( colors.getFill() ), FxUtils.toRGBCode( colors.getBackground() ) );
+        stdLine.setStyle( colorStyle );
 
         var displayTimeGap = timeGap != null;
         if ( displayTimeGap != this.displayTimeGap ) {
@@ -164,18 +162,12 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
     }
 
     private class BackgroundTransition extends Transition {
-
         private final Color originalColor;
         private final Color targetColor;
 
         BackgroundTransition( Color targetColor ) {
-            List<BackgroundFill> fills = stdLine.getBackground().getFills();
-            if ( !fills.isEmpty() && fills.get( 0 ).getFill() instanceof Color ) {
-                this.originalColor = ( Color ) fills.get( 0 ).getFill();
-            } else {
-                this.originalColor = targetColor.invert();
-            }
-
+            var style = stdLine.getStyle();
+            this.originalColor = getBackgroundColor( style );
             if ( targetColor.equals( originalColor ) ) {
                 this.targetColor = targetColor.invert();
             } else {
@@ -186,13 +178,47 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
             setInterpolator( Interpolator.EASE_OUT );
             setCycleCount( 6 );
             setAutoReverse( true );
-            setOnFinished( event -> stdLine.setBackground( FxUtils.simpleBackground( originalColor ) ) );
+            setOnFinished( event -> {
+                String finalStyle = String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
+                        getCurrentTextFillColor( style ), FxUtils.toRGBCode( originalColor ) );
+                stdLine.setStyle( finalStyle );
+            } );
+        }
+
+        private Color getBackgroundColor( String style ) {
+            if ( style == null || style.isEmpty() ) {
+                return Color.WHITE; // default
+            }
+            String[] parts = style.split( ";" );
+            for ( String part : parts ) {
+                if ( part.trim().startsWith( "-fx-background-color:" ) ) {
+                    String colorStr = part.substring( part.indexOf( ':' ) + 1 ).trim();
+                    return Color.web( colorStr );
+                }
+            }
+            return Color.WHITE;
+        }
+
+        private String getCurrentTextFillColor( String style ) {
+            if ( style == null || style.isEmpty() ) {
+                return "#000000"; // default black
+            }
+            String[] parts = style.split( ";" );
+            for ( String part : parts ) {
+                if ( part.trim().startsWith( "-fx-text-fill:" ) ) {
+                    return part.substring( part.indexOf( ':' ) + 1 ).trim();
+                }
+            }
+            return "#000000";
         }
 
         @Override
         protected void interpolate( double frac ) {
-            stdLine.setBackground( FxUtils.simpleBackground(
-                    originalColor.interpolate( targetColor, frac ) ) );
+            Color interpolatedColor = originalColor.interpolate( targetColor, frac );
+            String style = String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
+                    getCurrentTextFillColor( stdLine.getStyle() ),
+                    FxUtils.toRGBCode( interpolatedColor ) );
+            stdLine.setStyle( style );
         }
     }
 

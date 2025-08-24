@@ -1,5 +1,10 @@
 ## LogFX Release Notes
 
+## Next
+
+* open project when "Enter" is pressed, not only "Space".
+* fixed highlighted line colors changing unexpectedly.
+
 ## 1.1
 
 > 06 Jan 2025

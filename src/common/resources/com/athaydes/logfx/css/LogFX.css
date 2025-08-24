@@ -96,8 +96,8 @@ Label {
 }
 
 .log-line.selected {
-    -fx-background-color: -fx-focus-color;
-    -fx-text-fill: derive(-fx-focus-color, -80%);
+    -fx-background-color: -fx-focus-color !important;
+    -fx-text-fill: derive(-fx-focus-color, -80%) !important;
 }
 
 LogView.dropping-files {
