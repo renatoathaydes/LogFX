@@ -36,11 +36,11 @@ import java.util.function.BiFunction;
 import java.util.regex.PatternSyntaxException;
 import java.util.stream.Collectors;
 
+import static com.athaydes.logfx.ResourceUtils.resourcePath;
 import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
 import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
-import static com.athaydes.logfx.ui.FxUtils.resourcePath;
 
 /**
  * The highlight options screen.

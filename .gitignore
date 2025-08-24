@@ -11,4 +11,4 @@
 /gh-pages/
 
 # Generated file
-src/main/java/com/athaydes/logfx/Constants.java
+src/common/java/com/athaydes/logfx/Constants.java

@@ -6,9 +6,8 @@ import javafx.scene.Group;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.text.Text;
-import javafx.stage.StageStyle;
 
-import static com.athaydes.logfx.ui.FxUtils.resourcePath;
+import static com.athaydes.logfx.ResourceUtils.resourcePath;
 
 /**
  * About LogFX View.
@@ -18,7 +17,7 @@ public class AboutLogFXView {
     public static final int WIDTH = 500;
     public static final int HEIGHT = 350;
 
-    VBox createNode() {
+    public VBox createNode() {
         VBox contents = new VBox( 25 );
         contents.setPrefSize( WIDTH, HEIGHT );
         contents.setAlignment( Pos.CENTER );
@@ -37,7 +36,7 @@ public class AboutLogFXView {
         smallText.setPrefWidth( 500 );
         smallText.setAlignment( Pos.CENTER );
         Text version = new Text( "Version " + Constants.LOGFX_VERSION );
-        Text byRenato = new Text( "Copyright Renato Athaydes, 2017-2020. All rights reserved." );
+        Text byRenato = new Text( "Copyright Renato Athaydes, 2017-2025. All rights reserved." );
         Text license = new Text( "Licensed under the GPLv3 License." );
         Group fontsAttribution = new Group(
                 new Text( "Icons provided by " ),
@@ -50,16 +49,4 @@ public class AboutLogFXView {
         return contents;
     }
 
-    @MustCallOnJavaFXThread
-    public void show() {
-        createDialog().show();
-    }
-
-    public Dialog createDialog() {
-        Dialog dialog = new Dialog( ( String ) null, createNode() );
-        dialog.setStyle( StageStyle.UNDECORATED );
-        dialog.setResizable( false );
-        dialog.closeWhenLoseFocus();
-        return dialog;
-    }
 }

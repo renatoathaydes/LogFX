@@ -1,58 +1,93 @@
 package com.athaydes.logfx.splash;
 
+import com.athaydes.logfx.LogFXHostServices;
+import com.athaydes.logfx.ResourceUtils;
 import com.athaydes.logfx.ui.AboutLogFXView;
-import com.athaydes.logfx.ui.Dialog;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.embed.swing.SwingFXUtils;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Node;
+import javafx.scene.Scene;
 import javafx.scene.SnapshotParameters;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.image.WritableImage;
+import javafx.scene.layout.VBox;
 import javafx.scene.transform.Transform;
 import javafx.stage.Stage;
+import jbuild.api.JbTask;
+import jbuild.api.JbTaskInfo;
+import jbuild.api.TaskPhase;
 
 import javax.imageio.ImageIO;
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
-public final class SplashMaker extends Application {
+@JbTaskInfo( name = "makeSplashScreen",
+        description = "Creates LogFX splash screen.",
+        phase = @TaskPhase( name = "setup" ) )
+public final class SplashMaker extends Application implements JbTask {
 
     @Override
     public void start( Stage primaryStage ) {
+        System.out.println( "Starting SplashMaker..." );
+        LogFXHostServices.set( getHostServices() );
+
         List<String> args = getParameters().getUnnamed();
+        System.out.println( "SplashMaker parameters: " + args );
         if ( args.size() != 1 ) {
-            throw new IllegalStateException( "Wrong number of arguments provided, expected 1, got " + args.size() );
+            System.err.println( "Wrong number of arguments provided, expected 1, got " + args.size() );
+            exit( primaryStage );
+            return;
         }
 
-        var filePrefix = args.get( 0 );
-        var view = new AboutLogFXView();
-        var dialog = view.createDialog();
+        final VBox node = new VBox( 10 );
+        node.getStyleClass().add( "dialog-vbox" );
+        node.setAlignment( Pos.CENTER );
+        node.setPadding( new Insets( 20 ) );
 
-        var scales = new double[]{ 1.25, 2.0 };
-        var suffixes = new String[]{ ".png", "@2x.png" };
+        primaryStage.setScene( new Scene( node ) );
+        primaryStage.getScene().getStylesheets().add( ResourceUtils.resourcePath( "css/LogFX.css" ) );
+
+        node.getChildren().add( new AboutLogFXView().createNode() );
+
+        final var filePrefix = args.get( 0 );
+        final var scales = new double[]{ 1.25, 2.0 };
+        final var suffixes = new String[]{ ".png", "@2x.png" };
 
         Platform.runLater( () -> {
-            for ( int i = 0; i < scales.length; i++ ) {
-                var image = createScaledView( dialog, scales[ i ] );
-                var file = new File( filePrefix + suffixes[ i ] );
-                if ( !file.getParentFile().mkdirs() && !file.getParentFile().isDirectory() ) {
-                    System.err.println( "Not a directory (and cannot be created): " + file.getParentFile() );
-                    System.exit( 1 );
-                }
-                System.out.println( "Writing splash image to " + file.getAbsolutePath() );
-                try {
-                    ImageIO.write( SwingFXUtils.fromFXImage( image, null ), "png", file );
-                    System.out.println( "Image written to " + file.getAbsolutePath() );
-                } catch ( IOException e ) {
-                    e.printStackTrace();
-                    System.exit( 1 );
-                }
-            }
+            try {
+                for ( int i = 0; i < scales.length; i++ ) {
+                    System.out.println( "SplashMaker: Generating image with scale " + scales[ i ] + ": " +
+                            filePrefix + suffixes[ i ] );
+                    var image = createScaledView( node, scales[ i ] );
+                    var file = new File( filePrefix + suffixes[ i ] );
+                    if ( !file.getParentFile().mkdirs() && !file.getParentFile().isDirectory() ) {
+                        System.err.println(
+                                "SplashMaker error: Not a directory (and cannot be created): " + file.getParentFile()
+                        );
+                        return;
+                    }
+                    System.out.println( "SplashMaker: Writing splash image to " + file.getAbsolutePath() );
 
-            System.exit( 0 );
+                    ImageIO.write( SwingFXUtils.fromFXImage( image, null ), "png", file );
+                    System.out.println( "SplashMaker: Image written to " + file.getAbsolutePath() );
+                }
+
+                System.out.println( "SplashMaker: Done" );
+            } catch ( Throwable e ) {
+                System.err.println( "SplashMaker error: " + e );
+            } finally {
+                exit( primaryStage );
+            }
         } );
+    }
+
+    void exit( Stage primaryStage ) {
+        primaryStage.close();
+        Platform.exit();
     }
 
     /**
@@ -60,9 +95,7 @@ public final class SplashMaker extends Application {
      *
      * @return scaled image
      */
-    private static Image createScaledView( Dialog dialog, double scale ) {
-        var node = dialog.getBox();
-
+    private static Image createScaledView( Node node, double scale ) {
         var image = new WritableImage(
                 ( int ) ( AboutLogFXView.WIDTH * scale ),
                 ( int ) ( AboutLogFXView.HEIGHT * scale ) );
@@ -79,7 +112,13 @@ public final class SplashMaker extends Application {
         return view.getImage();
     }
 
+    @Override
+    public void run( String... args ) {
+        SplashMaker.launch( args );
+    }
+
     public static void main( String[] args ) {
         launch( args );
     }
+
 }

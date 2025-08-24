@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 import javax.swing.ImageIcon;
 import java.awt.Taskbar;
 
-import static com.athaydes.logfx.ui.FxUtils.resourceUrl;
+import static com.athaydes.logfx.ResourceUtils.resourceUrl;
 
 /**
  * A class that sets up the tray icon, if possible on the current OS.

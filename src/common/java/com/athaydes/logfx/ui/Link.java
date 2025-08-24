@@ -1,6 +1,6 @@
 package com.athaydes.logfx.ui;
 
-import com.athaydes.logfx.LogFX;
+import com.athaydes.logfx.LogFXHostServices;
 import javafx.scene.control.Hyperlink;
 
 public class Link extends Hyperlink {
@@ -13,7 +13,7 @@ public class Link extends Hyperlink {
     public Link( String url, String text ) {
         super( text );
         this.url = url;
-        setOnAction( ( event ) -> LogFX.hostServices().showDocument( this.url ) );
+        setOnAction( ( event ) -> LogFXHostServices.get().showDocument( this.url ) );
     }
 
     public String getUrl() {

@@ -22,7 +22,6 @@ import com.athaydes.logfx.ui.ProjectsDialog;
 import com.athaydes.logfx.ui.StartUpView;
 import com.athaydes.logfx.ui.TopViewMenu;
 import javafx.application.Application;
-import javafx.application.HostServices;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.collections.SetChangeListener;
@@ -42,6 +41,7 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Rectangle;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,7 +50,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static com.athaydes.logfx.data.NaNChecker.checkNaN;
 import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
@@ -65,8 +64,6 @@ public final class LogFX extends Application {
 
     private static final String TITLE = "LogFX";
 
-    private static final AtomicReference<HostServices> hostServices = new AtomicReference<>();
-
     private Stage stage;
     private final Pane root = new Pane();
     private final Rectangle overlay = new Rectangle( 0, 0 );
@@ -79,7 +76,7 @@ public final class LogFX extends Application {
 
     @MustCallOnJavaFXThread
     public LogFX() {
-        hostServices.set( getHostServices() );
+        LogFXHostServices.set( getHostServices() );
         this.config = new Config( Properties.DEFAULT_LOGFX_CONFIG, taskRunner );
 
         this.logsPane = new LogViewPane( taskRunner, () ->
@@ -236,8 +233,8 @@ public final class LogFX extends Application {
     private void setIconsOn( Stage primaryStage ) {
         taskRunner.runAsync( () -> {
             final List<String> images = Arrays.asList(
-                    FxUtils.resourcePath( "images/favicon-large.png" ),
-                    FxUtils.resourcePath( "images/favicon-small.png" ) );
+                    ResourceUtils.resourcePath( "images/favicon-large.png" ),
+                    ResourceUtils.resourcePath( "images/favicon-small.png" ) );
 
             Platform.runLater( () -> images.stream()
                     .map( Image::new )
@@ -283,10 +280,18 @@ public final class LogFX extends Application {
         menu.setMnemonicParsing( true );
 
         MenuItem about = new MenuItem( "_About LogFX" );
-        about.setOnAction( ( event ) -> new AboutLogFXView().show() );
+        about.setOnAction( ( event ) -> showAboutLogFXView() );
         menu.getItems().add( about );
 
         return menu;
+    }
+
+    private static void showAboutLogFXView() {
+        Dialog dialog = new Dialog( ( String ) null, new AboutLogFXView().createNode() );
+        dialog.setStyle( StageStyle.UNDECORATED );
+        dialog.setResizable( false );
+        dialog.closeWhenLoseFocus();
+        dialog.show();
     }
 
     private void openFilesFromConfig() {
@@ -378,16 +383,12 @@ public final class LogFX extends Application {
         return true;
     }
 
-    public static HostServices hostServices() {
-        return hostServices.get();
-    }
-
     public static void main( String[] args ) {
         if ( FxUtils.isMac() ) {
             SetupTrayIcon.run();
         }
 
-        Font.loadFont( FxUtils.resourcePath( "fonts/themify-1.0.1.ttf" ), 12 );
+        Font.loadFont( ResourceUtils.resourcePath( "fonts/themify-1.0.1.ttf" ), 12 );
 
         Application.launch( LogFX.class );
     }

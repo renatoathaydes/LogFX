@@ -9,6 +9,17 @@ plugins {
     id 'org.javamodularity.moduleplugin' version '1.8.15'
 }
 
+sourceSets {
+    main {
+        java {
+            srcDirs = [ 'src/main/java', 'src/common/java' ]
+        }
+        resources {
+            srcDirs = [ 'src/main/resources', 'src/common/resources' ]
+        }
+    }
+}
+
 group 'com.athaydes.logfx'
 version '1.1'
 description 'A beautiful log viewer capable of handling large files'
@@ -34,6 +45,10 @@ ext.splashImage = "${image}/bin/logfx-logo"
 tasks.register( 'deps',  Copy ) {
     from configurations.runtimeClasspath
     into libs
+}
+
+tasks.named( 'distZip' ).configure {
+    dependsOn deps
 }
 
 tasks.register( 'copyShellScriptToImage',  Copy ) {
@@ -107,17 +122,20 @@ configurations {
 }
 
 dependencies {
-    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.13'
+    implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.16'
 
-    testImplementation group: 'org.codehaus.groovy', name: 'groovy-all', version: '3.0.9'
-    testImplementation group: 'org.spockframework', name: 'spock-core', version: '2.1-M2-groovy-3.0', {
+    testImplementation platform( 'org.apache.groovy:groovy-bom:4.0.26' )
+    testImplementation 'org.apache.groovy:groovy'
+    testImplementation platform( "org.spockframework:spock-bom:2.3-groovy-4.0" )
+    testImplementation "org.spockframework:spock-core"
+    testImplementation "org.junit.jupiter:junit-jupiter-api"
+    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.5.1-groovy-4.0', {
         transitive = false
     }
-    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.2.0-groovy-3.0', {
+    testImplementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.12.19'
+    testImplementation group: 'com.google.code.tempus-fugit', name: 'tempus-fugit', version: '1.1', {
         transitive = false
     }
-    testImplementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.15.11'
-    testImplementation group: 'com.google.code.tempus-fugit', name: 'tempus-fugit', version: '1.1'
 }
 
 test {
@@ -125,7 +143,7 @@ test {
     systemProperty 'logfx.log.level', 'info'
     systemProperty 'com.athaydes.spockframework.report.showCodeBlocks', 'true'
 
-    useJUnit()
+    useJUnitPlatform()
 
     moduleOptions {
         runOnClasspath = true
@@ -141,7 +159,7 @@ tasks.register( 'generateJavaSources' ) {
     def properties = [ logfxVersion: version ]
     def templates = fileTree( dir: 'src/main/java-templates' )
 //    def destination = file( generatedJavaSources )
-    def destination = file( 'src/main/java' )
+    def destination = file( 'src/common/java' )
 
     doLast {
         templates.visit { item ->
