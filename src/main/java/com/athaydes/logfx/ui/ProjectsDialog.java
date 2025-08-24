@@ -5,6 +5,7 @@ import com.athaydes.logfx.config.Properties;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -61,6 +62,13 @@ public final class ProjectsDialog {
             optionButton.setOnAction( ( e ) -> {
                 dialog.hide();
                 action.run();
+            } );
+            // Ensure Enter key also triggers the button
+            optionButton.setOnKeyPressed( event -> {
+                if ( event.getCode() == KeyCode.ENTER ) {
+                    dialog.hide();
+                    action.run();
+                }
             } );
             var deleteButton = AwesomeIcons.createIconButton( AwesomeIcons.TRASH );
             if ( DEFAULT_PROJECT_NAME.equals( projectName ) ) {
