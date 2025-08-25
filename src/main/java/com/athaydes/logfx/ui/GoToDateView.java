@@ -115,9 +115,7 @@ class GoToDateView {
                     lastValidDateTimeText = newValue;
                 } else {
                     valid.set( false );
-                    if ( !getStyleClass().contains( "error" ) ) {
-                        getStyleClass().add( "error" );
-                    }
+                    FxUtils.addIfNotPresent( getStyleClass(), "error" );
                 }
             } );
 

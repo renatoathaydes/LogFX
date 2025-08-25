@@ -339,9 +339,7 @@ public class HighlightOptions extends VBox {
                 observableExpressions.set( index, expression );
                 expressionField.getStyleClass().remove( "error" );
             } catch ( PatternSyntaxException e ) {
-                if ( !expressionField.getStyleClass().contains( "error" ) ) {
-                    expressionField.getStyleClass().add( "error" );
-                }
+                FxUtils.addIfNotPresent( expressionField.getStyleClass(), "error" );
                 log.warn( "Invalid regular expression: {}", e.toString() );
             }
         }

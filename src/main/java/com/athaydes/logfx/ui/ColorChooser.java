@@ -100,9 +100,7 @@ public class ColorChooser {
                     field.getStyleClass().remove( "error" );
                     onUpdate.accept( colorValue );
                 } catch ( IllegalArgumentException e ) {
-                    if ( !field.getStyleClass().contains( "error" ) ) {
-                        field.getStyleClass().add( "error" );
-                    }
+                    FxUtils.addIfNotPresent( field.getStyleClass(), "error" );
                     log.debug( "Invalid color entered" );
                 }
             } );

@@ -75,9 +75,7 @@ public class TimeGapEditor {
                     getStyleClass().remove( "error" );
                 } else {
                     valid.set( false );
-                    if ( !getStyleClass().contains( "error" ) ) {
-                        getStyleClass().add( "error" );
-                    }
+                    FxUtils.addIfNotPresent( getStyleClass(), "error" );
                 }
             } );
         }

@@ -5,10 +5,17 @@ import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.regex.Pattern;
 
-import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.*;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.TIMEZONE_GROUP;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.namedGroup;
 
 /**
  * A utility class that can be used to guess the format of dates within a log file
@@ -25,6 +32,10 @@ public final class DateTimeFormatGuesser {
     private static volatile DateTimeFormatGuesser STANDARD_INSTANCE;
 
     private static DateTimeFormatGuesser createStandard() {
+        return new DateTimeFormatGuesser( standardGuesses() );
+    }
+
+    public static List<PatternBasedDateTimeFormatGuess> standardGuesses() {
         var prefixRegex = "[a-zA-Z\\[\\]_ -]{0,20}";
         var time = "\\d{1,2}:\\d{1,2}:\\d{1,2}";
         var timeMs = time + "(\\.\\d{1,9})?";
@@ -60,7 +71,7 @@ public final class DateTimeFormatGuesser {
                 "\\d{1,4}-\\d{1,2}-\\d{1,2}\\s+" + timeMs +
                         namedGroup( TIMEZONE_GROUP, "[+-]\\d{1,2}" ) );
 
-        return new DateTimeFormatGuesser( List.of(
+        return List.of(
                 new PatternBasedDateTimeFormatGuess( "ISO2", Pattern.compile( isoDateTime2 + ".*" ),
                         DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][:SS][:S][xx]" ) ),
                 new PatternBasedDateTimeFormatGuess( "ISO", Pattern.compile( isoDateTime + ".*" ),
@@ -72,8 +83,7 @@ public final class DateTimeFormatGuesser {
                 new PatternBasedDateTimeFormatGuess( "RFC-1123", Pattern.compile( rfc1123DateTime + ".*" ),
                         DateTimeFormatter.RFC_1123_DATE_TIME ),
                 new PatternBasedDateTimeFormatGuess( "APPLE", Pattern.compile( appleDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) ) )
-        );
+                        DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) ) );
     }
 
     public static DateTimeFormatGuesser standard() {
@@ -97,6 +107,10 @@ public final class DateTimeFormatGuesser {
      */
     public DateTimeFormatGuess asGuess() {
         return multiGuess;
+    }
+
+    public Collection<? extends DateTimeFormatGuess> getGuesses() {
+        return multiGuess.getGuesses();
     }
 
     /**
@@ -187,7 +201,7 @@ public final class DateTimeFormatGuesser {
                     .findFirst();
         }
 
-        Collection<? extends DateTimeFormatGuess> getGuesses() {
+        public Collection<? extends DateTimeFormatGuess> getGuesses() {
             return guesses;
         }
     }
