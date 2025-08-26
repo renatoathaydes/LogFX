@@ -10,7 +10,9 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
+import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -34,6 +36,7 @@ public final class DateTimeEditor extends BorderPane {
     private final TextField regexField;
     private final TextField formatField;
     private final TextField testTextField;
+    private final TextField dateTimeOutputField;
     private final Circle regexLight;
     private final Circle formatLight;
     private final Button addButton;
@@ -45,7 +48,7 @@ public final class DateTimeEditor extends BorderPane {
     private DateTimeFormatter formatter;
 
     public DateTimeEditor( List<PatternBasedDateTimeFormatGuess> guesses ) {
-        setPrefWidth( 600.0 );
+        setPrefWidth( 700.0 );
 
         // the list must be mutable, do not count on the provided list being mutable
         this.guesses = FXCollections.observableArrayList( new ArrayList<>( guesses ) );
@@ -61,7 +64,7 @@ public final class DateTimeEditor extends BorderPane {
 
         // Left side - list of patterns
         guessesList.setPrefWidth( 200 );
-        setLeft( guessesList );
+        setLeft( new ScrollPane( guessesList ) );
 
         // Right side - editor
         VBox editor = new VBox( 10 );
@@ -79,6 +82,8 @@ public final class DateTimeEditor extends BorderPane {
         VBox regexBox = new VBox( 5 );
         Label regexLabel = new Label( "Regex Pattern:" );
         regexField = new TextField();
+        regexField.setTooltip( new Tooltip( "Regex to extract a DateTime from a log line. " +
+                "Must include the 'dt' group, e.g. '(\\w+\\s+)+(?<dt>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}).*'" ) );
         regexField.getStyleClass().add( "text-input" );
         regexField.setPromptText( "Enter a regex to extract the DateTime. " +
                 "Use the " + PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP + " group to capture datetime." );
@@ -94,10 +99,17 @@ public final class DateTimeEditor extends BorderPane {
 
         // Test section
         VBox testBox = new VBox( 5 );
+        testBox.getStyleClass().add( "solid-border" );
+
         Label testLabel = new Label( "Test Text:" );
         testTextField = new TextField();
         testTextField.getStyleClass().add( "text-input" );
         testTextField.setPromptText( "Enter text to test the regex and DateTime pattern." );
+
+        dateTimeOutputField = new TextField();
+        dateTimeOutputField.setDisable( true );
+        dateTimeOutputField.setPromptText( "Parsed DateTime will appear here if it can be extracted from the Test Text " +
+                "(captured by the regex group '" + PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP + "')." );
 
         HBox testResultBox = new HBox( 10 );
         testResultBox.setAlignment( Pos.CENTER_LEFT );
@@ -105,11 +117,12 @@ public final class DateTimeEditor extends BorderPane {
         regexLight = new Circle( LIGHT_RADIUS, Color.GRAY );
 
         testResultBox.getChildren().addAll(
-                regexLight, new Label( "Regex Match" ), new Rectangle( 10, 5, Color.TRANSPARENT ),
+                regexLight, new Label( "Regex Match" ),
+                new Rectangle( 10, 5, Color.TRANSPARENT ),
                 formatLight, new Label( "DateTime Match" )
         );
 
-        testBox.getChildren().addAll( testLabel, testTextField, testResultBox );
+        testBox.getChildren().addAll( testLabel, testTextField, testResultBox, dateTimeOutputField );
 
         // Buttons
         HBox buttonBox = new HBox( 10 );
@@ -162,23 +175,21 @@ public final class DateTimeEditor extends BorderPane {
 
         // Update button
         updateButton.setOnAction( e -> {
-            try {
-                String name = nameField.getText().trim();
-                if ( name.isEmpty() ) {
-                    FxUtils.addIfNotPresent( nameField.getStyleClass(), "error" );
-                    Dialog.showMessage( "Name cannot be empty", Dialog.MessageLevel.ERROR );
-                    return;
-                } else {
-                    nameField.getStyleClass().remove( "error" );
-                }
-                Pattern pattern = Pattern.compile( regexField.getText() );
-                DateTimeFormatter format = DateTimeFormatter.ofPattern( formatField.getText() );
-                int selectedIndex = guessesList.getSelectionModel().getSelectedIndex();
-                if ( selectedIndex >= 0 ) {
-                    guesses.set( selectedIndex, new PatternBasedDateTimeFormatGuess( name, pattern, format ) );
-                }
-            } catch ( IllegalArgumentException ex ) {
-                Dialog.showMessage( "Invalid pattern: " + ex.getMessage(), Dialog.MessageLevel.ERROR );
+            String name = nameField.getText().trim();
+            if ( name.isEmpty() ) {
+                FxUtils.addIfNotPresent( nameField.getStyleClass(), "error" );
+                Dialog.showMessage( "Name cannot be empty", Dialog.MessageLevel.ERROR );
+                return;
+            } else {
+                nameField.getStyleClass().remove( "error" );
+            }
+            if ( lineRegex == null || formatter == null ) {
+                Dialog.showMessage( "Regex or DateTime format is invalid", Dialog.MessageLevel.ERROR );
+                return;
+            }
+            int selectedIndex = guessesList.getSelectionModel().getSelectedIndex();
+            if ( selectedIndex >= 0 ) {
+                guesses.set( selectedIndex, new PatternBasedDateTimeFormatGuess( name, lineRegex, formatter ) );
             }
         } );
 
@@ -202,11 +213,13 @@ public final class DateTimeEditor extends BorderPane {
             }
         } );
 
-        // Test text change listener
+        // Listener to update the test result lights and dateTime output text
         ChangeListener<String> resultListener = ( obs, oldVal, newVal ) -> {
+            dateTimeOutputField.setText( "" );
+            formatLight.setFill( Color.GRAY );
+            regexLight.setFill( Color.GRAY );
+
             if ( newVal == null || newVal.isEmpty() || lineRegex == null || formatter == null ) {
-                formatLight.setFill( Color.GRAY );
-                regexLight.setFill( Color.GRAY );
                 return;
             }
 
@@ -218,8 +231,15 @@ public final class DateTimeEditor extends BorderPane {
                 return;
             }
 
+            String dateTimeStr = matcher.group( PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
+            if ( dateTimeStr == null ) {
+                formatLight.setFill( Color.RED );
+                dateTimeOutputField.setText( "" );
+                return;
+            } else {
+                dateTimeOutputField.setText( dateTimeStr );
+            }
             try {
-                String dateTimeStr = matcher.group( PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
                 formatter.parse( dateTimeStr );
                 formatLight.setFill( Color.GREEN );
             } catch ( DateTimeParseException e ) {
@@ -237,7 +257,9 @@ public final class DateTimeEditor extends BorderPane {
         regexField.clear();
         formatField.clear();
         testTextField.clear();
+        dateTimeOutputField.clear();
         guessesList.getSelectionModel().clearSelection();
+        regexLight.setFill( Color.GRAY );
         formatLight.setFill( Color.GRAY );
         removeButton.setDisable( true );
         updateButton.setDisable( true );

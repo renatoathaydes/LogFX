@@ -149,3 +149,10 @@ LogView.dropping-files {
     -fx-padding: 4 0 2 2;
     -fx-text-fill: yellowgreen;
 }
+
+.solid-border {
+    -fx-border-style: solid;
+    -fx-border-color: derive(-fx-base, 80%);
+    -fx-padding: 8px;
+    -fx-border-width: 1px;
+}

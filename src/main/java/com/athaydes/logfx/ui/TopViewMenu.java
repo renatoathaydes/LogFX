@@ -28,7 +28,11 @@ public final class TopViewMenu extends Menu {
         var dateTimeMenu = new CheckMenuItem( "_Patterns for DateTime" );
         dateTimeMenu.setAccelerator( new KeyCodeCombination( KeyCode.P, KeyCombination.SHORTCUT_DOWN ) );
         dateTimeMenu.setMnemonicParsing( true );
-        bindMenuItemToDialog( dateTimeMenu, () -> new Dialog( new DateTimeEditor( DateTimeFormatGuesser.standardGuesses() ) ) );
+        bindMenuItemToDialog( dateTimeMenu, () -> {
+            var dialog = new Dialog( new DateTimeEditor( DateTimeFormatGuesser.standardGuesses() ) );
+            dialog.setHeight( 470, true );
+            return dialog;
+        } );
 
         highlightGroupsView = new HighlightGroupsView( config );
         highlight = new CheckMenuItem( "_Highlight Options" );

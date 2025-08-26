@@ -1,6 +1,13 @@
 package com.athaydes.logfx.ui;
 
-import javafx.animation.*;
+import javafx.animation.Animation;
+import javafx.animation.FadeTransition;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.ParallelTransition;
+import javafx.animation.Timeline;
+import javafx.animation.Transition;
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.geometry.Bounds;
@@ -18,7 +25,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Text;
-import javafx.stage.*;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.stage.StageStyle;
+import javafx.stage.Window;
+import javafx.stage.WindowEvent;
 import javafx.util.Duration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -99,6 +110,15 @@ public class Dialog {
     public void setWidth( double width ) {
         dialogStage.setWidth( width );
         box.setMinWidth( width );
+    }
+
+    public void setHeight( double height, boolean strict ) {
+        dialogStage.setHeight( height );
+        box.setMinHeight( height );
+        if ( strict ) {
+            dialogStage.setMaxHeight( height );
+            dialogStage.setMinHeight( height );
+        }
     }
 
     public void closeWhenLoseFocus() {
