@@ -112,6 +112,10 @@ public class Dialog {
         box.setMinWidth( width );
     }
 
+    public void setMinWidth( double width ) {
+        dialogStage.setMinWidth( width );
+    }
+
     public void setHeight( double height, boolean strict ) {
         dialogStage.setHeight( height );
         box.setMinHeight( height );

@@ -86,7 +86,8 @@ public final class DateTimeEditor extends BorderPane {
                 "Must include the 'dt' group, e.g. '(\\w+\\s+)+(?<dt>\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}).*'" ) );
         regexField.getStyleClass().add( "text-input" );
         regexField.setPromptText( "Enter a regex to extract the DateTime. " +
-                "Use the " + PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP + " group to capture datetime." );
+                "Use the " + PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP + " group to capture datetime, " +
+                "and " + PatternBasedDateTimeFormatGuess.TIMEZONE_GROUP + " to optionally capture the timezone." );
         regexBox.getChildren().addAll( regexLabel, regexField );
 
         // Format input
@@ -139,6 +140,10 @@ public final class DateTimeEditor extends BorderPane {
         updateButton.setDisable( true );
 
         setupListeners();
+
+        if ( !guesses.isEmpty() ) {
+            guessesList.getSelectionModel().selectFirst();
+        }
     }
 
     private void setupListeners() {
@@ -147,7 +152,7 @@ public final class DateTimeEditor extends BorderPane {
             if ( newVal != null ) {
                 nameField.setText( newVal.name() );
                 regexField.setText( newVal.linePattern().pattern() );
-                formatField.setText( newVal.formatter().toString() );
+                formatField.setText( newVal.formatterString() );
                 removeButton.setDisable( false );
                 updateButton.setDisable( false );
             } else {
@@ -159,8 +164,7 @@ public final class DateTimeEditor extends BorderPane {
         addButton.setOnAction( e -> {
             String name = "New DateTime Pattern";
             Pattern pattern = Pattern.compile( "(?<dt>.*)" );
-            DateTimeFormatter format = DateTimeFormatter.ofPattern( "yyyy-MM-dd HH:mm:ss" );
-            guesses.add( new PatternBasedDateTimeFormatGuess( name, pattern, format ) );
+            guesses.add( new PatternBasedDateTimeFormatGuess( name, pattern, "yyyy-MM-dd HH:mm:ss" ) );
             Platform.runLater( () -> guessesList.getSelectionModel().select( guesses.size() - 1 ) );
         } );
 
@@ -168,8 +172,12 @@ public final class DateTimeEditor extends BorderPane {
         removeButton.setOnAction( e -> {
             PatternBasedDateTimeFormatGuess selected = guessesList.getSelectionModel().getSelectedItem();
             if ( selected != null ) {
+                if ( guesses.size() == 1 ) {
+                    Dialog.showMessage( "Cannot remove last remaining pattern", Dialog.MessageLevel.WARNING );
+                    return;
+                }
                 guesses.remove( selected );
-                clearFields();
+                guessesList.getSelectionModel().selectFirst();
             }
         } );
 
@@ -178,7 +186,7 @@ public final class DateTimeEditor extends BorderPane {
             String name = nameField.getText().trim();
             if ( name.isEmpty() ) {
                 FxUtils.addIfNotPresent( nameField.getStyleClass(), "error" );
-                Dialog.showMessage( "Name cannot be empty", Dialog.MessageLevel.ERROR );
+                Dialog.showMessage( "Name cannot be empty", Dialog.MessageLevel.WARNING );
                 return;
             } else {
                 nameField.getStyleClass().remove( "error" );
@@ -189,7 +197,7 @@ public final class DateTimeEditor extends BorderPane {
             }
             int selectedIndex = guessesList.getSelectionModel().getSelectedIndex();
             if ( selectedIndex >= 0 ) {
-                guesses.set( selectedIndex, new PatternBasedDateTimeFormatGuess( name, lineRegex, formatter ) );
+                guesses.set( selectedIndex, new PatternBasedDateTimeFormatGuess( name, lineRegex, formatter, formatField.getText() ) );
             }
         } );
 

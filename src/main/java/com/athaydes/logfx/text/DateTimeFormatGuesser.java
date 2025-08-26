@@ -73,17 +73,17 @@ public final class DateTimeFormatGuesser {
 
         return List.of(
                 new PatternBasedDateTimeFormatGuess( "ISO2", Pattern.compile( isoDateTime2 + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][:SS][:S][xx]" ) ),
+                        "yyyy-M-d'T'H:m:s[:SSS][:SS][:S][xx]" ),
                 new PatternBasedDateTimeFormatGuess( "ISO", Pattern.compile( isoDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][zzz]" ) ),
+                        "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][zzz]" ),
                 new PatternBasedDateTimeFormatGuess( "Common", Pattern.compile( commonDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "[EE ]MMM dd HH:mm:ss[.SSS][.SS][.S][ zzz][ yyyy]" ) ),
+                        "[EE ]MMM dd HH:mm:ss[.SSS][.SS][.S][ zzz][ yyyy]" ),
                 new PatternBasedDateTimeFormatGuess( "NCSA", Pattern.compile( ncsaCommonLogFormat + ".*" ),
-                        DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][:SS][:S][ Z]" ) ),
+                        "d/MMM/yyyy:H:m:s[:SSS][:SS][:S][ Z]" ),
                 new PatternBasedDateTimeFormatGuess( "RFC-1123", Pattern.compile( rfc1123DateTime + ".*" ),
-                        DateTimeFormatter.RFC_1123_DATE_TIME ),
+                        DateTimeFormatter.RFC_1123_DATE_TIME, "EEE, dd MMM yyyy HH:mm:ss zzz" ),
                 new PatternBasedDateTimeFormatGuess( "APPLE", Pattern.compile( appleDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) ) );
+                        "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) );
     }
 
     public static DateTimeFormatGuesser standard() {

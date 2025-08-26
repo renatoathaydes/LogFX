@@ -30,6 +30,8 @@ public final class TopViewMenu extends Menu {
         dateTimeMenu.setMnemonicParsing( true );
         bindMenuItemToDialog( dateTimeMenu, () -> {
             var dialog = new Dialog( new DateTimeEditor( DateTimeFormatGuesser.standardGuesses() ) );
+            dialog.setTitle( "Edit DateTime Parsers" );
+            dialog.setMinWidth( 400 );
             dialog.setHeight( 470, true );
             return dialog;
         } );

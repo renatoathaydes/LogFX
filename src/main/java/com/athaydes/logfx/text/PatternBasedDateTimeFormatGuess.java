@@ -16,11 +16,17 @@ import java.util.regex.Pattern;
  * and a formatter which can then parse the date-time.
  * <p>
  * The pattern must use the given group to extract the date-time.
+ *
+ * @param name            name for this guess
+ * @param linePattern     pattern that can extract a date-time from a log line
+ * @param formatter       formatter that can parse the extracted date-time
+ * @param formatterString the string used to create the formatter
  */
 public record PatternBasedDateTimeFormatGuess(
         String name,
         Pattern linePattern,
-        DateTimeFormatter formatter
+        DateTimeFormatter formatter,
+        String formatterString
 ) implements DateTimeFormatGuess {
     public static final String DATE_TIME_GROUP = "dt";
     public static final String TIMEZONE_GROUP = "tz";
@@ -29,6 +35,10 @@ public record PatternBasedDateTimeFormatGuess(
 
     public static String namedGroup( String name, String regex ) {
         return "(?<" + name + ">" + regex + ")";
+    }
+
+    public PatternBasedDateTimeFormatGuess( String name, Pattern linePattern, String formatterString ) {
+        this( name, linePattern, DateTimeFormatter.ofPattern( formatterString ), formatterString );
     }
 
     public PatternBasedDateTimeFormatGuess {
