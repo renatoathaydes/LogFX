@@ -4,6 +4,7 @@ import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
 import javafx.collections.FXCollections;
+import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -41,7 +42,6 @@ public final class DateTimeEditor extends BorderPane {
     private final Circle formatLight;
     private final Button addButton;
     private final Button removeButton;
-    private final Button updateButton;
 
     // Currently editable values
     private Pattern lineRegex;
@@ -129,15 +129,13 @@ public final class DateTimeEditor extends BorderPane {
         HBox buttonBox = new HBox( 10 );
         addButton = new Button( "Add" );
         removeButton = new Button( "Remove" );
-        updateButton = new Button( "Update" );
-        buttonBox.getChildren().addAll( addButton, removeButton, updateButton );
+        buttonBox.getChildren().addAll( addButton, removeButton );
 
         editor.getChildren().addAll( nameBox, regexBox, formatBox, testBox, buttonBox );
         setCenter( editor );
 
         // Initial button states
         removeButton.setDisable( true );
-        updateButton.setDisable( true );
 
         setupListeners();
 
@@ -154,7 +152,6 @@ public final class DateTimeEditor extends BorderPane {
                 regexField.setText( newVal.linePattern().pattern() );
                 formatField.setText( newVal.formatterString() );
                 removeButton.setDisable( false );
-                updateButton.setDisable( false );
             } else {
                 clearFields();
             }
@@ -180,31 +177,17 @@ public final class DateTimeEditor extends BorderPane {
                 guessesList.getSelectionModel().selectFirst();
             }
         } );
-
-        // Update button
-        updateButton.setOnAction( e -> {
-            String name = nameField.getText().trim();
-            if ( name.isEmpty() ) {
-                FxUtils.addIfNotPresent( nameField.getStyleClass(), "error" );
-                Dialog.showMessage( "Name cannot be empty", Dialog.MessageLevel.WARNING );
-                return;
-            } else {
-                nameField.getStyleClass().remove( "error" );
-            }
-            if ( lineRegex == null || formatter == null ) {
-                Dialog.showMessage( "Regex or DateTime format is invalid", Dialog.MessageLevel.ERROR );
-                return;
-            }
-            int selectedIndex = guessesList.getSelectionModel().getSelectedIndex();
-            if ( selectedIndex >= 0 ) {
-                guesses.set( selectedIndex, new PatternBasedDateTimeFormatGuess( name, lineRegex, formatter, formatField.getText() ) );
-            }
+        guesses.addListener( ( ListChangeListener<? super PatternBasedDateTimeFormatGuess> ) ( change ) -> {
+            removeButton.setDisable( change.getList().size() <= 1 );
         } );
+
+        nameField.textProperty().addListener( e -> saveSelectedPattern() );
 
         regexField.textProperty().addListener( e -> {
             try {
                 lineRegex = Pattern.compile( regexField.getText() );
                 regexField.getStyleClass().remove( "error" );
+                saveSelectedPattern();
             } catch ( PatternSyntaxException ex ) {
                 lineRegex = null;
                 FxUtils.addIfNotPresent( regexField.getStyleClass(), "error" );
@@ -215,6 +198,7 @@ public final class DateTimeEditor extends BorderPane {
             try {
                 formatter = DateTimeFormatter.ofPattern( formatField.getText() );
                 formatField.getStyleClass().remove( "error" );
+                saveSelectedPattern();
             } catch ( IllegalArgumentException ex ) {
                 formatter = null;
                 FxUtils.addIfNotPresent( formatField.getStyleClass(), "error" );
@@ -232,21 +216,18 @@ public final class DateTimeEditor extends BorderPane {
             }
 
             var matcher = lineRegex.matcher( newVal );
-            if ( matcher.find() ) {
-                regexLight.setFill( Color.GREEN );
-            } else {
+            if ( !matcher.find() ) {
                 regexLight.setFill( Color.RED );
                 return;
             }
+            regexLight.setFill( Color.GREEN );
 
             String dateTimeStr = matcher.group( PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
             if ( dateTimeStr == null ) {
                 formatLight.setFill( Color.RED );
-                dateTimeOutputField.setText( "" );
                 return;
-            } else {
-                dateTimeOutputField.setText( dateTimeStr );
             }
+            dateTimeOutputField.setText( dateTimeStr );
             try {
                 formatter.parse( dateTimeStr );
                 formatLight.setFill( Color.GREEN );
@@ -260,6 +241,19 @@ public final class DateTimeEditor extends BorderPane {
         testTextField.textProperty().addListener( resultListener );
     }
 
+    private void saveSelectedPattern() {
+        if ( lineRegex == null || formatter == null || nameField.getText().trim().isEmpty() ) {
+            return;
+        }
+        PatternBasedDateTimeFormatGuess selected = guessesList.getSelectionModel().getSelectedItem();
+        if ( selected != null ) {
+            String name = nameField.getText().trim();
+            guesses.set( guessesList.getSelectionModel().getSelectedIndex(),
+                    new PatternBasedDateTimeFormatGuess( name,
+                            lineRegex, formatter, formatField.getText() ) );
+        }
+    }
+
     private void clearFields() {
         nameField.clear();
         regexField.clear();
@@ -270,6 +264,5 @@ public final class DateTimeEditor extends BorderPane {
         regexLight.setFill( Color.GRAY );
         formatLight.setFill( Color.GRAY );
         removeButton.setDisable( true );
-        updateButton.setDisable( true );
     }
 }
