@@ -1,6 +1,7 @@
 package com.athaydes.logfx.config
 
 import com.athaydes.logfx.text.HighlightExpression
+import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess
 import javafx.geometry.BoundingBox
 import javafx.geometry.Orientation
 import javafx.scene.paint.Color
@@ -9,7 +10,10 @@ import spock.lang.Unroll
 
 import java.util.regex.Pattern
 
-import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.*
+import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.V1
+import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.V2
+import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.V3
+import static com.athaydes.logfx.config.ConfigParser.ConfigVersion.V4
 
 @Unroll
 class ConfigParserSpec extends Specification {
@@ -221,6 +225,49 @@ class ConfigParserSpec extends Specification {
         config.highlightGroups.getByName( 'Extra Rules' )?.collect() == extraHighlights
     }
 
+    def 'Can parse DateTimeFormat rules'() {
+        when: 'Parse config'
+        def config = new ConfigProperties()
+        new ConfigParser( config ).parseConfigFile( sampleConfig.split( '\n' ).iterator() )
+
+        then: 'The expected DateTimeFormat rules are parsed'
+        assertDateTimeFormatsEqual config.guesses, expectedRules
+
+        where:
+        sampleConfig                          || expectedRules
+        """\
+        |version:
+        |  V3""".stripMargin()     || [ ]
+
+        """\
+        |version:
+        |  V3
+        |date-time-format:
+        |  name: Rule 1
+        |  regex: (?<dt>.*)
+        |  dt: yyyy-MM-DD
+        |""".stripMargin()         || [
+                new PatternBasedDateTimeFormatGuess( 'Rule 1', Pattern.compile( '(?<dt>.*)' ), 'yyyy-MM-DD' )
+        ]
+
+        """\
+        |version:
+        |  V3
+        |date-time-format:
+        |  name: Rule 1
+        |  regex: (?<dt>.*)
+        |  dt: yyyy-MM-DD
+        |  name: Rule 2
+        |  regex: abc(?<dt>.*)def
+        |  dt: yyyy-MM-DD HH:mm:ss
+        |filters:
+        |  disable
+        |""".stripMargin()         || [
+                new PatternBasedDateTimeFormatGuess( 'Rule 1', Pattern.compile( '(?<dt>.*)' ), 'yyyy-MM-DD' ),
+                new PatternBasedDateTimeFormatGuess( 'Rule 2', Pattern.compile( 'abc(?<dt>.*)def' ), 'yyyy-MM-DD HH:mm:ss' )
+        ]
+    }
+
     def 'Errors on invalid config'() {
         when: 'an invalid config is parsed'
         def config = new ConfigProperties()
@@ -261,6 +308,20 @@ class ConfigParserSpec extends Specification {
 
     private static String path( String linuxPath ) {
         new File( linuxPath ).absolutePath
+    }
+
+    private static void assertDateTimeFormatsEqual(
+            List<PatternBasedDateTimeFormatGuess> actual,
+            List<PatternBasedDateTimeFormatGuess> expected
+    ) {
+        assert actual.size() == expected.size()
+        for ( int i = 0; i < actual.size(); i++ ) {
+            def actualGuess = actual[ i ]
+            def expectedGuess = expected[ i ]
+            assert actualGuess.name() == expectedGuess.name()
+            assert actualGuess.linePattern().pattern() == expectedGuess.linePattern().pattern()
+            assert actualGuess.formatterString() == expectedGuess.formatterString()
+        }
     }
 
 }

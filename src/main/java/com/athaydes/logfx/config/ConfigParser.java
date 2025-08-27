@@ -3,6 +3,7 @@ package com.athaydes.logfx.config;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import com.athaydes.logfx.ui.FileOpener;
 import javafx.geometry.BoundingBox;
 import javafx.geometry.Orientation;
@@ -12,6 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
@@ -78,6 +80,9 @@ final class ConfigParser {
                 case "gui:":
                     currentLine = parseGuiSection( lines );
                     break;
+                case "date-time-format:":
+                    currentLine = parseDateTimeFormatSection( lines );
+                    break;
                 case "auto_update:":
                     // not currently used, skip it
                     if ( lines.hasNext() ) {
@@ -101,7 +106,7 @@ final class ConfigParser {
                     logInvalidProperty( "version", "version", line.trim(), "Unknown version" );
                 }
             } else {
-                invalidLine( line, "version" );
+                throwNonIndentedLineError( line, "version" );
             }
         }
     }
@@ -163,7 +168,7 @@ final class ConfigParser {
                     default -> logInvalidProperty( "filters", "filters", line, "value must be 'enable' or 'disable'" );
                 }
             } else {
-                invalidLine( line, "filters" );
+                throwNonIndentedLineError( line, "filters" );
             }
         }
     }
@@ -180,7 +185,7 @@ final class ConfigParser {
                             logInvalidProperty( "time-gaps", "time-gaps", line, "value must be 'enable' or 'disable'" );
                 }
             } else {
-                invalidLine( line, "time-gaps" );
+                throwNonIndentedLineError( line, "time-gaps" );
             }
         }
     }
@@ -296,6 +301,70 @@ final class ConfigParser {
         return null;
     }
 
+    private String parseDateTimeFormatSection( Iterator<String> lines ) {
+        List<PatternBasedDateTimeFormatGuess> guesses = new ArrayList<>();
+        while ( true ) {
+            if ( !lines.hasNext() ) {
+                properties.guesses.setAll( guesses );
+                return null;
+            }
+            var name = lines.next();
+            if ( !name.startsWith( " " ) ) {
+                properties.guesses.setAll( guesses );
+                return name;
+            }
+            if ( !name.startsWith( "  name: " ) ) {
+                throwUnexpectedKeyError( "date-time-format", "name", name );
+            }
+            name = name.substring( "  name: ".length() );
+
+            var regex = lines.hasNext() ? lines.next() : "";
+            if ( regex.isBlank() || !regex.startsWith( " " ) ) {
+                throwNonIndentedLineError( regex, "date-time-format" );
+            }
+            if ( !regex.startsWith( "  regex: " ) ) {
+                throwUnexpectedKeyError( "date-time-format", "regex", regex );
+            }
+            regex = regex.substring( "  regex: ".length() );
+
+            var dateTimePattern = lines.hasNext() ? lines.next() : "";
+            if ( dateTimePattern.isBlank() || !dateTimePattern.startsWith( " " ) ) {
+                throwNonIndentedLineError( dateTimePattern, "date-time-format" );
+            }
+            if ( !dateTimePattern.startsWith( "  dt: " ) ) {
+                throwUnexpectedKeyError( "date-time-format", "dt", dateTimePattern );
+            }
+            dateTimePattern = dateTimePattern.substring( "  dt: ".length() );
+
+            Pattern linePattern;
+            try {
+                linePattern = Pattern.compile( regex );
+            } catch ( PatternSyntaxException e ) {
+                logInvalidProperty( "date-time-format", "regex", regex,
+                        "Invalid regex: " + e.getMessage() );
+                return skipUntilNonIndentedLine( lines );
+            }
+
+            try {
+                guesses.add( new PatternBasedDateTimeFormatGuess( name, linePattern, dateTimePattern ) );
+            } catch ( IllegalArgumentException e ) {
+                logInvalidProperty( "date-time-format", "dt", dateTimePattern,
+                        "Invalid dateTimePattern: " + e.getMessage() );
+                return skipUntilNonIndentedLine( lines );
+            }
+        }
+    }
+
+    private static String skipUntilNonIndentedLine( Iterator<String> lines ) {
+        while ( lines.hasNext() ) {
+            var line = lines.next();
+            if ( !line.startsWith( " " ) ) {
+                return line;
+            }
+        }
+        return null;
+    }
+
     static HighlightExpression parseHighlightExpression( String line, ConfigVersion version )
             throws IllegalArgumentException {
         if ( line.isEmpty() ) {
@@ -400,7 +469,12 @@ final class ConfigParser {
         }
     }
 
-    private static void invalidLine( String line, String section ) {
+    private static void throwNonIndentedLineError( String line, String section ) {
         throw new IllegalArgumentException( "Expected indented line after '" + section + "' but got '" + line + "'" );
+    }
+
+    private static void throwUnexpectedKeyError( String section, String name, String line ) {
+        throw new IllegalArgumentException( "Expected line in section '" + section +
+                "': should start with '" + name + "': '" + line + "'" );
     }
 }

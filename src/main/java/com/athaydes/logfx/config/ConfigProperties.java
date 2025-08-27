@@ -3,6 +3,7 @@ package com.athaydes.logfx.config;
 import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
+import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import com.athaydes.logfx.ui.FxUtils;
 import com.athaydes.logfx.ui.MustCallOnJavaFXThread;
 import javafx.beans.InvalidationListener;
@@ -30,6 +31,7 @@ final class ConfigProperties {
     final SimpleObjectProperty<Orientation> panesOrientation;
     final SimpleObjectProperty<Bounds> windowBounds;
     final ObservableList<Double> paneDividerPositions;
+    final ObservableList<PatternBasedDateTimeFormatGuess> guesses;
     final BindableValue<Font> font;
     final BooleanProperty enableFilters;
     final BooleanProperty displayTimeGaps;
@@ -42,6 +44,7 @@ final class ConfigProperties {
         panesOrientation = new SimpleObjectProperty<>( Orientation.HORIZONTAL );
         windowBounds = new SimpleObjectProperty<>( null );
         paneDividerPositions = FXCollections.observableArrayList();
+        guesses = FXCollections.observableArrayList();
         font = new BindableValue<>( DEFAULT_FONT );
         enableFilters = new SimpleBooleanProperty( false );
         displayTimeGaps = new SimpleBooleanProperty( false );
@@ -65,6 +68,7 @@ final class ConfigProperties {
         observableFiles.clear();
         highlightGroups.clear();
         panesOrientation.set( Orientation.HORIZONTAL );
+        guesses.clear();
         windowBounds.set( null );
         paneDividerPositions.clear();
         font.setValue( DEFAULT_FONT );
