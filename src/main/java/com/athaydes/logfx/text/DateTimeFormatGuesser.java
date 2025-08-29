@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
 import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP;
@@ -97,8 +98,12 @@ public final class DateTimeFormatGuesser {
         return STANDARD_INSTANCE;
     }
 
-    DateTimeFormatGuesser( List<? extends DateTimeFormatGuess> guessers ) {
-        this.multiGuess = new MultiDateTimeFormatGuess( guessers );
+    public DateTimeFormatGuesser( MultiDateTimeFormatGuess guess ) {
+        this.multiGuess = guess;
+    }
+
+    public DateTimeFormatGuesser( Collection<? extends DateTimeFormatGuess> guessers ) {
+        this( new MultiDateTimeFormatGuess( guessers ) );
     }
 
     /**
@@ -109,8 +114,11 @@ public final class DateTimeFormatGuesser {
         return multiGuess;
     }
 
-    public Collection<? extends DateTimeFormatGuess> getGuesses() {
-        return multiGuess.getGuesses();
+    @Override
+    public String toString() {
+        return "DateTimeFormatGuesser{" +
+                "multiGuess=" + multiGuess.guesses.get() +
+                '}';
     }
 
     /**
@@ -183,18 +191,22 @@ public final class DateTimeFormatGuesser {
         return guesses;
     }
 
-    static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
-        private final Collection<? extends DateTimeFormatGuess> guesses;
+    public static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
+        private final AtomicReference<Collection<? extends DateTimeFormatGuess>> guesses;
 
-        private MultiDateTimeFormatGuess( Collection<? extends DateTimeFormatGuess> guesses ) {
+        public MultiDateTimeFormatGuess( AtomicReference<Collection<? extends DateTimeFormatGuess>> guesses ) {
             this.guesses = guesses;
+        }
+
+        public MultiDateTimeFormatGuess( Collection<? extends DateTimeFormatGuess> guesses ) {
+            this( new AtomicReference<>( guesses ) );
         }
 
         @Override
         public Optional<ZonedDateTime> guessDateTime( String line ) {
             var effectiveLine = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
 
-            return guesses.stream()
+            return guesses.get().stream()
                     .map( guesser -> guesser.guessDateTime( effectiveLine ) )
                     .filter( Optional::isPresent )
                     .map( Optional::get )
@@ -202,7 +214,7 @@ public final class DateTimeFormatGuesser {
         }
 
         public Collection<? extends DateTimeFormatGuess> getGuesses() {
-            return guesses;
+            return guesses.get();
         }
     }
 

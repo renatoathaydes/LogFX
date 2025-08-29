@@ -2,6 +2,7 @@ package com.athaydes.logfx.config;
 
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
+import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.text.HighlightExpression;
 import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import com.athaydes.logfx.ui.FileOpener;
@@ -93,6 +94,11 @@ final class ConfigParser {
                 default:
                     throw new IllegalArgumentException( "Non-existing config section: '" + line + "'" );
             }
+        }
+
+        // we need to ensure there's at least the standard guesses.
+        if ( properties.guesses.isEmpty() ) {
+            properties.guesses.addAll( DateTimeFormatGuesser.standardGuesses() );
         }
     }
 

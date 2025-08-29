@@ -72,7 +72,7 @@ public class LogView extends VBox implements SelectableContainer {
     private final FileChangeWatcher fileChangeWatcher;
     private final TaskRunner taskRunner;
     private final SelectionHandler selectionHandler;
-    private final DateTimeFormatGuesser dateTimeFormatGuesser = DateTimeFormatGuesser.standard();
+    private final DateTimeFormatGuesser.MultiDateTimeFormatGuess dateTimeFormatGuesser;
     private final LinesScroller linesScroller = new LinesScroller( MAX_LINES, this::lineContent,
             new LinesSetter( this::updateLines ) );
     private final ReentrantLock linesLock = new ReentrantLock( true );
@@ -82,7 +82,10 @@ public class LogView extends VBox implements SelectableContainer {
 
     private volatile Runnable onFileUpdate = DO_NOTHING;
 
-    private DateTimeFormatGuess dateTimeFormatGuess = null;
+    // this will be set from the FileReader Thread, but may be reset to null from the JavaFX Thread
+    // when the guess list is modified.
+    private volatile DateTimeFormatGuess dateTimeFormatGuess = null;
+
     private IntConsumer scrollToLineFunction = ( i ) -> {
     };
     private final InvalidationListener expressionsChangeListener;
@@ -92,10 +95,12 @@ public class LogView extends VBox implements SelectableContainer {
     public LogView( Config config,
                     ReadOnlyDoubleProperty widthProperty,
                     LogFile logFile,
+                    DateTimeFormatGuesser.MultiDateTimeFormatGuess dateTimeFormatGuesser,
                     FileContentReader fileContentReader,
                     TaskRunner taskRunner ) {
         this.config = config;
         this.fileContentReader = fileContentReader;
+        this.dateTimeFormatGuesser = dateTimeFormatGuesser;
         this.taskRunner = taskRunner;
         this.selectionHandler = new SelectionHandler( this );
         this.logFile = logFile;
@@ -132,6 +137,12 @@ public class LogView extends VBox implements SelectableContainer {
             if ( tailingFile.get() ) {
                 onFileChange();
             }
+        } );
+
+        config.getDateTimeGuesses().addListener( ( InvalidationListener ) observable -> {
+            log.debug( "Forgetting current list of DateTimeFormatGuess for file {} because list was modified",
+                    fileContentReader.getFile() );
+            this.dateTimeFormatGuess = null;
         } );
 
         this.fileChangeWatcher = new FileChangeWatcher( logFile.file, taskRunner, this::onFileChange );
@@ -388,10 +399,12 @@ public class LogView extends VBox implements SelectableContainer {
         DateTimeFormatGuess result = null;
         if ( maybeLines.isPresent() ) {
             if ( dateTimeFormatGuess == null ) {
-                result = dateTimeFormatGuesser
+                result = new DateTimeFormatGuesser( dateTimeFormatGuesser )
                         .guessDateTimeFormats( maybeLines.get() )
                         .orElse( null );
                 if ( result != null ) {
+                    log.debug( "Updating List of DateTime guesses for file {}: {}", fileContentReader.getFile(),
+                            result );
                     dateTimeFormatGuess = result;
                 }
             } else {

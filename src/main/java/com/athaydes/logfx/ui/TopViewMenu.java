@@ -1,7 +1,6 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.config.Config;
-import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import javafx.scene.control.CheckMenuItem;
 import javafx.scene.control.Menu;
 import javafx.scene.control.MenuItem;
@@ -29,7 +28,7 @@ public final class TopViewMenu extends Menu {
         dateTimeMenu.setAccelerator( new KeyCodeCombination( KeyCode.P, KeyCombination.SHORTCUT_DOWN ) );
         dateTimeMenu.setMnemonicParsing( true );
         bindMenuItemToDialog( dateTimeMenu, () -> {
-            var dialog = new Dialog( new DateTimeEditor( DateTimeFormatGuesser.standardGuesses() ) );
+            var dialog = new Dialog( new DateTimeEditor( config.getDateTimeGuesses() ) );
             dialog.setTitle( "Edit DateTime Parsers" );
             dialog.setMinWidth( 400 );
             dialog.setHeight( 470, true );

@@ -3,7 +3,6 @@ package com.athaydes.logfx.ui;
 import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import javafx.application.Platform;
 import javafx.beans.value.ChangeListener;
-import javafx.collections.FXCollections;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -23,8 +22,6 @@ import javafx.scene.shape.Rectangle;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -47,11 +44,11 @@ public final class DateTimeEditor extends BorderPane {
     private Pattern lineRegex;
     private DateTimeFormatter formatter;
 
-    public DateTimeEditor( List<PatternBasedDateTimeFormatGuess> guesses ) {
+    public DateTimeEditor( ObservableList<PatternBasedDateTimeFormatGuess> guesses ) {
         setPrefWidth( 700.0 );
 
         // the list must be mutable, do not count on the provided list being mutable
-        this.guesses = FXCollections.observableArrayList( new ArrayList<>( guesses ) );
+        this.guesses = guesses;
         this.guessesList = new ListView<>( this.guesses );
 
         guessesList.setCellFactory( list -> new javafx.scene.control.ListCell<>() {
@@ -148,9 +145,15 @@ public final class DateTimeEditor extends BorderPane {
         // List selection listener
         guessesList.getSelectionModel().selectedItemProperty().addListener( ( obs, oldVal, newVal ) -> {
             if ( newVal != null ) {
-                nameField.setText( newVal.name() );
-                regexField.setText( newVal.linePattern().pattern() );
-                formatField.setText( newVal.formatterString() );
+                if ( !newVal.name().equals( nameField.getText() ) ) {
+                    nameField.setText( newVal.name() );
+                }
+                if ( !newVal.linePattern().pattern().equals( regexField.getText() ) ) {
+                    regexField.setText( newVal.linePattern().pattern() );
+                }
+                if ( !newVal.formatterString().equals( formatField.getText() ) ) {
+                    formatField.setText( newVal.formatterString() );
+                }
                 removeButton.setDisable( false );
             } else {
                 clearFields();
