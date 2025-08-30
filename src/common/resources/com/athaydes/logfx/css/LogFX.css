@@ -130,6 +130,13 @@ LogView.dropping-files {
     -fx-background-color: palevioletred;
 }
 
+.error-output {
+    -fx-text-fill: red;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-color: -fx-base;
+}
+
 .drop-file-pane {
     -fx-max-width: 290px;
     -fx-pref-height: 150px;

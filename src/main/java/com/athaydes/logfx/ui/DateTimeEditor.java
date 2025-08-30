@@ -40,6 +40,7 @@ public final class DateTimeEditor extends BorderPane {
     private final TextField formatField;
     private final TextField testTextField;
     private final TextField dateTimeOutputField;
+    private final TextField errorField;
     private final Circle regexLight;
     private final Circle formatLight;
     private final Button addButton;
@@ -116,6 +117,11 @@ public final class DateTimeEditor extends BorderPane {
         dateTimeOutputField.setPromptText( "Parsed DateTime will appear here if it can be extracted from the Test Text " +
                 "(captured by the regex group '" + PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP + "')." );
 
+        errorField = new TextField();
+        errorField.setDisable( true );
+        errorField.getStyleClass().add( "error-output" );
+        errorField.setPromptText( "Errors parsing the Regex or DateTime format will show up here" );
+
         HBox testResultBox = new HBox( 10 );
         testResultBox.setAlignment( Pos.CENTER_LEFT );
         formatLight = new Circle( LIGHT_RADIUS, Color.GRAY );
@@ -136,7 +142,7 @@ public final class DateTimeEditor extends BorderPane {
         resetButton = new Button( "Reset All" );
         buttonBox.getChildren().addAll( addButton, removeButton, resetButton );
 
-        editor.getChildren().addAll( nameBox, regexBox, formatBox, testBox, buttonBox );
+        editor.getChildren().addAll( nameBox, regexBox, formatBox, testBox, buttonBox, errorField );
         setCenter( editor );
 
         // Initial button states
@@ -240,6 +246,7 @@ public final class DateTimeEditor extends BorderPane {
         // Listener to update the test result lights and dateTime output text
         InvalidationListener resultListener = ( obs ) -> {
             dateTimeOutputField.setText( "" );
+            errorField.setText( "" );
             formatLight.setFill( Color.GRAY );
             regexLight.setFill( Color.GRAY );
             var testText = testTextField.getText();
@@ -261,6 +268,7 @@ public final class DateTimeEditor extends BorderPane {
                 dateTimeStr = matcher.group( PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
             } catch ( IllegalArgumentException e ) {
                 log.debug( "Pattern does not have the expected group {}", PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
+                errorField.setText( "REGEX: " + e.getMessage() );
             }
 
             if ( dateTimeStr == null ) {
@@ -273,7 +281,8 @@ public final class DateTimeEditor extends BorderPane {
                 formatter.parse( dateTimeStr );
                 formatLight.setFill( Color.GREEN );
             } catch ( DateTimeParseException e ) {
-                log.info( "Error parsing date-time string '{}': {}", dateTimeStr, e.getMessage() );
+                log.debug( "Error parsing date-time string '{}': {}", dateTimeStr, e.getMessage() );
+                errorField.setText( "DATETIME: " + e.getMessage() );
                 formatLight.setFill( Color.RED );
             }
         };
@@ -297,9 +306,13 @@ public final class DateTimeEditor extends BorderPane {
         PatternBasedDateTimeFormatGuess selected = guessesList.getSelectionModel().getSelectedItem();
         if ( selected != null ) {
             log.debug( "Saving the selected DateTime pattern with name '{}'", name );
-            guesses.set( guessesList.getSelectionModel().getSelectedIndex(),
-                    new PatternBasedDateTimeFormatGuess( name,
-                            lineRegex, formatter, formatField.getText() ) );
+            try {
+                guesses.set( guessesList.getSelectionModel().getSelectedIndex(),
+                        new PatternBasedDateTimeFormatGuess( name,
+                                lineRegex, formatter, formatField.getText() ) );
+            } catch ( IllegalArgumentException e ) {
+                log.warn( "Could not save DateTime pattern with name '{}': {}", name, e.getMessage() );
+            }
         }
     }
 
