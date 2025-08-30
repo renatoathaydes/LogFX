@@ -4,6 +4,7 @@ import com.athaydes.logfx.binding.BindableValue;
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
+import com.athaydes.logfx.data.YesOrNoMap;
 import com.athaydes.logfx.text.HighlightExpression;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
@@ -17,9 +18,10 @@ import javafx.scene.control.Tooltip;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 
-import java.util.Map;
-
-import static com.athaydes.logfx.ui.AwesomeIcons.*;
+import static com.athaydes.logfx.ui.AwesomeIcons.DUPLICATE;
+import static com.athaydes.logfx.ui.AwesomeIcons.PENCIL;
+import static com.athaydes.logfx.ui.AwesomeIcons.PLUS;
+import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
 import static com.athaydes.logfx.ui.HighlightOptions.nextColor;
 
 public class HighlightGroupsView extends BorderPane {
@@ -179,11 +181,11 @@ public class HighlightGroupsView extends BorderPane {
             if ( option == defaultOption ) return;
 
             Dialog.showQuestionDialog( "Are you sure you want to delete group '" + option.getGroupName() + "'?",
-                    Map.of( "Yes", () -> {
+                    new YesOrNoMap( () -> {
                         optionsChoiceBox.getItems().remove( option );
                         groups.remove( option.getGroupName() );
                         optionsChoiceBox.getSelectionModel().select( defaultOption );
-                    }, "No", optionsChoiceBox::requestFocus ) );
+                    }, optionsChoiceBox::requestFocus ).toMap() );
         };
     }
 

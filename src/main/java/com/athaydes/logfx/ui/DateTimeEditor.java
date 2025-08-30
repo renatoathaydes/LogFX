@@ -1,5 +1,6 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.data.YesOrNoMap;
 import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import javafx.application.Platform;
@@ -25,7 +26,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
@@ -195,8 +195,7 @@ public final class DateTimeEditor extends BorderPane {
 
         resetButton.setOnAction( e -> {
             Dialog.showQuestionDialog( "Are you sure you want to reset all DateTime patterns to the default values?",
-                    Map.of( "Yes", this::resetPatterns, "No", () -> {
-                    } ) );
+                    new YesOrNoMap( this::resetPatterns ).toMap() );
         } );
 
         nameField.textProperty().addListener( e -> {
@@ -267,6 +266,7 @@ public final class DateTimeEditor extends BorderPane {
                 formatter.parse( dateTimeStr );
                 formatLight.setFill( Color.GREEN );
             } catch ( DateTimeParseException e ) {
+                log.info( "Error parsing date-time string '{}': {}", dateTimeStr, e.getMessage() );
                 formatLight.setFill( Color.RED );
             }
         };
