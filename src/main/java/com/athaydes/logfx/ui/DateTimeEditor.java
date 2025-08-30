@@ -1,8 +1,9 @@
 package com.athaydes.logfx.ui;
 
+import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import javafx.application.Platform;
-import javafx.beans.value.ChangeListener;
+import javafx.beans.InvalidationListener;
 import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
@@ -19,14 +20,18 @@ import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.Map;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
 
 public final class DateTimeEditor extends BorderPane {
     private static final int LIGHT_RADIUS = 8;
+    private static final Logger log = LoggerFactory.getLogger( DateTimeEditor.class );
 
     private final ObservableList<PatternBasedDateTimeFormatGuess> guesses;
     private final ListView<PatternBasedDateTimeFormatGuess> guessesList;
@@ -39,6 +44,7 @@ public final class DateTimeEditor extends BorderPane {
     private final Circle formatLight;
     private final Button addButton;
     private final Button removeButton;
+    private final Button resetButton;
 
     // Currently editable values
     private Pattern lineRegex;
@@ -93,6 +99,7 @@ public final class DateTimeEditor extends BorderPane {
         formatField = new TextField();
         formatField.getStyleClass().add( "text-input" );
         formatField.setPromptText( "Enter DateTime format (e.g. yyyy-MM-dd HH:mm:ss)" );
+        formatField.setTooltip( new Tooltip( "Enter DateTime format (e.g. yyyy-MM-dd HH:mm:ss)" ) );
         formatBox.getChildren().addAll( formatLabel, formatField );
 
         // Test section
@@ -126,7 +133,8 @@ public final class DateTimeEditor extends BorderPane {
         HBox buttonBox = new HBox( 10 );
         addButton = new Button( "Add" );
         removeButton = new Button( "Remove" );
-        buttonBox.getChildren().addAll( addButton, removeButton );
+        resetButton = new Button( "Reset All" );
+        buttonBox.getChildren().addAll( addButton, removeButton, resetButton );
 
         editor.getChildren().addAll( nameBox, regexBox, formatBox, testBox, buttonBox );
         setCenter( editor );
@@ -145,6 +153,7 @@ public final class DateTimeEditor extends BorderPane {
         // List selection listener
         guessesList.getSelectionModel().selectedItemProperty().addListener( ( obs, oldVal, newVal ) -> {
             if ( newVal != null ) {
+                log.debug( "Selected DateTimeFormat: {}", newVal );
                 if ( !newVal.name().equals( nameField.getText() ) ) {
                     nameField.setText( newVal.name() );
                 }
@@ -184,41 +193,64 @@ public final class DateTimeEditor extends BorderPane {
             removeButton.setDisable( change.getList().size() <= 1 );
         } );
 
-        nameField.textProperty().addListener( e -> saveSelectedPattern() );
+        resetButton.setOnAction( e -> {
+            Dialog.showQuestionDialog( "Are you sure you want to reset all DateTime patterns to the default values?",
+                    Map.of( "Yes", this::resetPatterns, "No", () -> {
+                    } ) );
+        } );
+
+        nameField.textProperty().addListener( e -> {
+            var guess = getSelected();
+            if ( guess != null && !guess.name().equals( nameField.getText() ) ) {
+                saveSelectedPattern();
+            }
+        } );
 
         regexField.textProperty().addListener( e -> {
             try {
                 lineRegex = Pattern.compile( regexField.getText() );
+                log.debug( "Regex set to: {}", regexField.getText() );
                 regexField.getStyleClass().remove( "error" );
-                saveSelectedPattern();
             } catch ( PatternSyntaxException ex ) {
                 lineRegex = null;
                 FxUtils.addIfNotPresent( regexField.getStyleClass(), "error" );
+                return;
+            }
+            var guess = getSelected();
+            if ( guess != null && !guess.linePattern().pattern().equals( regexField.getText() ) ) {
+                saveSelectedPattern();
             }
         } );
 
         formatField.textProperty().addListener( e -> {
             try {
                 formatter = DateTimeFormatter.ofPattern( formatField.getText() );
+                log.debug( "Format set to: {}", formatField.getText() );
                 formatField.getStyleClass().remove( "error" );
-                saveSelectedPattern();
             } catch ( IllegalArgumentException ex ) {
                 formatter = null;
                 FxUtils.addIfNotPresent( formatField.getStyleClass(), "error" );
+                return;
+            }
+            var guess = getSelected();
+            if ( guess != null && !guess.formatterString().equals( formatField.getText() ) ) {
+                saveSelectedPattern();
             }
         } );
 
         // Listener to update the test result lights and dateTime output text
-        ChangeListener<String> resultListener = ( obs, oldVal, newVal ) -> {
+        InvalidationListener resultListener = ( obs ) -> {
             dateTimeOutputField.setText( "" );
             formatLight.setFill( Color.GRAY );
             regexLight.setFill( Color.GRAY );
+            var testText = testTextField.getText();
 
-            if ( newVal == null || newVal.isEmpty() || lineRegex == null || formatter == null ) {
+            if ( testText == null || testText.isBlank() || lineRegex == null || formatter == null ) {
                 return;
             }
 
-            var matcher = lineRegex.matcher( newVal );
+            log.debug( "Checking DateTime pattern result for text: {}", testText );
+            var matcher = lineRegex.matcher( testText );
             if ( !matcher.find() ) {
                 regexLight.setFill( Color.RED );
                 return;
@@ -244,20 +276,36 @@ public final class DateTimeEditor extends BorderPane {
         testTextField.textProperty().addListener( resultListener );
     }
 
+    private void resetPatterns() {
+        guesses.setAll( DateTimeFormatGuesser.standardGuesses() );
+        Platform.runLater( () -> guessesList.getSelectionModel().selectFirst() );
+    }
+
     private void saveSelectedPattern() {
-        if ( lineRegex == null || formatter == null || nameField.getText().trim().isEmpty() ) {
+        var name = nameField.getText().trim();
+        if ( lineRegex == null || formatter == null || name.isEmpty() ) {
+            log.trace( "Tried to save selected pattern, but state was not valid" );
             return;
         }
         PatternBasedDateTimeFormatGuess selected = guessesList.getSelectionModel().getSelectedItem();
         if ( selected != null ) {
-            String name = nameField.getText().trim();
+            log.debug( "Saving the selected DateTime pattern with name '{}'", name );
             guesses.set( guessesList.getSelectionModel().getSelectedIndex(),
                     new PatternBasedDateTimeFormatGuess( name,
                             lineRegex, formatter, formatField.getText() ) );
         }
     }
 
+    private PatternBasedDateTimeFormatGuess getSelected() {
+        int selectedIndex = guessesList.getSelectionModel().getSelectedIndex();
+        if ( 0 <= selectedIndex && selectedIndex < guesses.size() ) {
+            return guesses.get( selectedIndex );
+        }
+        return null;
+    }
+
     private void clearFields() {
+        log.debug( "Clearing fields." );
         nameField.clear();
         regexField.clear();
         formatField.clear();

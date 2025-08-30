@@ -28,9 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -183,15 +181,15 @@ public class Config {
         data.path = path.toFile();
 
         Platform.runLater( () -> data.logLineColors = properties.standardLogColors.get() );
-        Platform.runLater( () -> data.highlightExpressions = new HashMap<>( properties.highlightGroups.toMap() ) );
+        Platform.runLater( () -> data.highlightExpressions = Map.copyOf( properties.highlightGroups.toMap() ) );
         Platform.runLater( () -> data.enableFilters = properties.enableFilters.getValue() );
         Platform.runLater( () -> data.displayTimeGaps = properties.displayTimeGaps.getValue() );
-        Platform.runLater( () -> data.files = new LinkedHashSet<>( properties.observableFiles ) );
+        Platform.runLater( () -> data.files = Set.copyOf( properties.observableFiles ) );
         Platform.runLater( () -> data.orientation = properties.panesOrientation.get() );
         Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
-        Platform.runLater( () -> data.dividerPositions = new ArrayList<>( properties.paneDividerPositions ) );
+        Platform.runLater( () -> data.dividerPositions = List.copyOf( properties.paneDividerPositions ) );
         Platform.runLater( () -> data.font = properties.font.getValue() );
-        Platform.runLater( () -> data.guesses = new ArrayList<>( properties.guesses ) );
+        Platform.runLater( () -> data.guesses = List.copyOf( properties.guesses ) );
 
         // go to the JavaFX Thread to wait for all previous tasks to complete, then dump the file, finally.
         Platform.runLater( () -> taskRunner.runAsync( () -> dumpConfigToFile( data ) ) );

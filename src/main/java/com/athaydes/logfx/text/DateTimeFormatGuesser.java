@@ -30,9 +30,7 @@ public final class DateTimeFormatGuesser {
 
     private final MultiDateTimeFormatGuess multiGuess;
 
-    private static volatile DateTimeFormatGuesser STANDARD_INSTANCE;
-
-    private static DateTimeFormatGuesser createStandard() {
+    public static DateTimeFormatGuesser standard() {
         return new DateTimeFormatGuesser( standardGuesses() );
     }
 
@@ -85,17 +83,6 @@ public final class DateTimeFormatGuesser {
                         DateTimeFormatter.RFC_1123_DATE_TIME, "EEE, dd MMM yyyy HH:mm:ss zzz" ),
                 new PatternBasedDateTimeFormatGuess( "APPLE", Pattern.compile( appleDateTime + ".*" ),
                         "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) );
-    }
-
-    public static DateTimeFormatGuesser standard() {
-        if ( STANDARD_INSTANCE == null ) {
-            synchronized ( DateTimeFormatGuesser.class ) {
-                if ( STANDARD_INSTANCE == null ) {
-                    STANDARD_INSTANCE = createStandard();
-                }
-            }
-        }
-        return STANDARD_INSTANCE;
     }
 
     public DateTimeFormatGuesser( MultiDateTimeFormatGuess guess ) {

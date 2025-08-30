@@ -98,6 +98,7 @@ final class ConfigParser {
 
         // we need to ensure there's at least the standard guesses.
         if ( properties.guesses.isEmpty() ) {
+            log.debug( "Adding default guesses because no guesses were found in config." );
             properties.guesses.addAll( DateTimeFormatGuesser.standardGuesses() );
         }
     }
