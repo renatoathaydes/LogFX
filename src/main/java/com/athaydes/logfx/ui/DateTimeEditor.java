@@ -256,11 +256,18 @@ public final class DateTimeEditor extends BorderPane {
             }
             regexLight.setFill( Color.GREEN );
 
-            String dateTimeStr = matcher.group( PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
+            String dateTimeStr = null;
+            try {
+                dateTimeStr = matcher.group( PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
+            } catch ( IllegalArgumentException e ) {
+                log.debug( "Pattern does not have the expected group {}", PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP );
+            }
+
             if ( dateTimeStr == null ) {
                 formatLight.setFill( Color.RED );
                 return;
             }
+
             dateTimeOutputField.setText( dateTimeStr );
             try {
                 formatter.parse( dateTimeStr );
