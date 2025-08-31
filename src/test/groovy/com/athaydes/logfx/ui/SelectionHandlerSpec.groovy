@@ -75,6 +75,3 @@ class SelectionHandlerSpec extends Specification {
     }
 
 }
-
-abstract class TestSelectableNode extends Node
-        implements SelectionHandler.SelectableNode {}
