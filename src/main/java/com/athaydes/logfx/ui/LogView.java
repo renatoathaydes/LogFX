@@ -293,6 +293,7 @@ public class LogView extends VBox implements SelectableContainer {
      * Refresh the view without reloading from the file.
      */
     void refreshView() {
+        if ( fileReaderExecutor.isShutdown() ) return;
         fileReaderExecutor.execute( () -> {
             linesLock.lock();
             try {
