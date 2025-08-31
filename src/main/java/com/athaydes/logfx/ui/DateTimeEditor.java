@@ -9,25 +9,32 @@ import javafx.collections.ListChangeListener;
 import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.ScrollPane;
 import javafx.scene.control.TextField;
 import javafx.scene.control.Tooltip;
+import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.function.BiFunction;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
+
+import static com.athaydes.logfx.ResourceUtils.resourcePath;
 
 public final class DateTimeEditor extends BorderPane {
     private static final int LIGHT_RADIUS = 8;
@@ -92,7 +99,9 @@ public final class DateTimeEditor extends BorderPane {
         regexField.setPromptText( "Enter a regex to extract the DateTime. " +
                 "Use the " + PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP + " group to capture datetime, " +
                 "and " + PatternBasedDateTimeFormatGuess.TIMEZONE_GROUP + " to optionally capture the timezone." );
-        regexBox.getChildren().addAll( regexLabel, regexField );
+        Node regexHelpIcon = HelpIconFactory.create( "Regex Help", this::getScene, regexHelp() );
+        HBox regexLabelBox = new HBox( 10, regexLabel, regexHelpIcon );
+        regexBox.getChildren().addAll( regexLabelBox, regexField );
 
         // Format input
         VBox formatBox = new VBox( 5 );
@@ -101,7 +110,9 @@ public final class DateTimeEditor extends BorderPane {
         formatField.getStyleClass().add( "text-input" );
         formatField.setPromptText( "Enter DateTime format (e.g. yyyy-MM-dd HH:mm:ss)" );
         formatField.setTooltip( new Tooltip( "Enter DateTime format (e.g. yyyy-MM-dd HH:mm:ss)" ) );
-        formatBox.getChildren().addAll( formatLabel, formatField );
+        Node formatHelpIcon = HelpIconFactory.create( "DateTime Format Help", this::getScene, dateTimeFormatHelp() );
+        HBox formatLabelBox = new HBox( 10, formatLabel, formatHelpIcon );
+        formatBox.getChildren().addAll( formatLabelBox, formatField );
 
         // Test section
         VBox testBox = new VBox( 5 );
@@ -335,5 +346,80 @@ public final class DateTimeEditor extends BorderPane {
         regexLight.setFill( Color.GRAY );
         formatLight.setFill( Color.GRAY );
         removeButton.setDisable( true );
+    }
+
+    private static AnchorPane regexHelp() {
+        BiFunction<String, String, Text> text = ( String value, String cssClass ) -> {
+            var t = new Text( value );
+            if ( cssClass != null ) t.getStyleClass().add( cssClass );
+            return t;
+        };
+        var pane = new AnchorPane();
+        pane.setPrefHeight( 200 );
+        pane.setPrefWidth( 600 );
+        pane.getStylesheets().add( resourcePath( "css/highlight-options-help.css" ) );
+
+        var texts = new TextFlow(
+                text.apply( "Regex Pattern Help\n", "h2" ),
+                text.apply( "\nThis Regex Pattern is used to extract the full DateTime String from ", null ),
+                text.apply( "each log line.\n\nThe Regex must contain a named group called ", null ),
+                text.apply( "dt", "code" ),
+                text.apply( " and, ", null ),
+                text.apply( "optionally, a group called ", null ),
+                text.apply( "tz", "code" ),
+                text.apply( " within the former group.\n", null ),
+                text.apply( "The ", null ),
+                text.apply( "dt", "code" ),
+                text.apply( " group should contain the full DateTime String, while the ", null ),
+                text.apply( "tz", "code" ),
+                text.apply( " group contains the time-zone, if available.\n\n", null ),
+                text.apply( "References", "h3" ),
+                text.apply( "\n\nFor assistance writing Java regular expressions, check the ", null ),
+                new Link( "https://docs.oracle.com/javase/tutorial/essential/regex/", "Oracle Regex Tutorial" ),
+                text.apply( ".\n\n", null ),
+                text.apply( "For live debugging a regex, try the ", null ),
+                new Link( "https://regex101.com/", "regex101.com" ),
+                text.apply( " website.\n\n", null ),
+                text.apply( "For quick reference, check the documentation for the ", null ),
+                new Link( "https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/util/regex/Pattern.html", "Pattern class" ),
+                text.apply( ".\n", null )
+        );
+
+        pane.getChildren().add( texts );
+
+        return pane;
+    }
+
+    private static AnchorPane dateTimeFormatHelp() {
+        BiFunction<String, String, Text> text = ( String value, String cssClass ) -> {
+            var t = new Text( value );
+            if ( cssClass != null ) t.getStyleClass().add( cssClass );
+            return t;
+        };
+        var pane = new AnchorPane();
+        pane.setPrefHeight( 200 );
+        pane.setPrefWidth( 600 );
+        pane.getStylesheets().add( resourcePath( "css/highlight-options-help.css" ) );
+
+        var texts = new TextFlow(
+                text.apply( "DateTimeFormat Help\n", "h2" ),
+                text.apply( "\nThe DateTime Format is used to parse the String extracted by the Regex Pattern into a ", null ),
+                text.apply( "LocalDateTime", "code" ),
+                text.apply( " Java object.\n\n", null ),
+                text.apply( "Example", "h3" ),
+                text.apply( "\n\nThe format string ", null ),
+                text.apply( "yyyy-MM-dd HH:mm:ss zz", "code" ),
+                text.apply( " successfully parses the text ", null ),
+                text.apply( "2025-01-30 11:22:33 CET", "code" ),
+                text.apply( ".\n\n", null ),
+                text.apply( "References", "h3" ),
+                text.apply( "\n\nCheck the documentation for the ", null ),
+                new Link( "https://docs.oracle.com/en/java/javase/24/docs/api/java.base/java/time/format/DateTimeFormatter.html", "DateTimeFormatter class" ),
+                text.apply( " for the full syntax.", null )
+        );
+
+        pane.getChildren().add( texts );
+
+        return pane;
     }
 }

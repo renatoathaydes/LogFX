@@ -13,6 +13,11 @@ Text {
     -fx-font-size: 2em;
 }
 
+.h3 {
+    -fx-fill: #3cb3f3;
+    -fx-font-size: 1.5em;
+}
+
 .link {
     -fx-fill: white;
 }
