@@ -7,7 +7,6 @@ import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.text.DateTimeFormatGuess;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -193,21 +192,13 @@ public final class LogViewPane {
         timeGapMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         timeGapMenuItem.setOnAction( event -> getFocusedView().ifPresent( view -> view.logView.switchTimeGap() ) );
 
-        MenuItem timeGapEditorMenuItem = new MenuItem( "Edit min time gap" );
-        timeGapEditorMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
-        timeGapEditorMenuItem.setOnAction( event -> getFocusedView().ifPresent( view ->
-                new TimeGapEditor( view.logView, () -> {
-                    // no need to refresh the view if the time gaps are not being shown
-                    if ( view.logView.showTimeGapProperty().get() ) view.logView.refreshView();
-                } ).show() ) );
-
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
                 selectAllMenuItem,
                 new SeparatorMenuItem(),
                 toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
-                pauseMenuItem, timeGapMenuItem, timeGapEditorMenuItem,
+                pauseMenuItem, timeGapMenuItem,
                 new SeparatorMenuItem(),
                 minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
 
@@ -665,14 +656,13 @@ public final class LogViewPane {
             fileNameLabel.setMinWidth( 5.0 );
             fileNameLabel.setTooltip( new Tooltip( file.getAbsolutePath() ) );
 
-            Label minTimeGapLabel = new Label();
+            LongField minTimeGapField = new LongField( logView.getMinTimeGap() );
+            minTimeGapField.setMaxWidth( 50.0 );
+
+            Label minTimeGapLabel = new Label( "Min TimeGap (ms):" );
             minTimeGapLabel.getStyleClass().add( "min-time-gap-label" );
-            minTimeGapLabel.textProperty().bind( Bindings.convert( logView.getMinTimeGap() ) );
 
-            Label minTimeGapLabelLabel = new Label( "min-gap:" );
-            minTimeGapLabelLabel.getStyleClass().add( "min-time-gap-label" );
-
-            minTimeGapBox.getChildren().addAll( minTimeGapLabelLabel, minTimeGapLabel );
+            minTimeGapBox.getChildren().addAll( minTimeGapLabel, minTimeGapField );
 
             Runnable updateFileLabel = () -> {
                 if ( file.exists() ) {

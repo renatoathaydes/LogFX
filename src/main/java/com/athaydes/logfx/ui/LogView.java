@@ -110,10 +110,14 @@ public class LogView extends VBox implements SelectableContainer {
         logFile.highlightGroupProperty().addListener( expressionsChangeListener );
 
         showTimeGap = config.displayTimeGapsProperty();
-        showTimeGap.addListener( ( Observable o ) -> {
-            log.debug( "Updated time gap enabled property: {}", o );
+
+        InvalidationListener timeGapInvalidationListener = ( Observable o ) -> {
+            log.info( "Updated time gap enabled property: {}", o );
             refreshView();
-        } );
+        };
+
+        showTimeGap.addListener( timeGapInvalidationListener );
+        logFile.minTimeGap.addListener( timeGapInvalidationListener );
 
         this.highlighter = new LogLineHighlighter( config, expressionsChangeListener, logFile );
 

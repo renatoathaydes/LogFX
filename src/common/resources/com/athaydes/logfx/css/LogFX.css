@@ -163,3 +163,8 @@ LogView.dropping-files {
     -fx-padding: 8px;
     -fx-border-width: 1px;
 }
+
+.long-field {
+    -fx-text-fill: black;
+    -fx-focus-color: yellowgreen;
+}
