@@ -21,7 +21,7 @@ echo "Checking out gh-pages branch into $TARGET"
 git worktree add -B gh-pages $TARGET origin/gh-pages
 
 echo "Generating website"
-magnanimous -style doom-one -globalctx _global_context_jb website
+magnanimous -style doom-one -globalctx _github_global_context website
 
 if [[ "$@" == *"-push"* ]]; then
     echo "Updating gh-pages branch"
