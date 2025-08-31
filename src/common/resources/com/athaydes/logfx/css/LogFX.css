@@ -96,8 +96,8 @@ Label {
 }
 
 .log-line.selected {
-    -fx-background-color: -fx-focus-color;
-    -fx-text-fill: derive(-fx-focus-color, -80%);
+    -fx-background-color: -fx-focus-color !important;
+    -fx-text-fill: derive(-fx-focus-color, -80%) !important;
 }
 
 LogView.dropping-files {
@@ -130,6 +130,13 @@ LogView.dropping-files {
     -fx-background-color: palevioletred;
 }
 
+.error-output {
+    -fx-text-fill: red;
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-background-color: -fx-base;
+}
+
 .drop-file-pane {
     -fx-max-width: 290px;
     -fx-pref-height: 150px;
@@ -148,4 +155,24 @@ LogView.dropping-files {
     -fx-font-size: 14;
     -fx-padding: 4 0 2 2;
     -fx-text-fill: yellowgreen;
+}
+
+.solid-border {
+    -fx-border-style: solid;
+    -fx-border-color: derive(-fx-base, 80%);
+    -fx-padding: 8px;
+    -fx-border-width: 1px;
+}
+
+.long-field {
+    -fx-text-fill: black;
+    -fx-focus-color: yellowgreen;
+}
+
+Circle.green-light {
+    -fx-effect: dropshadow(gaussian, green, 15, 0.25, 0, 0);
+}
+
+Circle.red-light {
+    -fx-effect: dropshadow(gaussian, red, 15, 0.25, 0, 0);
 }

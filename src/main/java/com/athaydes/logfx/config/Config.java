@@ -5,6 +5,7 @@ import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.data.LogFile;
 import com.athaydes.logfx.data.LogLineColors;
 import com.athaydes.logfx.text.HighlightExpression;
+import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess;
 import com.athaydes.logfx.ui.Dialog;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
@@ -25,7 +26,13 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 import static java.util.stream.Collectors.joining;
 
@@ -66,6 +73,7 @@ public class Config {
         properties.font.addListener( listener );
         properties.enableFilters.addListener( listener );
         properties.displayTimeGaps.addListener( listener );
+        properties.guesses.addListener( listener );
 
         // keep track of logFiles's groups
         properties.observableFiles.forEach( f -> f.highlightGroupProperty().addListener( listener ) );
@@ -114,6 +122,10 @@ public class Config {
 
     public BooleanProperty displayTimeGapsProperty() {
         return properties.displayTimeGaps;
+    }
+
+    public ObservableList<PatternBasedDateTimeFormatGuess> getDateTimeGuesses() {
+        return properties.guesses;
     }
 
     public void loadConfig( Path path ) {
@@ -169,14 +181,15 @@ public class Config {
         data.path = path.toFile();
 
         Platform.runLater( () -> data.logLineColors = properties.standardLogColors.get() );
-        Platform.runLater( () -> data.highlightExpressions = new HashMap<>( properties.highlightGroups.toMap() ) );
+        Platform.runLater( () -> data.highlightExpressions = Map.copyOf( properties.highlightGroups.toMap() ) );
         Platform.runLater( () -> data.enableFilters = properties.enableFilters.getValue() );
         Platform.runLater( () -> data.displayTimeGaps = properties.displayTimeGaps.getValue() );
-        Platform.runLater( () -> data.files = new LinkedHashSet<>( properties.observableFiles ) );
+        Platform.runLater( () -> data.files = Set.copyOf( properties.observableFiles ) );
         Platform.runLater( () -> data.orientation = properties.panesOrientation.get() );
         Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
-        Platform.runLater( () -> data.dividerPositions = new ArrayList<>( properties.paneDividerPositions ) );
+        Platform.runLater( () -> data.dividerPositions = List.copyOf( properties.paneDividerPositions ) );
         Platform.runLater( () -> data.font = properties.font.getValue() );
+        Platform.runLater( () -> data.guesses = List.copyOf( properties.guesses ) );
 
         // go to the JavaFX Thread to wait for all previous tasks to complete, then dump the file, finally.
         Platform.runLater( () -> taskRunner.runAsync( () -> dumpConfigToFile( data ) ) );
@@ -251,8 +264,14 @@ public class Config {
             }
             writer.write( "\n  font " + data.font.getSize() );
             writer.write( " " + data.font.getFamily() );
-
             writer.write( "\n" );
+
+            writer.write( "date-time-format:\n" );
+            for ( var guess : data.guesses ) {
+                writer.write( "  name: " + guess.name() + '\n' );
+                writer.write( "  regex: " + guess.linePattern().pattern() + '\n' );
+                writer.write( "  dt: " + guess.formatterString() + '\n' );
+            }
         } catch ( IOException e ) {
             Dialog.showMessage( "Could not write config file: " + data.path +
                     "\n\n" + e, Dialog.MessageLevel.ERROR );
@@ -271,5 +290,6 @@ public class Config {
         volatile List<Double> dividerPositions;
         volatile Font font;
         volatile File path;
+        volatile List<PatternBasedDateTimeFormatGuess> guesses;
     }
 }

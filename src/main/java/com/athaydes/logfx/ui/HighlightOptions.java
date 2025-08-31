@@ -39,7 +39,6 @@ import java.util.stream.Collectors;
 import static com.athaydes.logfx.ResourceUtils.resourcePath;
 import static com.athaydes.logfx.ui.Arrow.Direction.DOWN;
 import static com.athaydes.logfx.ui.Arrow.Direction.UP;
-import static com.athaydes.logfx.ui.AwesomeIcons.HELP;
 import static com.athaydes.logfx.ui.AwesomeIcons.TRASH;
 
 /**
@@ -78,7 +77,7 @@ public class HighlightOptions extends VBox {
         enableFilter.selectedProperty().bindBidirectional( isFilterEnabled );
         enableFilter.setTooltip( new Tooltip( "Filter log lines that match selected rules" ) );
 
-        Node helpIcon = createHelpIcon();
+        Node helpIcon = HelpIconFactory.create( "Highlight Options Help", this::getScene, helpScreen() );
 
         HBox headerRow = new HBox( 10 );
         headerRow.getChildren().addAll( headerLabel, helpIcon );
@@ -144,26 +143,6 @@ public class HighlightOptions extends VBox {
         }
     }
 
-    private Node createHelpIcon() {
-        Node help = AwesomeIcons.createIcon( HELP );
-
-        AnchorPane content = helpScreen();
-        Dialog helpDialog = new Dialog( content );
-        helpDialog.setTitle( "Highlight Options Help" );
-        helpDialog.setStyle( StageStyle.UTILITY );
-        helpDialog.setResizable( false );
-
-        help.setOnMouseClicked( event -> {
-            helpDialog.setOwner( getScene().getWindow() );
-            helpDialog.show();
-        } );
-
-        help.setOnMouseEntered( event -> getScene().setCursor( Cursor.HAND ) );
-        help.setOnMouseExited( event -> getScene().setCursor( Cursor.DEFAULT ) );
-
-        return help;
-    }
-
     private static AnchorPane helpScreen() {
         BiFunction<String, String, Text> text = ( String value, String cssClass ) -> {
             var t = new Text( value );
@@ -218,7 +197,7 @@ public class HighlightOptions extends VBox {
                         "   - hex-value: e.g. 0x00ff00.\n" +
                         "   - web-value: e.g. #C0FFEE.\n\n", null ),
                 text.apply( "See the ", null ),
-                new Link( "https://docs.oracle.com/javase/8/javafx/api/javafx/scene/paint/Color.html", "Color class" ),
+                new Link( "https://download.java.net/java/GA/javafx24/docs/api/javafx.graphics/javafx/scene/paint/Color.html", "Color class" ),
                 text.apply( " for all options.", null )
         );
 
@@ -339,9 +318,7 @@ public class HighlightOptions extends VBox {
                 observableExpressions.set( index, expression );
                 expressionField.getStyleClass().remove( "error" );
             } catch ( PatternSyntaxException e ) {
-                if ( !expressionField.getStyleClass().contains( "error" ) ) {
-                    expressionField.getStyleClass().add( "error" );
-                }
+                FxUtils.addIfNotPresent( expressionField.getStyleClass(), "error" );
                 log.warn( "Invalid regular expression: {}", e.toString() );
             }
         }

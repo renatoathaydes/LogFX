@@ -9,6 +9,8 @@ import com.athaydes.logfx.file.FileContentReader;
 import com.athaydes.logfx.file.FileReader;
 import com.athaydes.logfx.iterable.IterableUtils;
 import com.athaydes.logfx.log.LogConfigFile;
+import com.athaydes.logfx.text.DateTimeFormatGuess;
+import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.ui.AboutLogFXView;
 import com.athaydes.logfx.ui.BottomMessagePane;
 import com.athaydes.logfx.ui.Dialog;
@@ -49,7 +51,9 @@ import java.awt.SplashScreen;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static com.athaydes.logfx.data.NaNChecker.checkNaN;
 import static com.athaydes.logfx.ui.Dialog.setPrimaryStage;
@@ -69,6 +73,7 @@ public final class LogFX extends Application {
     private final Rectangle overlay = new Rectangle( 0, 0 );
     private final Config config;
     private final LogViewPane logsPane;
+    private final DateTimeFormatGuesser.MultiDateTimeFormatGuess dateTimeGuesser;
     private final TopViewMenu topViewMenu;
     private final BottomMessagePane bottomMessagePane = BottomMessagePane.warningIfFiltersEnabled();
 
@@ -79,9 +84,24 @@ public final class LogFX extends Application {
         LogFXHostServices.set( getHostServices() );
         this.config = new Config( Properties.DEFAULT_LOGFX_CONFIG, taskRunner );
 
+        var guessesRef = new AtomicReference<Collection<? extends DateTimeFormatGuess>>();
+
+        // the property MUST be accessed only in the JavaFX Thread, so we make a copy of it every time it changes
+        // and set it on the AtomicReference, which is then used everywhere that needs it.
+        InvalidationListener guessesListener = observable ->
+                guessesRef.set( List.copyOf( config.getDateTimeGuesses() ) );
+
+        guessesListener.invalidated( null );
+
+        config.getDateTimeGuesses().addListener( guessesListener );
+
+        this.dateTimeGuesser =
+                new DateTimeFormatGuesser.MultiDateTimeFormatGuess( guessesRef );
+
         this.logsPane = new LogViewPane( taskRunner, () ->
                 new StartUpView( stage, config.getObservableFiles(), this::open ),
                 config.getHighlightGroups(),
+                dateTimeGuesser,
                 config.getObservableFiles().isEmpty() );
 
         logsPane.orientationProperty().bindBidirectional( config.panesOrientationProperty() );
@@ -364,7 +384,7 @@ public final class LogFX extends Application {
             return false;
         }
 
-        LogView view = new LogView( config, root.widthProperty(), logFile, fileReader, taskRunner );
+        LogView view = new LogView( config, root.widthProperty(), logFile, dateTimeGuesser, fileReader, taskRunner );
 
         FileDragAndDrop.install( view, logsPane, overlay, config.panesOrientationProperty(), ( droppedFile, target ) -> {
             int droppedOnPaneIndex = logsPane.indexOf( view );

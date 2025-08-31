@@ -1,7 +1,6 @@
 package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.text.DateTimeFormatGuess;
-import com.athaydes.logfx.text.DateTimeFormatGuesser;
 import com.athaydes.logfx.ui.LogViewPane.LogViewWrapper;
 import javafx.application.Platform;
 import javafx.beans.property.BooleanProperty;
@@ -35,6 +34,7 @@ class GoToDateView {
     private final Dialog dialog;
 
     GoToDateView( LogView selectedLogView,
+                  DateTimeFormatGuess guesser,
                   Supplier<List<LogViewWrapper>> logViewsGetter ) {
         VBox root = new VBox( 20 );
 
@@ -44,7 +44,7 @@ class GoToDateView {
 
         Label dateLabel = new Label( "Go to date-time:" );
 
-        DateTimeTextField dateTimeField = new DateTimeTextField();
+        DateTimeTextField dateTimeField = new DateTimeTextField( guesser );
         dateTimeField.setMinWidth( 240.0 );
         dateTimeField.setTooltip( new Tooltip( "Enter a date and time (yyyy-MM-dd HH:mm:ss[.SSS z])" ) );
 
@@ -99,13 +99,12 @@ class GoToDateView {
     private static class DateTimeTextField extends TextField {
 
         private static String lastValidDateTimeText = null;
-        private static final DateTimeFormatGuess guesser = DateTimeFormatGuesser.standard().asGuess();
 
         private final BooleanProperty valid = new SimpleBooleanProperty( true );
 
         private ZonedDateTime dateTime;
 
-        DateTimeTextField() {
+        DateTimeTextField( DateTimeFormatGuess guesser ) {
             textProperty().addListener( ( observable, oldValue, newValue ) -> {
                 Optional<ZonedDateTime> guess = guesser.guessDateTime( newValue );
                 if ( guess.isPresent() ) {
@@ -115,9 +114,7 @@ class GoToDateView {
                     lastValidDateTimeText = newValue;
                 } else {
                     valid.set( false );
-                    if ( !getStyleClass().contains( "error" ) ) {
-                        getStyleClass().add( "error" );
-                    }
+                    FxUtils.addIfNotPresent( getStyleClass(), "error" );
                 }
             } );
 

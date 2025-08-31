@@ -1,5 +1,16 @@
 ## LogFX Release Notes
 
+## 1.2
+
+> 31 Aug 2025
+
+* added editor for DateTime patterns. Allows customizing logic to extract DateTime from log files.
+* removed min-time-gap popup editor, now editing can be done directly on the file top-menu bar.
+* open project when "Enter" is pressed, not only "Space".
+* fixed highlighted line colors changing unexpectedly on Java 17+.
+* fixed yes/no buttons sometimes switching position.
+* #31 improved Windows launcher to not open terminal window.
+
 ## 1.1
 
 > 06 Jan 2025

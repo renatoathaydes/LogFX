@@ -4,9 +4,9 @@ import com.athaydes.logfx.concurrency.Cancellable;
 import com.athaydes.logfx.concurrency.TaskRunner;
 import com.athaydes.logfx.config.HighlightGroups;
 import com.athaydes.logfx.data.LogFile;
+import com.athaydes.logfx.text.DateTimeFormatGuess;
 import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
-import javafx.beans.binding.Bindings;
 import javafx.beans.property.BooleanProperty;
 import javafx.beans.property.DoubleProperty;
 import javafx.beans.property.ObjectProperty;
@@ -14,8 +14,20 @@ import javafx.beans.property.SimpleObjectProperty;
 import javafx.collections.ListChangeListener;
 import javafx.geometry.Orientation;
 import javafx.scene.Node;
-import javafx.scene.control.*;
-import javafx.scene.input.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
+import javafx.scene.control.Label;
+import javafx.scene.control.MenuItem;
+import javafx.scene.control.ScrollPane;
+import javafx.scene.control.SeparatorMenuItem;
+import javafx.scene.control.SplitPane;
+import javafx.scene.control.ToggleButton;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.Clipboard;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
@@ -48,7 +60,7 @@ public final class LogViewPane {
 
     private final TaskRunner taskRunner;
     private final HighlightGroups highlightGroups;
-
+    private final DateTimeFormatGuess dateTimeFormatGuess;
     private final SplitPane pane = new SplitPane();
 
     private final AtomicReference<Cancellable> previousDividerSettingTask = new AtomicReference<>();
@@ -61,9 +73,12 @@ public final class LogViewPane {
     public LogViewPane( TaskRunner taskRunner,
                         Supplier<StartUpView> startUpViewGetter,
                         HighlightGroups highlightGroups,
+                        DateTimeFormatGuess dateTimeFormatGuess,
                         boolean showEmptyPanel ) {
         this.taskRunner = taskRunner;
         this.highlightGroups = highlightGroups;
+        this.dateTimeFormatGuess = dateTimeFormatGuess;
+
         MenuItem copyMenuItem = new MenuItem( "Copy Selection" );
         copyMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.C, KeyCombination.SHORTCUT_DOWN ) );
         copyMenuItem.setOnAction( event -> getFocusedView()
@@ -140,7 +155,7 @@ public final class LogViewPane {
             if ( wrapper.isPresent() ) {
                 wrapper.get().toDateTime();
             } else {
-                new GoToDateView( null, this::getAllLogViews ).show();
+                new GoToDateView( null, this.dateTimeFormatGuess, this::getAllLogViews ).show();
             }
         } );
 
@@ -177,21 +192,13 @@ public final class LogViewPane {
         timeGapMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.G, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
         timeGapMenuItem.setOnAction( event -> getFocusedView().ifPresent( view -> view.logView.switchTimeGap() ) );
 
-        MenuItem timeGapEditorMenuItem = new MenuItem( "Edit min time gap" );
-        timeGapEditorMenuItem.setAccelerator( new KeyCodeCombination( KeyCode.H, KeyCombination.SHORTCUT_DOWN, KeyCombination.SHIFT_DOWN ) );
-        timeGapEditorMenuItem.setOnAction( event -> getFocusedView().ifPresent( view ->
-                new TimeGapEditor( view.logView, () -> {
-                    // no need to refresh the view if the time gaps are not being shown
-                    if ( view.logView.showTimeGapProperty().get() ) view.logView.refreshView();
-                } ).show() ) );
-
         pane.setContextMenu( new ContextMenu(
                 copyMenuItem,
                 selectAllMenuItem,
                 new SeparatorMenuItem(),
                 toTopMenuItem, tailMenuItem, pageUpMenuItem, pageDownMenuItem, goToDateMenuItem, changeHighlightGroup,
                 new SeparatorMenuItem(),
-                pauseMenuItem, timeGapMenuItem, timeGapEditorMenuItem,
+                pauseMenuItem, timeGapMenuItem,
                 new SeparatorMenuItem(),
                 minimizeMenuItem, maximizeMenuItem, closeMenuItem ) );
 
@@ -302,7 +309,7 @@ public final class LogViewPane {
 
     @MustCallOnJavaFXThread
     public void add( LogView logView, Runnable onCloseFile, int index, Consumer<LogView> editGroupForFile ) {
-        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups,
+        LogViewWrapper logViewWrapper = new LogViewWrapper( logView, highlightGroups, dateTimeFormatGuess,
                 this::getAllLogViews, ( wrapper ) -> {
             try {
                 pane.getItems().remove( wrapper );
@@ -477,6 +484,7 @@ public final class LogViewPane {
         private static final Logger log = LoggerFactory.getLogger( LogViewWrapper.class );
 
         private final LogView logView;
+        private final DateTimeFormatGuess dateTimeGuesser;
         private final Consumer<LogViewWrapper> onCloseFile;
         private final LogViewHeader header;
         private final LogViewScrollPane scrollPane;
@@ -485,12 +493,14 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         LogViewWrapper( LogView logView,
                         HighlightGroups highlightGroups,
+                        DateTimeFormatGuess dateTimeGuesser,
                         Supplier<List<LogViewWrapper>> logViewsGetter,
                         Consumer<LogViewWrapper> onCloseFile,
                         Consumer<LogView> editGroupForLogFile ) {
             super( 2.0 );
 
             this.logView = logView;
+            this.dateTimeGuesser = dateTimeGuesser;
             this.onCloseFile = onCloseFile;
             this.logViewsGetter = logViewsGetter;
 
@@ -541,7 +551,7 @@ public final class LogViewPane {
         @MustCallOnJavaFXThread
         void toDateTime() {
             stopTailingFile();
-            GoToDateView goToView = new GoToDateView( logView, logViewsGetter );
+            GoToDateView goToView = new GoToDateView( logView, dateTimeGuesser, logViewsGetter );
             goToView.show();
         }
 
@@ -646,14 +656,13 @@ public final class LogViewPane {
             fileNameLabel.setMinWidth( 5.0 );
             fileNameLabel.setTooltip( new Tooltip( file.getAbsolutePath() ) );
 
-            Label minTimeGapLabel = new Label();
+            LongField minTimeGapField = new LongField( logView.getMinTimeGap() );
+            minTimeGapField.setMaxWidth( 50.0 );
+
+            Label minTimeGapLabel = new Label( "Min TimeGap (ms):" );
             minTimeGapLabel.getStyleClass().add( "min-time-gap-label" );
-            minTimeGapLabel.textProperty().bind( Bindings.convert( logView.getMinTimeGap() ) );
 
-            Label minTimeGapLabelLabel = new Label( "min-gap:" );
-            minTimeGapLabelLabel.getStyleClass().add( "min-time-gap-label" );
-
-            minTimeGapBox.getChildren().addAll( minTimeGapLabelLabel, minTimeGapLabel );
+            minTimeGapBox.getChildren().addAll( minTimeGapLabel, minTimeGapField );
 
             Runnable updateFileLabel = () -> {
                 if ( file.exists() ) {

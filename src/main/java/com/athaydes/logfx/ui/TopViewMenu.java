@@ -24,8 +24,17 @@ public final class TopViewMenu extends Menu {
         super( "_View" );
         setMnemonicParsing( true );
 
-        highlightGroupsView = new HighlightGroupsView( config );
+        var dateTimeMenu = new CheckMenuItem( "Patterns for DateTime" );
+        dateTimeMenu.setAccelerator( new KeyCodeCombination( KeyCode.K, KeyCombination.CONTROL_DOWN ) );
+        bindMenuItemToDialog( dateTimeMenu, () -> {
+            var dialog = new Dialog( new DateTimeEditor( config.getDateTimeGuesses() ) );
+            dialog.setTitle( "Edit DateTime Parsers" );
+            dialog.setMinWidth( 400 );
+            dialog.setHeight( 470, true );
+            return dialog;
+        } );
 
+        highlightGroupsView = new HighlightGroupsView( config );
         highlight = new CheckMenuItem( "_Highlight Options" );
         highlight.setAccelerator( new KeyCodeCombination( KeyCode.H,
                 // on Mac, Cmd+H hides the window, so let it use Ctrl+H instead
@@ -59,7 +68,7 @@ public final class TopViewMenu extends Menu {
         showContextMenu.setAccelerator( new KeyCodeCombination( KeyCode.E, KeyCombination.SHORTCUT_DOWN ) );
         showContextMenu.setOnAction( event -> logsPane.showContextMenu() );
 
-        getItems().addAll( highlight, orientation, distributePanesMenuItem, font, filter, showContextMenu );
+        getItems().addAll( highlight, dateTimeMenu, orientation, distributePanesMenuItem, font, filter, showContextMenu );
     }
 
     public Consumer<LogView> getEditGroupCallback() {
@@ -83,6 +92,7 @@ public final class TopViewMenu extends Menu {
                             menuItem.setSelected( false );
                             dialogRef.set( null );
                         } );
+                        dialog.show();
                     } catch ( Exception e ) {
                         e.printStackTrace();
                     }

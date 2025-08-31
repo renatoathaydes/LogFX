@@ -12,7 +12,9 @@ import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeParseException
 import java.util.regex.Pattern
 
-import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.*
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.TIMEZONE_GROUP
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.namedGroup
 
 class DateTimeFormatGuesserSpec extends Specification {
 
@@ -117,11 +119,11 @@ class DateTimeFormatGuesserSpec extends Specification {
         ].collect { Pattern.compile( "${it}.*" ) }
 
         def guesser = new DateTimeFormatGuesser( [
-                new PatternBasedDateTimeFormatGuess( 'iso', patterns[ 0 ], DateTimeFormatter.ISO_DATE_TIME ),
-                new PatternBasedDateTimeFormatGuess( 'rfc1', patterns[ 1 ], DateTimeFormatter.RFC_1123_DATE_TIME ),
-                new PatternBasedDateTimeFormatGuess( 'rfc2', patterns[ 2 ], DateTimeFormatter.RFC_1123_DATE_TIME ),
+                new PatternBasedDateTimeFormatGuess( 'iso', patterns[ 0 ], DateTimeFormatter.ISO_DATE_TIME, '' ),
+                new PatternBasedDateTimeFormatGuess( 'rfc1', patterns[ 1 ], DateTimeFormatter.RFC_1123_DATE_TIME, '' ),
+                new PatternBasedDateTimeFormatGuess( 'rfc2', patterns[ 2 ], DateTimeFormatter.RFC_1123_DATE_TIME, '' ),
                 new PatternBasedDateTimeFormatGuess( 'ncsa', patterns[ 3 ],
-                        DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]", Locale.ENGLISH ) ),
+                        DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][ Z]", Locale.ENGLISH ), '' ),
         ] )
 
         when: 'The guesser tries to guess the formats for a few log lines'

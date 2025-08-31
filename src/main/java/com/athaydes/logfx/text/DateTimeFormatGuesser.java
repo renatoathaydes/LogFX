@@ -5,10 +5,18 @@ import org.slf4j.LoggerFactory;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.regex.Pattern;
 
-import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.*;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.DATE_TIME_GROUP;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.TIMEZONE_GROUP;
+import static com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess.namedGroup;
 
 /**
  * A utility class that can be used to guess the format of dates within a log file
@@ -22,9 +30,11 @@ public final class DateTimeFormatGuesser {
 
     private final MultiDateTimeFormatGuess multiGuess;
 
-    private static volatile DateTimeFormatGuesser STANDARD_INSTANCE;
+    public static DateTimeFormatGuesser standard() {
+        return new DateTimeFormatGuesser( standardGuesses() );
+    }
 
-    private static DateTimeFormatGuesser createStandard() {
+    public static List<PatternBasedDateTimeFormatGuess> standardGuesses() {
         var prefixRegex = "[a-zA-Z\\[\\]_ -]{0,20}";
         var time = "\\d{1,2}:\\d{1,2}:\\d{1,2}";
         var timeMs = time + "(\\.\\d{1,9})?";
@@ -60,35 +70,27 @@ public final class DateTimeFormatGuesser {
                 "\\d{1,4}-\\d{1,2}-\\d{1,2}\\s+" + timeMs +
                         namedGroup( TIMEZONE_GROUP, "[+-]\\d{1,2}" ) );
 
-        return new DateTimeFormatGuesser( List.of(
+        return List.of(
                 new PatternBasedDateTimeFormatGuess( "ISO2", Pattern.compile( isoDateTime2 + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[:SSS][:SS][:S][xx]" ) ),
+                        "yyyy-M-d'T'H:m:s[:SSS][:SS][:S][xx]" ),
                 new PatternBasedDateTimeFormatGuess( "ISO", Pattern.compile( isoDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][zzz]" ) ),
+                        "yyyy-M-d'T'H:m:s[.SSS][.SS][.S][zzz]" ),
                 new PatternBasedDateTimeFormatGuess( "Common", Pattern.compile( commonDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "[EE ]MMM dd HH:mm:ss[.SSS][.SS][.S][ zzz][ yyyy]" ) ),
+                        "[EE ]MMM dd HH:mm:ss[.SSS][.SS][.S][ zzz][ yyyy]" ),
                 new PatternBasedDateTimeFormatGuess( "NCSA", Pattern.compile( ncsaCommonLogFormat + ".*" ),
-                        DateTimeFormatter.ofPattern( "d/MMM/yyyy:H:m:s[:SSS][:SS][:S][ Z]" ) ),
+                        "d/MMM/yyyy:H:m:s[:SSS][:SS][:S][ Z]" ),
                 new PatternBasedDateTimeFormatGuess( "RFC-1123", Pattern.compile( rfc1123DateTime + ".*" ),
-                        DateTimeFormatter.RFC_1123_DATE_TIME ),
+                        DateTimeFormatter.RFC_1123_DATE_TIME, "EEE, dd MMM yyyy HH:mm:ss zzz" ),
                 new PatternBasedDateTimeFormatGuess( "APPLE", Pattern.compile( appleDateTime + ".*" ),
-                        DateTimeFormatter.ofPattern( "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) ) )
-        );
+                        "yyyy-M-d H:m:s[.SSS][.SS][.S][x]" ) );
     }
 
-    public static DateTimeFormatGuesser standard() {
-        if ( STANDARD_INSTANCE == null ) {
-            synchronized ( DateTimeFormatGuesser.class ) {
-                if ( STANDARD_INSTANCE == null ) {
-                    STANDARD_INSTANCE = createStandard();
-                }
-            }
-        }
-        return STANDARD_INSTANCE;
+    public DateTimeFormatGuesser( MultiDateTimeFormatGuess guess ) {
+        this.multiGuess = guess;
     }
 
-    DateTimeFormatGuesser( List<? extends DateTimeFormatGuess> guessers ) {
-        this.multiGuess = new MultiDateTimeFormatGuess( guessers );
+    public DateTimeFormatGuesser( Collection<? extends DateTimeFormatGuess> guessers ) {
+        this( new MultiDateTimeFormatGuess( guessers ) );
     }
 
     /**
@@ -97,6 +99,13 @@ public final class DateTimeFormatGuesser {
      */
     public DateTimeFormatGuess asGuess() {
         return multiGuess;
+    }
+
+    @Override
+    public String toString() {
+        return "DateTimeFormatGuesser{" +
+                "multiGuess=" + multiGuess.guesses.get() +
+                '}';
     }
 
     /**
@@ -169,26 +178,30 @@ public final class DateTimeFormatGuesser {
         return guesses;
     }
 
-    static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
-        private final Collection<? extends DateTimeFormatGuess> guesses;
+    public static final class MultiDateTimeFormatGuess implements DateTimeFormatGuess {
+        private final AtomicReference<Collection<? extends DateTimeFormatGuess>> guesses;
 
-        private MultiDateTimeFormatGuess( Collection<? extends DateTimeFormatGuess> guesses ) {
+        public MultiDateTimeFormatGuess( AtomicReference<Collection<? extends DateTimeFormatGuess>> guesses ) {
             this.guesses = guesses;
+        }
+
+        public MultiDateTimeFormatGuess( Collection<? extends DateTimeFormatGuess> guesses ) {
+            this( new AtomicReference<>( guesses ) );
         }
 
         @Override
         public Optional<ZonedDateTime> guessDateTime( String line ) {
             var effectiveLine = line.substring( 0, Math.min( MAX_CHARS_TO_LOOK_FOR_DATE, line.length() ) );
 
-            return guesses.stream()
+            return guesses.get().stream()
                     .map( guesser -> guesser.guessDateTime( effectiveLine ) )
                     .filter( Optional::isPresent )
                     .map( Optional::get )
                     .findFirst();
         }
 
-        Collection<? extends DateTimeFormatGuess> getGuesses() {
-            return guesses;
+        public Collection<? extends DateTimeFormatGuess> getGuesses() {
+            return guesses.get();
         }
     }
 

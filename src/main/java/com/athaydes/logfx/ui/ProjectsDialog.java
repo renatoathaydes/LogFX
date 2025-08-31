@@ -2,9 +2,11 @@ package com.athaydes.logfx.ui;
 
 import com.athaydes.logfx.config.Config;
 import com.athaydes.logfx.config.Properties;
+import com.athaydes.logfx.data.YesOrNoMap;
 import javafx.application.Platform;
 import javafx.scene.control.Button;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -18,7 +20,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import static com.athaydes.logfx.config.Properties.DEFAULT_PROJECT_NAME;
-import static com.athaydes.logfx.ui.Dialog.MessageLevel.*;
+import static com.athaydes.logfx.ui.Dialog.MessageLevel.ERROR;
+import static com.athaydes.logfx.ui.Dialog.MessageLevel.INFO;
+import static com.athaydes.logfx.ui.Dialog.MessageLevel.WARNING;
 import static java.util.stream.Collectors.toMap;
 
 public final class ProjectsDialog {
@@ -62,6 +66,13 @@ public final class ProjectsDialog {
                 dialog.hide();
                 action.run();
             } );
+            // Ensure Enter key also triggers the button
+            optionButton.setOnKeyPressed( event -> {
+                if ( event.getCode() == KeyCode.ENTER ) {
+                    dialog.hide();
+                    action.run();
+                }
+            } );
             var deleteButton = AwesomeIcons.createIconButton( AwesomeIcons.TRASH );
             if ( DEFAULT_PROJECT_NAME.equals( projectName ) ) {
                 deleteButton.setDisable( true );
@@ -69,12 +80,12 @@ public final class ProjectsDialog {
             } else {
                 deleteButton.setOnAction( ( e ) ->
                         Dialog.showQuestionDialog( "Are you sure you want to delete project '" + projectName + "'?",
-                                Map.of( "Yes", () -> deleteProject( projectName, isCurrent, stage,
-                                                () -> {
-                                                    optionsBox.getChildren().remove( optionBox );
-                                                    markCurrent( defaultProjectButtonRef.get() );
-                                                } ),
-                                        "No", optionsBox::requestFocus ) ) );
+                                new YesOrNoMap( () -> deleteProject( projectName, isCurrent, stage,
+                                        () -> {
+                                            optionsBox.getChildren().remove( optionBox );
+                                            markCurrent( defaultProjectButtonRef.get() );
+                                        } ),
+                                        optionsBox::requestFocus ).toMap() ) );
             }
 
             optionBox.getChildren().addAll( optionButton, deleteButton );
