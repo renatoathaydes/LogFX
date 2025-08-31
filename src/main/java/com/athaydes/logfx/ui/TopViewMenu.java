@@ -25,7 +25,7 @@ public final class TopViewMenu extends Menu {
         setMnemonicParsing( true );
 
         var dateTimeMenu = new CheckMenuItem( "Patterns for DateTime" );
-        dateTimeMenu.setAccelerator( new KeyCodeCombination( KeyCode.T, KeyCombination.CONTROL_DOWN ) );
+        dateTimeMenu.setAccelerator( new KeyCodeCombination( KeyCode.K, KeyCombination.CONTROL_DOWN ) );
         bindMenuItemToDialog( dateTimeMenu, () -> {
             var dialog = new Dialog( new DateTimeEditor( config.getDateTimeGuesses() ) );
             dialog.setTitle( "Edit DateTime Parsers" );
