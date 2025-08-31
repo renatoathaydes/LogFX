@@ -168,3 +168,11 @@ LogView.dropping-files {
     -fx-text-fill: black;
     -fx-focus-color: yellowgreen;
 }
+
+Circle.green-light {
+    -fx-effect: dropshadow(gaussian, green, 15, 0.25, 0, 0);
+}
+
+Circle.red-light {
+    -fx-effect: dropshadow(gaussian, red, 15, 0.25, 0, 0);
+}

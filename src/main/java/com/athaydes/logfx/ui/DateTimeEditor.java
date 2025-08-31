@@ -258,8 +258,8 @@ public final class DateTimeEditor extends BorderPane {
         InvalidationListener resultListener = ( obs ) -> {
             dateTimeOutputField.setText( "" );
             errorField.setText( "" );
-            formatLight.setFill( Color.GRAY );
-            regexLight.setFill( Color.GRAY );
+            setGrayLight( formatLight );
+            setGrayLight( regexLight );
             var testText = testTextField.getText();
 
             if ( testText == null || testText.isBlank() || lineRegex == null || formatter == null ) {
@@ -269,10 +269,10 @@ public final class DateTimeEditor extends BorderPane {
             log.debug( "Checking DateTime pattern result for text: {}", testText );
             var matcher = lineRegex.matcher( testText );
             if ( !matcher.find() ) {
-                regexLight.setFill( Color.RED );
+                setRedLight( regexLight );
                 return;
             }
-            regexLight.setFill( Color.GREEN );
+            setGreenLight( regexLight );
 
             String dateTimeStr = null;
             try {
@@ -283,18 +283,18 @@ public final class DateTimeEditor extends BorderPane {
             }
 
             if ( dateTimeStr == null ) {
-                formatLight.setFill( Color.RED );
+                setRedLight( formatLight );
                 return;
             }
 
             dateTimeOutputField.setText( dateTimeStr );
             try {
                 formatter.parse( dateTimeStr );
-                formatLight.setFill( Color.GREEN );
+                setGreenLight( formatLight );
             } catch ( DateTimeParseException e ) {
                 log.debug( "Error parsing date-time string '{}': {}", dateTimeStr, e.getMessage() );
                 errorField.setText( "DATETIME: " + e.getMessage() );
-                formatLight.setFill( Color.RED );
+                setRedLight( formatLight );
             }
         };
 
@@ -343,9 +343,26 @@ public final class DateTimeEditor extends BorderPane {
         testTextField.clear();
         dateTimeOutputField.clear();
         guessesList.getSelectionModel().clearSelection();
-        regexLight.setFill( Color.GRAY );
-        formatLight.setFill( Color.GRAY );
+        setGrayLight( regexLight );
+        setGrayLight( formatLight );
         removeButton.setDisable( true );
+    }
+
+    private static void setGreenLight( Circle circle ) {
+        circle.setFill( Color.GREEN );
+        circle.getStyleClass().clear();
+        circle.getStyleClass().add( "green-light" );
+    }
+
+    private static void setRedLight( Circle circle ) {
+        circle.setFill( Color.RED );
+        circle.getStyleClass().clear();
+        circle.getStyleClass().add( "red-light" );
+    }
+
+    private static void setGrayLight( Circle circle ) {
+        circle.setFill( Color.GRAY );
+        circle.getStyleClass().clear();
     }
 
     private static AnchorPane regexHelp() {
