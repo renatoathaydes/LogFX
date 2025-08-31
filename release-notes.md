@@ -8,6 +8,8 @@
 * removed min-time-gap popup editor, now editing can be done directly on the file top-menu bar.
 * open project when "Enter" is pressed, not only "Space".
 * fixed highlighted line colors changing unexpectedly on Java 17+.
+* fixed yes/no buttons sometimes switching position.
+* #31 improved Windows launcher to not open terminal window.
 
 ## 1.1
 
@@ -17,7 +19,6 @@
 * better time formats supported.
 * optionally show time gaps between log lines.
 * fixed Windows launcher when directory path has whitespace.
-* fixed yes/no buttons sometimes switching position.
 
 ## 1.0
 
