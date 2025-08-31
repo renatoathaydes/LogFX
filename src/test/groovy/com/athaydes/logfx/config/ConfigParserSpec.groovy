@@ -1,5 +1,6 @@
 package com.athaydes.logfx.config
 
+import com.athaydes.logfx.text.DateTimeFormatGuesser
 import com.athaydes.logfx.text.HighlightExpression
 import com.athaydes.logfx.text.PatternBasedDateTimeFormatGuess
 import javafx.geometry.BoundingBox
@@ -237,7 +238,7 @@ class ConfigParserSpec extends Specification {
         sampleConfig                          || expectedRules
         """\
         |version:
-        |  V3""".stripMargin()     || [ ]
+        |  V3""".stripMargin() || DateTimeFormatGuesser.standardGuesses()
 
         """\
         |version:
