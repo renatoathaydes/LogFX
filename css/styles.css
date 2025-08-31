@@ -50,8 +50,10 @@ a.big-link {
 }
 
 pre {
-  padding: 1em;
+    padding: 0 1em 0 1em;
   overflow: auto;
+    border: solid 1px;
+    background-color: black;
 }
 
 .main-body {
