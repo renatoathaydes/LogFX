@@ -92,7 +92,7 @@ class TaskRunnerSpec extends Specification {
 class RunnableTask implements Runnable {
     AtomicInteger runCount
     CountDownLatch latch
-    long[] taskExecutionTimes
+    volatile long[] taskExecutionTimes
 
     @Override
     void run() {
