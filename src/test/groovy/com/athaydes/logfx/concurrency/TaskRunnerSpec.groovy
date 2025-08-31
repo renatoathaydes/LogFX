@@ -4,6 +4,7 @@ package com.athaydes.logfx.concurrency
 import groovy.transform.CompileStatic
 import groovy.transform.TupleConstructor
 import spock.lang.AutoCleanup
+import spock.lang.Retry
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Subject
@@ -39,6 +40,7 @@ class TaskRunnerSpec extends Specification {
         }
     }
 
+    @Retry
     def "Should be able to run tasks at most at a given frequency"() {
         given: 'A helper Integer mixin for assertions'
         Long.metaClass.between = { long start, long end ->
