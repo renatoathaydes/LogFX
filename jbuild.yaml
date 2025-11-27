@@ -6,3 +6,9 @@ source-dirs: [ src/main/java, src/common/java ]
 resource-dirs: [ src/main/resources, src/common/resources ]
 
 extension-project: splash-maker
+
+main-class: com.athaydes.logfx.LogFX
+manifest: src/MANIFEST.MF
+
+dependencies:
+  org.slf4j:slf4j-api:2.0.16:
