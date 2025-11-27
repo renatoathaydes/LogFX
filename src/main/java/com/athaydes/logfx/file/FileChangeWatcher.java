@@ -2,18 +2,12 @@ package com.athaydes.logfx.file;
 
 import com.athaydes.logfx.concurrency.Cancellable;
 import com.athaydes.logfx.concurrency.TaskRunner;
-import com.sun.nio.file.SensitivityWatchEventModifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.StandardWatchEventKinds;
-import java.nio.file.WatchEvent;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -86,7 +80,7 @@ public class FileChangeWatcher {
                         StandardWatchEventKinds.ENTRY_CREATE,
                         StandardWatchEventKinds.OVERFLOW,
                         StandardWatchEventKinds.ENTRY_DELETE
-                }, SensitivityWatchEventModifier.HIGH );
+                } );
 
                 log.info( "Watching file {}", path );
                 watching.set( true );
