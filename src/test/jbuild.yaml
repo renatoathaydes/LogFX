@@ -1,0 +1,28 @@
+properties:
+  versions:
+    groovy: "5.0.3"
+    spock: "2.4-groovy-5.0"
+    byteBuddy: "1.12.19"
+    tempusFugit: "1.1"
+    junitJupiter: "6.0.1"
+
+group: com.athaydes.logfx
+module: logfx-tests
+name: LogFX Tests
+version: 0.0.0
+description: LogFX Unit Tests.
+
+source-dirs:
+  - groovy
+
+dependencies:
+  com.athaydes:logfx:
+    path: ../..
+  org.apache.groovy:groovy:{{versions.groovy}}:
+  org.spockframework:spock-core:{{versions.spock}}:
+    exclusions: ["org.apache.groovy.*"]
+  net.bytebuddy:byte-buddy:{{versions.byteBuddy}}:
+  com.google.code.tempus-fugit:tempus-fugit:{{versions.tempusFugit}}:
+    exclusions: [".*"]
+  org.junit.jupiter:junit-jupiter-api:{{versions.junitJupiter}}:
+    exclusions: ["org.junit.platform.*"]
