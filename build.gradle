@@ -124,14 +124,11 @@ configurations {
 dependencies {
     implementation group: 'org.slf4j', name: 'slf4j-api', version: '2.0.16'
 
-    testImplementation platform( 'org.apache.groovy:groovy-bom:4.0.28' )
+    testImplementation platform( 'org.apache.groovy:groovy-bom:5.0.3' )
     testImplementation 'org.apache.groovy:groovy'
-    testImplementation platform( "org.spockframework:spock-bom:2.4-M6-groovy-4.0" )
+    testImplementation platform( "org.spockframework:spock-bom:2.4-groovy-5.0" )
     testImplementation "org.spockframework:spock-core"
     testImplementation "org.junit.jupiter:junit-jupiter-api"
-    testImplementation group: 'com.athaydes', name: 'spock-reports', version: '2.5.1-groovy-4.0', {
-        transitive = false
-    }
     testImplementation group: 'net.bytebuddy', name: 'byte-buddy', version: '1.12.19'
     testImplementation group: 'com.google.code.tempus-fugit', name: 'tempus-fugit', version: '1.1', {
         transitive = false
