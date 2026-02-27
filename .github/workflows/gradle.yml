@@ -44,6 +44,9 @@ jobs:
         shell: bash
 
       - name: Build with jb
+        run: jb/bin/jb -d
+
+      - name: Run tests
         run: jb/bin/jb -d -p src/test compile test || true
 
       - name: Publish Test Report
