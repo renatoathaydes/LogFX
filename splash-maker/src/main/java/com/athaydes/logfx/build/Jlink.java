@@ -40,7 +40,6 @@ public class Jlink implements JbTask {
         var jlink = maybeJlink.get();
         var code = jlink.run( System.out, System.err,
                 "--module-path", String.join( File.pathSeparator, "build/runtime-libs", "build/LogFX.jar" ),
-                "--vm=server", // options: client|server|minimal|all
                 "--add-modules", "java.base,java.desktop,javafx.controls,jdk.unsupported,jdk.crypto.ec,org.slf4j," +
                         "com.athaydes.logfx",
                 "--output", "build/image",
