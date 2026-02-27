@@ -21,7 +21,7 @@ sourceSets {
 }
 
 group 'com.athaydes.logfx'
-version '1.2'
+version '1.3'
 description 'A beautiful log viewer capable of handling large files'
 
 java {
