@@ -10,7 +10,7 @@ jobs:
 
       - uses: actions/setup-java@v1
         with:
-          java-version: '24'
+          java-version: '25'
           java-package: 'jdk+fx'
 
       - name: Get the version
@@ -18,10 +18,24 @@ jobs:
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
         shell: bash
 
+      - name: Download jb
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'renatoathaydes/jb'
+          version: 'tags/0.16.0'
+          file: 'jb-0.16.0-${{ matrix.oskind }}.tar.gz'
+          target: jb.tar.gz
+
+      - name: Install jb
+        run: |
+              mkdir jb
+              tar xzf jb.tar.gz -C jb
+        shell: bash
+
       - name: Package Java Image
         uses: GabrielBB/xvfb-action@v1.0
         with:
-          run: ./gradlew packageImage
+          run: jb/bin/jb -d jlink
 
       - uses: actions/upload-release-asset@v1
         env:
@@ -38,7 +52,7 @@ jobs:
 
       - uses: actions/setup-java@v1
         with:
-          java-version: '24'
+          java-version: '25'
           java-package: 'jdk+fx'
 
       - name: Get the version
@@ -46,10 +60,24 @@ jobs:
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
         shell: bash
 
+      - name: Download jb
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'renatoathaydes/jb'
+          version: 'tags/0.16.0'
+          file: 'jb-0.16.0-${{ matrix.oskind }}.tar.gz'
+          target: jb.tar.gz
+
+      - name: Install jb
+        run: |
+              mkdir jb
+              tar xzf jb.tar.gz -C jb
+        shell: bash
+
       - name: Package Java Image
         uses: GabrielBB/xvfb-action@v1.0
         with:
-          run: ./gradlew packageImage
+          run: jb/bin/jb -d jlink
 
       - uses: actions/upload-release-asset@v1
         env:
@@ -66,7 +94,7 @@ jobs:
 
       - uses: actions/setup-java@v1
         with:
-          java-version: '24'
+          java-version: '25'
           java-package: 'jdk+fx'
 
       - name: Get the version
@@ -74,10 +102,24 @@ jobs:
         run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
         shell: bash
 
+      - name: Download jb
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'renatoathaydes/jb'
+          version: 'tags/0.16.0'
+          file: 'jb-0.16.0-${{ matrix.oskind }}.tar.gz'
+          target: jb.tar.gz
+
+      - name: Install jb
+        run: |
+              mkdir jb
+              tar xzf jb.tar.gz -C jb
+        shell: bash
+
       - name: Package Java Image
         uses: GabrielBB/xvfb-action@v1.0
         with:
-          run: ./gradlew packageImage
+          run: jb/bin/jb -d jlink
 
       - uses: actions/upload-release-asset@v1
         env:
