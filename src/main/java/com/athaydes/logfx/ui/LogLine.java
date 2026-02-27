@@ -7,14 +7,18 @@ import javafx.animation.Interpolator;
 import javafx.animation.Transition;
 import javafx.application.Platform;
 import javafx.beans.binding.NumberBinding;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.text.Font;
+import javafx.scene.text.Text;
 
 import java.time.Duration;
 
@@ -25,36 +29,50 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
 
     private static final int MAX_LINE_LENGTH = 5000;
 
+    private static final Color SELECTION_BG = Color.web( "#039ED3" );
+    private static final Color SELECTION_TEXT = SELECTION_BG.deriveColor( 0, 1, 0.2, 1 );
+
     private final int lineIndex;
     private String fullText = "";
     private boolean displayTimeGap;
-    private final Label stdLine;
+    private final StackPane lineContainer;
+    private final Text textNode;
     private final Label timeGap;
     private final BindableValue<Font> fontValue;
+    private LogLineColors currentColors;
+    private boolean isSelected;
 
     LogLine( BindableValue<Font> fontValue,
              int lineIndex,
              NumberBinding widthProperty,
              Paint bkgColor, Paint fillColor ) {
-        this.stdLine = new Label();
         this.fontValue = fontValue;
         this.lineIndex = lineIndex;
+        this.currentColors = new LogLineColors( bkgColor, fillColor );
+
+        this.textNode = new Text();
+        this.lineContainer = new StackPane( textNode );
+        lineContainer.setAlignment( Pos.CENTER_LEFT );
+        lineContainer.setPadding( new Insets( 0, 5, 0, 5 ) );
 
         this.timeGap = new Label();
         timeGap.getStyleClass().add( "log-line-time-gap" );
         timeGap.minWidthProperty().bind( widthProperty );
 
-        stdLine.setStyle( String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
-                FxUtils.toRGBCode( fillColor ), FxUtils.toRGBCode( bkgColor ) ) );
-        stdLine.fontProperty().bind( fontValue );
-        stdLine.minWidthProperty().bind( widthProperty );
-        stdLine.getStyleClass().add( "log-line" );
+        lineContainer.setBackground( FxUtils.simpleBackground( bkgColor ) );
+        if ( fillColor instanceof Color color ) {
+            textNode.setFill( color );
+        } else {
+            textNode.setFill( Color.WHITE );
+        }
+        textNode.fontProperty().bind( fontValue );
+        lineContainer.minWidthProperty().bind( widthProperty );
 
         setOnMouseClicked( event -> {
             if ( event.getClickCount() > 1 ) swapSelectableText();
         } );
 
-        getChildren().add( stdLine );
+        getChildren().add( lineContainer );
     }
 
     @Override
@@ -74,10 +92,10 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
 
     private void swapSelectableText() {
         // the children may be either:
-        //   * a timeGap Label AND the stdLine Label
+        //   * a timeGap Label AND the lineContainer StackPane
         //   * OR a TextField (editable line)
         var child = getChildren().get( 0 );
-        if ( child == stdLine || child == timeGap ) {
+        if ( child == lineContainer || child == timeGap ) {
             setLineEditingChildren();
         } else {
             setDefaultChildren();
@@ -90,7 +108,7 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
         if ( displayTimeGap ) {
             getChildren().add( timeGap );
         }
-        getChildren().add( stdLine );
+        getChildren().add( lineContainer );
     }
 
     @MustCallOnJavaFXThread
@@ -98,7 +116,7 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
         getChildren().clear();
         var textField = new TextField( fullText );
         textField.setFont( fontValue.getValue() );
-        textField.minWidthProperty().bind( stdLine.minWidthProperty() );
+        textField.minWidthProperty().bind( lineContainer.minWidthProperty() );
         textField.focusedProperty().addListener( ( ignore ) -> {
             if ( !textField.isFocused() ) swapSelectableText();
         } );
@@ -122,24 +140,24 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
     @MustCallOnJavaFXThread
     void setText( String text, LogLineColors colors, Duration timeGap ) {
         this.fullText = text;
+        this.currentColors = colors;
         var uiText = fullText.length() > MAX_LINE_LENGTH
                 ? fullText.substring( 0, MAX_LINE_LENGTH ) + "..."
                 : fullText;
-        stdLine.setText( uiText );
-        String colorStyle = String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
-                FxUtils.toRGBCode( colors.getFill() ), FxUtils.toRGBCode( colors.getBackground() ) );
-        stdLine.setStyle( colorStyle );
+        textNode.setText( uiText );
+
+        if ( !isSelected ) {
+            applyHighlightColors();
+        }
 
         var displayTimeGap = timeGap != null;
         if ( displayTimeGap != this.displayTimeGap ) {
             this.displayTimeGap = displayTimeGap;
             if ( displayTimeGap ) {
-                stdLine.getStyleClass().add( "with-time-gap" );
                 this.timeGap.setText( "Time gap: " + timeGap.toMillis() + "ms" );
                 getChildren().add( 0, this.timeGap );
             } else {
                 assert ( getChildren().size() == 2 );
-                stdLine.getStyleClass().remove( "with-time-gap" );
                 getChildren().remove( 0 );
             }
         }
@@ -148,11 +166,25 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
     @MustCallOnJavaFXThread
     @Override
     public void setSelect( boolean select ) {
+        this.isSelected = select;
         if ( select ) {
-            stdLine.getStyleClass().add( "selected" );
+            applySelectionColors();
         } else {
-            stdLine.getStyleClass().remove( "selected" );
+            applyHighlightColors();
         }
+    }
+
+    private void applyHighlightColors() {
+        lineContainer.setBackground( FxUtils.simpleBackground( currentColors.getBackground() ) );
+        Paint fill = currentColors.getFill();
+        if ( fill instanceof Color color ) {
+            textNode.setFill( color );
+        }
+    }
+
+    private void applySelectionColors() {
+        lineContainer.setBackground( FxUtils.simpleBackground( SELECTION_BG ) );
+        textNode.setFill( SELECTION_TEXT );
     }
 
     @MustCallOnJavaFXThread
@@ -162,13 +194,20 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
     }
 
     private class BackgroundTransition extends Transition {
-        private final Color originalColor;
+        private final Color originalBkgColor;
+        private final Color originalTextColor;
         private final Color targetColor;
 
         BackgroundTransition( Color targetColor ) {
-            var style = stdLine.getStyle();
-            this.originalColor = getBackgroundColor( style );
-            if ( targetColor.equals( originalColor ) ) {
+            var fills = lineContainer.getBackground().getFills();
+            if ( !fills.isEmpty() && fills.get( 0 ).getFill() instanceof Color c ) {
+                this.originalBkgColor = c;
+            } else {
+                this.originalBkgColor = Color.WHITE;
+            }
+            this.originalTextColor = textNode.getFill() instanceof Color c ? c : Color.WHITE;
+
+            if ( targetColor.equals( originalBkgColor ) ) {
                 this.targetColor = targetColor.invert();
             } else {
                 this.targetColor = targetColor;
@@ -179,46 +218,15 @@ class LogLine extends VBox implements SelectionHandler.SelectableNode {
             setCycleCount( 6 );
             setAutoReverse( true );
             setOnFinished( event -> {
-                String finalStyle = String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
-                        getCurrentTextFillColor( style ), FxUtils.toRGBCode( originalColor ) );
-                stdLine.setStyle( finalStyle );
+                lineContainer.setBackground( FxUtils.simpleBackground( originalBkgColor ) );
+                textNode.setFill( originalTextColor );
             } );
-        }
-
-        private Color getBackgroundColor( String style ) {
-            if ( style == null || style.isEmpty() ) {
-                return Color.WHITE; // default
-            }
-            String[] parts = style.split( ";" );
-            for ( String part : parts ) {
-                if ( part.trim().startsWith( "-fx-background-color:" ) ) {
-                    String colorStr = part.substring( part.indexOf( ':' ) + 1 ).trim();
-                    return Color.web( colorStr );
-                }
-            }
-            return Color.WHITE;
-        }
-
-        private String getCurrentTextFillColor( String style ) {
-            if ( style == null || style.isEmpty() ) {
-                return "#000000"; // default black
-            }
-            String[] parts = style.split( ";" );
-            for ( String part : parts ) {
-                if ( part.trim().startsWith( "-fx-text-fill:" ) ) {
-                    return part.substring( part.indexOf( ':' ) + 1 ).trim();
-                }
-            }
-            return "#000000";
         }
 
         @Override
         protected void interpolate( double frac ) {
-            Color interpolatedColor = originalColor.interpolate( targetColor, frac );
-            String style = String.format( "-fx-text-fill: %s; -fx-background-color: %s;",
-                    getCurrentTextFillColor( stdLine.getStyle() ),
-                    FxUtils.toRGBCode( interpolatedColor ) );
-            stdLine.setStyle( style );
+            Color interpolatedColor = originalBkgColor.interpolate( targetColor, frac );
+            lineContainer.setBackground( FxUtils.simpleBackground( interpolatedColor ) );
         }
     }
 
