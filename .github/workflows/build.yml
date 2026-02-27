@@ -3,8 +3,17 @@ on:
   release:
     types: [created]
 jobs:
-  build-linux:
-    runs-on: ubuntu-latest
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            oskind: linux
+          - os: macos-latest
+            oskind: mac
+          - os: windows-latest
+            oskind: windows
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
 
@@ -43,89 +52,5 @@ jobs:
         with:
           upload_url: ${{ github.event.release.upload_url }}
           asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
-          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-linux.zip
-          asset_content_type: application/zip
-  build-mac:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - uses: actions/setup-java@v1
-        with:
-          java-version: '25'
-          java-package: 'jdk+fx'
-
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-        shell: bash
-
-      - name: Download jb
-        uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          repo: 'renatoathaydes/jb'
-          version: 'tags/0.16.0'
-          file: 'jb-0.16.0-${{ matrix.oskind }}.tar.gz'
-          target: jb.tar.gz
-
-      - name: Install jb
-        run: |
-              mkdir jb
-              tar xzf jb.tar.gz -C jb
-        shell: bash
-
-      - name: Package Java Image
-        uses: GabrielBB/xvfb-action@v1.0
-        with:
-          run: jb/bin/jb -d jlink
-
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
-          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-mac.zip
-          asset_content_type: application/zip
-  build-win:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v1
-
-      - uses: actions/setup-java@v1
-        with:
-          java-version: '25'
-          java-package: 'jdk+fx'
-
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\//}
-        shell: bash
-
-      - name: Download jb
-        uses: dsaltares/fetch-gh-release-asset@master
-        with:
-          repo: 'renatoathaydes/jb'
-          version: 'tags/0.16.0'
-          file: 'jb-0.16.0-${{ matrix.oskind }}.tar.gz'
-          target: jb.tar.gz
-
-      - name: Install jb
-        run: |
-              mkdir jb
-              tar xzf jb.tar.gz -C jb
-        shell: bash
-
-      - name: Package Java Image
-        uses: GabrielBB/xvfb-action@v1.0
-        with:
-          run: jb/bin/jb -d jlink
-
-      - uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ github.event.release.upload_url }}
-          asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
-          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-windows.zip
+          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-${{ matrix.oskind }}.zip
           asset_content_type: application/zip
