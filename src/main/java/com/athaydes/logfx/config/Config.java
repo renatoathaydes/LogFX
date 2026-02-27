@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -184,7 +185,7 @@ public class Config {
         Platform.runLater( () -> data.highlightExpressions = Map.copyOf( properties.highlightGroups.toMap() ) );
         Platform.runLater( () -> data.enableFilters = properties.enableFilters.getValue() );
         Platform.runLater( () -> data.displayTimeGaps = properties.displayTimeGaps.getValue() );
-        Platform.runLater( () -> data.files = Set.copyOf( properties.observableFiles ) );
+        Platform.runLater( () -> data.files = new LinkedHashSet<>( properties.observableFiles ) );
         Platform.runLater( () -> data.orientation = properties.panesOrientation.get() );
         Platform.runLater( () -> data.windowBounds = properties.windowBounds.get() );
         Platform.runLater( () -> data.dividerPositions = List.copyOf( properties.paneDividerPositions ) );
