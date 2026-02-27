@@ -1,14 +1,13 @@
 package com.athaydes.logfx.build;
 
-import jbuild.api.JBuildException;
-import jbuild.api.JBuildLogger;
-import jbuild.api.JbTask;
-import jbuild.api.JbTaskInfo;
+import jbuild.api.*;
+import jbuild.api.config.JbConfig;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.io.*;
+import java.net.URI;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.spi.ToolProvider;
@@ -18,9 +17,11 @@ import static jbuild.api.JBuildException.ErrorCause.ACTION_ERROR;
 @JbTaskInfo( description = "Package LogFX using jlink", name = "jlink" )
 public class Jlink implements JbTask {
 
+    private final JbConfig config;
     private final JBuildLogger log;
 
-    public Jlink( JBuildLogger log ) {
+    public Jlink( JbConfig config, JBuildLogger log ) {
+        this.config = config;
         this.log = log;
     }
 
@@ -32,6 +33,14 @@ public class Jlink implements JbTask {
     @Override
     public void run( String... args ) throws IOException {
         log.verbosePrintln( "Starting jlink task" );
+
+        var imagePath = Path.of( "build", "image" );
+
+        // delete existing image directory if present
+        if ( Files.exists( imagePath ) ) {
+            log.verbosePrintln( "Deleting existing image directory" );
+            deleteRecursively( imagePath );
+        }
 
         var maybeJlink = ToolProvider.findFirst( "jlink" );
         if ( maybeJlink.isEmpty() ) {
@@ -59,5 +68,56 @@ public class Jlink implements JbTask {
         Files.copy(
                 Paths.get( "src", "main", "sh", logfxScript ),
                 Paths.get( "build", "image", "bin", logfxScript ) );
+
+        // zip the image
+        var zipPath = Path.of( "build", "logfx-" + config.version + ".zip" );
+        log.verbosePrintln( () -> "Creating zip: " + zipPath );
+        createZip( imagePath, zipPath );
+    }
+
+    private static void createZip( Path sourceDir, Path zipPath ) throws IOException {
+        Files.deleteIfExists( zipPath );
+        var env = new HashMap<String, String>();
+        env.put( "create", "true" );
+        var zipUri = URI.create( "jar:" + zipPath.toUri() );
+
+        try ( var zipFs = FileSystems.newFileSystem( zipUri, env ) ) {
+            Files.walkFileTree( sourceDir, new SimpleFileVisitor<>() {
+                @Override
+                public FileVisitResult visitFile( Path file, BasicFileAttributes attrs ) throws IOException {
+                    var entryPath = zipFs.getPath( sourceDir.relativize( file ).toString() );
+                    if ( entryPath.getParent() != null ) {
+                        Files.createDirectories( entryPath.getParent() );
+                    }
+                    Files.copy( file, entryPath, StandardCopyOption.REPLACE_EXISTING );
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult preVisitDirectory( Path dir, BasicFileAttributes attrs ) throws IOException {
+                    var entryPath = zipFs.getPath( sourceDir.relativize( dir ).toString() );
+                    Files.createDirectories( entryPath );
+                    return FileVisitResult.CONTINUE;
+                }
+            } );
+        }
+    }
+
+    private static void deleteRecursively( Path path ) throws IOException {
+        Files.walkFileTree( path, new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile( Path file, BasicFileAttributes attrs ) throws IOException {
+                file.toFile().setWritable( true );
+                Files.delete( file );
+                return FileVisitResult.CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory( Path dir, IOException exc ) throws IOException {
+                dir.toFile().setWritable( true );
+                Files.delete( dir );
+                return FileVisitResult.CONTINUE;
+            }
+        } );
     }
 }
