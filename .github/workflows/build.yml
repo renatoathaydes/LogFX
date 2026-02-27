@@ -9,10 +9,13 @@ jobs:
         include:
           - os: ubuntu-latest
             oskind: linux
+            jb_platform: linux
           - os: macos-latest
             oskind: mac
+            jb_platform: macos-arm64
           - os: windows-latest
             oskind: windows
+            jb_platform: windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
@@ -32,7 +35,7 @@ jobs:
         with:
           repo: 'renatoathaydes/jb'
           version: 'tags/0.16.0'
-          file: 'jb-0.16.0-${{ matrix.oskind }}.tar.gz'
+          file: 'jb-0.16.0-${{ matrix.jb_platform }}.tar.gz'
           target: jb.tar.gz
 
       - name: Install jb
