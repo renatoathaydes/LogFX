@@ -23,7 +23,8 @@ import static com.athaydes.logfx.ui.AboutLogFXView.WIDTH;
 /**
  * JavaFX Preloader that displays a splash screen while the main application loads.
  * <p>
- * The splash image is expected at {@code $JAVA_HOME/bin/logfx-logo.png}.
+ * The splash image path can be overridden via the {@code LOGFX_SPLASH_IMAGE} environment variable.
+ * If not set, it defaults to {@code $JAVA_HOME/bin/logfx-logo.png}.
  * If the image file doesn't exist, no splash is shown.
  */
 public class SplashPreloader extends Preloader {
@@ -34,7 +35,10 @@ public class SplashPreloader extends Preloader {
     public void start( Stage primaryStage ) {
         this.stage = primaryStage;
 
-        Path imagePath = Path.of( System.getProperty( "java.home" ), "bin", "logfx-logo.png" );
+        var envPath = System.getenv( "LOGFX_SPLASH_IMAGE" );
+        Path imagePath = envPath != null
+                ? Path.of( envPath )
+                : Path.of( System.getProperty( "java.home" ), "bin", "logfx-logo.png" );
         if ( !Files.exists( imagePath ) ) {
             return;
         }
@@ -59,7 +63,7 @@ public class SplashPreloader extends Preloader {
     @Override
     public void handleStateChangeNotification( StateChangeNotification info ) {
         if ( info.getType() == StateChangeNotification.Type.BEFORE_START ) {
-            if ( stage != null ) {
+            if ( stage != null && stage.getScene() != null ) {
                 var root = stage.getScene().getRoot();
                 var duration = Duration.seconds( 1 );
 
