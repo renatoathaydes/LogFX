@@ -1,16 +1,14 @@
-properties:
-  versions:
-    logfx: "1.3.0"
-    slf4j: "2.0.16"
+imports:
+  - "resources/build-properties.yaml"
 
 group: com.athaydes.logfx
 module: logfx
 name: LogFX
-version: "1.3.0"
+version: "{{versions.logfx}}"
 description: A beautiful log viewer capable of handling large files.
 
 source-dirs: [ src/main/java, src/common/java ]
-resource-dirs: [ src/main/resources, src/common/resources ]
+resource-dirs: [ resources, src/main/resources, src/common/resources ]
 
 extension-project: splash-maker
 

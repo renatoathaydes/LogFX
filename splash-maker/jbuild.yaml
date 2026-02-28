@@ -1,12 +1,15 @@
+imports:
+  - "../resources/build-properties.yaml"
+
 group: com.athaydes.logfx
 module: logfx-jb-extension
-version: '0.0.0'
+version: "{{versions.logfx}}"
 
 source-dirs: [ src/main/java, ../src/common/java ]
-resource-dirs: [ ../src/common/resources ]
+resource-dirs: [ ../src/common/resources, ../resources ]
 
 run-java-args: ["-Djava.awt.headless=true"]
 
 dependencies:
-  com.athaydes.jbuild:jbuild-api:0.12.0:
+  com.athaydes.jbuild:jbuild-api:{{versions.jbuild-api}}:
     scope: compile-only

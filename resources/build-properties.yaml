@@ -1,0 +1,10 @@
+# This file is imported by jbuild.yaml and included as a resource in the LogFX jar.
+# At runtime, it is parsed as a Java properties file by BuildProperties.
+# For that reason, it must be kept as being both a valid YAML and properties file.
+properties:
+  versions:
+    logfx: "1.3.0"
+    slf4j: "2.0.16"
+    jbuild-api: "0.14.0"
+
+    

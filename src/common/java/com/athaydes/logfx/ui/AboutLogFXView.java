@@ -1,6 +1,6 @@
 package com.athaydes.logfx.ui;
 
-import com.athaydes.logfx.Constants;
+import com.athaydes.logfx.BuildProperties;
 import javafx.geometry.Pos;
 import javafx.scene.Group;
 import javafx.scene.layout.HBox;
@@ -35,7 +35,7 @@ public class AboutLogFXView {
         VBox smallText = new VBox( 10 );
         smallText.setPrefWidth( 500 );
         smallText.setAlignment( Pos.CENTER );
-        Text version = new Text( "Version " + Constants.LOGFX_VERSION );
+        Text version = new Text( "Version " + BuildProperties.version() );
         Text byRenato = new Text( "Copyright Renato Athaydes, 2017-2025. All rights reserved." );
         Text license = new Text( "Licensed under the GPLv3 License." );
         Group fontsAttribution = new Group(
