@@ -82,6 +82,34 @@ public class Jlink implements JbTask {
 
     private static void createZip( Path sourceDir, Path zipPath ) throws IOException {
         Files.deleteIfExists( zipPath );
+        var isWindows = System.getProperty( "os.name", "" ).toLowerCase( Locale.ROOT ).contains( "windows" );
+
+        if ( !isWindows ) {
+            // Use the system zip command to preserve Unix file permissions (e.g. executable bit)
+            createZipUsingCommand( sourceDir, zipPath );
+        } else {
+            createZipUsingJava( sourceDir, zipPath );
+        }
+    }
+
+    private static void createZipUsingCommand( Path sourceDir, Path zipPath ) throws IOException {
+        try {
+            var process = new ProcessBuilder(
+                    "zip", "-r", zipPath.toAbsolutePath().toString(), "." )
+                    .directory( sourceDir.toFile() )
+                    .inheritIO()
+                    .start();
+            var exitCode = process.waitFor();
+            if ( exitCode != 0 ) {
+                throw new JBuildException( "zip command failed with code: " + exitCode, ACTION_ERROR );
+            }
+        } catch ( InterruptedException e ) {
+            Thread.currentThread().interrupt();
+            throw new JBuildException( "zip command was interrupted", ACTION_ERROR );
+        }
+    }
+
+    private static void createZipUsingJava( Path sourceDir, Path zipPath ) throws IOException {
         var env = new HashMap<String, String>();
         env.put( "create", "true" );
         var zipUri = URI.create( "jar:" + zipPath.toUri() );
