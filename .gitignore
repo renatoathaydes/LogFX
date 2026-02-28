@@ -3,6 +3,7 @@
 
 /build/
 /splash-maker/build/
+/src/test/build/
 /.gradle/
 /.idea/
 
