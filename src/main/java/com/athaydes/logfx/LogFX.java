@@ -47,7 +47,6 @@ import javafx.stage.StageStyle;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.SplashScreen;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -152,11 +151,7 @@ public final class LogFX extends Application {
         primaryStage.setScene( scene );
         primaryStage.setTitle( TITLE );
 
-        SplashScreen splashScreen = SplashScreen.getSplashScreen();
-
-        if ( splashScreen == null ) {
-            primaryStage.show();
-        }
+        primaryStage.show();
 
         primaryStage.setOnHidden( event -> {
             logsPane.close();
@@ -172,12 +167,6 @@ public final class LogFX extends Application {
 
             logsPane.panesDividersProperty().addListener( observable ->
                     taskRunner.runWithMaxFrequency( dividersUpdater, 2000L, 2000L ) );
-
-            // all done, show the stage if necessary, then hide the splash screen
-            if ( splashScreen != null ) {
-                primaryStage.show();
-                splashScreen.close();
-            }
         } );
 
         config.onReload( () -> Platform.runLater( () -> {

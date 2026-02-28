@@ -1,5 +1,6 @@
 package com.athaydes.logfx.build;
 
+import com.athaydes.logfx.splash.SplashMaker;
 import jbuild.api.*;
 import jbuild.api.config.JbConfig;
 
@@ -68,6 +69,10 @@ public class Jlink implements JbTask {
         Files.copy(
                 Paths.get( "src", "main", "sh", logfxScript ),
                 Paths.get( "build", "image", "bin", logfxScript ) );
+
+        // generate splash screen image in the image's bin/ directory
+        log.verbosePrintln( "Generating splash screen image" );
+        new SplashMaker().run( "build/image/bin/logfx-logo" );
 
         // zip the image
         var zipPath = Path.of( "build", "logfx-" + config.version + ".zip" );

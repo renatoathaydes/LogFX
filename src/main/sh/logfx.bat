@@ -2,6 +2,6 @@
 
 set DIR=%~dp0
 
-set VM_OPTIONS=%VM_OPTIONS% -Xms32m
-start "%DIR%java" -splash:"%DIR%logfx-logo.png" %VM_OPTIONS% -m com.athaydes.logfx/com.athaydes.logfx.LogFX %*
+set VM_OPTIONS=%VM_OPTIONS% -Djavafx.preloader=com.athaydes.logfx.SplashPreloader -Xms32m
+start "%DIR%java" %VM_OPTIONS% -m com.athaydes.logfx/com.athaydes.logfx.LogFX %*
 exit
