@@ -76,7 +76,7 @@ More in the [Wiki](https://github.com/renatoathaydes/LogFX/wiki/Screenshots) and
 
 ## Building
 
-This project is built with [jb](https://renatoathaydes.github.io/jb/) and a JDK (tested with Java 25, probably still works with 17+) that includes JavaFX.
+This project is built with [jb](https://renatoathaydes.github.io/jb/) and needs a JDK (tested with Java 25, probably still works with 17+) that includes JavaFX to compile.
 
 To build LogFX:
 
