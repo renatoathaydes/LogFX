@@ -8,14 +8,13 @@ jobs:
       matrix:
         include:
           - os: ubuntu-latest
-            oskind: linux
-            jb_platform: linux
+            oskind: linux-x86
+          - os: ubuntu-24.04-arm
+            oskind: linux-arm64
           - os: macos-latest
-            oskind: mac
-            jb_platform: macos-arm64
+            oskind: mac-arm64
           - os: windows-latest
             oskind: windows
-            jb_platform: windows
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v1
@@ -34,8 +33,8 @@ jobs:
         uses: dsaltares/fetch-gh-release-asset@master
         with:
           repo: 'renatoathaydes/jb'
-          version: 'tags/0.16.0'
-          file: 'jb-0.16.0-${{ matrix.jb_platform }}.tar.gz'
+          version: 'tags/0.16.1'
+          file: 'jb-0.16.1-${{ matrix.oskind }}.tar.gz'
           target: jb.tar.gz
 
       - name: Install jb
