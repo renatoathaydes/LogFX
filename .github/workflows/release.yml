@@ -1,0 +1,59 @@
+name: Build Release Artifacts
+on:
+  release:
+    types: [created]
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            oskind: linux-x86
+          - os: ubuntu-24.04-arm
+            oskind: linux-arm64
+          - os: macos-latest
+            oskind: macos-arm64
+          - os: windows-latest
+            oskind: windows
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '25'
+          java-package: 'jdk+fx'
+
+      - name: Get the version
+        id: get_version
+        run: echo "VERSION=${GITHUB_REF/refs\/tags\//}" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+      - name: Download jb
+        uses: dsaltares/fetch-gh-release-asset@master
+        with:
+          repo: 'renatoathaydes/jb'
+          version: 'tags/0.16.1'
+          file: 'jb-0.16.1-${{ matrix.oskind }}.tar.gz'
+          target: jb.tar.gz
+
+      - name: Install jb
+        run: |
+              mkdir jb
+              tar xzf jb.tar.gz -C jb
+        shell: bash
+
+      - name: Package Java Image
+        uses: GabrielBB/xvfb-action@v1.0
+        with:
+          run: jb/bin/jb -d jlink
+
+      - uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: build/logfx-${{ steps.get_version.outputs.VERSION }}.zip
+          asset_name: logfx-${{ steps.get_version.outputs.VERSION }}-${{ matrix.oskind }}.zip
+          asset_content_type: application/zip

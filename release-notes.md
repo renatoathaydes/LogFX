@@ -1,5 +1,12 @@
 ## LogFX Release Notes
 
+## 1.3
+
+> 27 Feb 2026
+
+* fixed memory leak caused by inline CSS style caching in JavaFX.
+* fixed log files not reopening in the same order across restarts.
+
 ## 1.2
 
 > 31 Aug 2025

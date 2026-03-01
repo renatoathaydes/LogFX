@@ -80,24 +80,12 @@ Label {
     -fx-font-size: 9;
 }
 
-.log-line {
-    -fx-padding: 0 5 0 5;
-}
-
-.log-line.with-time-gap {
-}
-
 .log-line-time-gap {
     -fx-background-color: #efefefff;
     -fx-background-image: url("jrt:/com.athaydes.logfx/com/athaydes/logfx/images/timegap.png");
     -fx-padding: 0 0 0 100px;
     -fx-text-fill: black;
     -fx-font-size: 10;
-}
-
-.log-line.selected {
-    -fx-background-color: -fx-focus-color !important;
-    -fx-text-fill: derive(-fx-focus-color, -80%) !important;
 }
 
 LogView.dropping-files {

@@ -8,7 +8,7 @@ class FileSearcherSpec extends Specification {
         given: 'A simple file reader'
         def reader = Mock( FileContentReader ) {
             1 * refresh() >>> [ Optional.of( [ 'abc', 'def', 'ghi', 'jkl' ] ), Optional.empty() ]
-            movePageDown() >>> Optional.empty()
+            movePageDown() >> Optional.empty()
             movePageUp() >>> [ Optional.of( [ 'aa', 'aaa' ] ), Optional.empty() ]
         }
 
