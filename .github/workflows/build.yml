@@ -12,7 +12,7 @@ jobs:
           - os: ubuntu-24.04-arm
             oskind: linux-arm64
           - os: macos-latest
-            oskind: mac-arm64
+            oskind: macos-arm64
           - os: windows-latest
             oskind: windows
     runs-on: ${{ matrix.os }}
