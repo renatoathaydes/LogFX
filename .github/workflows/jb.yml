@@ -51,7 +51,8 @@ jobs:
         run: jb/bin/jb -d -p src/test compile test || true
 
       - name: Publish Test Report
-        uses: scacap/action-surefire-report@v1
+        if: success() || failure()
+        uses: ScalableCapital/action-surefire-report@v2
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           report_paths: 'src/test/build/test-reports/TEST-*.xml'
