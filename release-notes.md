@@ -1,5 +1,11 @@
 ## LogFX Release Notes
 
+## Unreleased
+
+* fixed Windows launcher (`logfx.bat`) failing with "Windows cannot find
+  '-Djavafx.preloader=...'". `start` treats a quoted first argument as the
+  window title, so the title argument was restored (#36).
+
 ## 1.3
 
 > 27 Feb 2026
